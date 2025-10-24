@@ -1,0 +1,9 @@
+# 依赖包（很大，无需上传，别人下载后自己安装）
+node_modules/
+
+# 环境变量（包含数据库密码、API密钥等敏感信息）
+.env
+
+# npm生成的日志文件
+npm-debug.log*
+yarn-debug.log*
