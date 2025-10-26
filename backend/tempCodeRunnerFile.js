@@ -1,2 +1,0 @@
-
-const cors = require('cors');
