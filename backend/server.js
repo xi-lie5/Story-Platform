@@ -4,20 +4,18 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 
+const authRoutes = require('./routes/auth');
+const errorHandler = require('./middleware/errorHandler')
+
 // 加载.env配置
 dotenv.config();
-
-const authRoutes = require('./rotues/auth');
-// 导入路由（后面创建后取消注释）
-// app.use('/api/auth', require('./routes/auth'));
-// app.use('/api/stories', require('./routes/stories'));
 
 // 创建服务器实例
 const app = express();
 
-// 中间件：解决跨域、解析JSON请求
+// 中间件：解决跨域、解析JSON请求---要在路由实例化之前
 app.use(cors());
-app.use(express.json());
+app.use(express.json());//把前端发送的 JSON 字符串解析成 JavaScript 对象
 
 // 连接数据库（MongoDB）
 mongoose.connect(process.env.MONGODB_URI)
@@ -25,12 +23,17 @@ mongoose.connect(process.env.MONGODB_URI)
   .catch(err => console.error('❌ MongoDB连接失败:', err));
 
 
-  // 注册路由（匹配API文档的基础URL：/api/v1）
+// 注册路由（匹配API文档的基础URL：/api/v1）
 const BASE_URL = '/api/v1';
+// 原挂载代码（第40行）
 app.use(`${BASE_URL}/auth`, authRoutes);
+// app.use('/api/auth',authRoutes);
+// app.use('/api/stories', require('./routes/stories'));
+
+ 
 
 // 测试接口（访问http://localhost:5000/api/test会返回成功消息）
-app.get('/api/v1/test', (req, res) => {
+app.get(`${BASE_URL}/test`, (req, res) => {
   res.send({ message: '后端接口能通啦！' });
 });
 

@@ -1,6 +1,6 @@
-const mongosse = require('mongoose');
+const mongoose = require('mongoose'); // 关键：导入 mongoose 模块
 const bcrypt = require('bcryptjs');
-const userSchema = new mongosse.Schema({
+const userSchema = new mongoose.Schema({
     username: {
         type: String,
         match: [/^[a-zA-Z0-9_]{1,20}$/, '用户名只能包含字母、数字、下划线,长度1-20位'],
@@ -17,11 +17,11 @@ const userSchema = new mongosse.Schema({
     },
     password: {
         type: String,
-        match: [/^[a-zA-Z0-9_]{6,20}$/, '密码只能包含字母、数字、下划线,长度6-20位'],
+        match: [/^[a-zA-Z0-9_]{8,}$/, '密码只能包含字母、数字、下划线,长度不能少于8位'],
         required: [true, '密码必填'],
         trim: true
     },
-    confirmpassword: {
+    confirmPassword: {
         type: String,
         required: [true, '请确认密码'],
         validate: {
