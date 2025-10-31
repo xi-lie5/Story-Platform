@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <!-- 头部内容与index.html完全一致 -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>探索故事 - StoryForge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = { /* 与index.html完全一致 */ }
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities { /* 与index.html完全一致 */ }
+    @keyframes float { /* 与index.html完全一致 */ }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen text-slate-800 font-sans">
+  <!-- 导航栏：与index.html完全一致 -->
+  <header class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" id="navbar">
+    <!-- 复制index.html的header代码 -->
+  </header>
+
+  <!-- 探索故事内容区域（核心替换部分） -->
+  <section class="pt-32 pb-20 px-4">
+    <div class="container mx-auto max-w-6xl">
+      <!-- 页面标题与筛选 -->
+      <div class="flex flex-col md:flex-row md:items-end justify-between mb-12">
+        <div>
+          <h2 class="text-3xl md:text-4xl font-display font-bold mb-4">探索精彩故事</h2>
+          <p class="text-lg text-slate-600 max-w-2xl">发现社区创作者与AI协作的故事，获取灵感或体验不同分支</p>
+        </div>
+        <!-- 分类筛选（与原页面一致，添加跳转参数） -->
+        <div class="mt-6 md:mt-0 flex space-x-2 overflow-x-auto pb-2">
+          <a href="explore.html?type=all" class="px-4 py-2 rounded-full bg-primary text-white whitespace-nowrap">全部故事</a>
+          <a href="explore.html?type=fantasy" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 whitespace-nowrap">奇幻冒险</a>
+          <a href="explore.html?type=sci-fi" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 whitespace-nowrap">科幻未来</a>
+          <a href="explore.html?type=mystery" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 whitespace-nowrap">悬疑推理</a>
+          <a href="explore.html?type=romance" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 whitespace-nowrap">爱情故事</a>
+        </div>
+      </div>
+
+      <!-- 故事列表（扩展原页面，增加更多卡片） -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- 故事卡片1 -->
+        <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow group">
+          <div class="relative h-48 overflow-hidden">
+            <img src="https://picsum.photos/id/1035/600/400" alt="迷失的星系" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            <div class="absolute top-3 left-3 bg-primary/90 text-white text-xs px-2 py-1 rounded">科幻未来</div>
+            <div class="absolute top-3 right-3 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded flex items-center">
+              <i class="fa fa-code-fork mr-1"></i> 8个结局
+            </div>
+          </div>
+          <div class="p-5">
+            <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">迷失的星系</h3>
+            <p class="text-slate-600 text-sm mb-4 line-clamp-2">飞船穿越虫洞，船员在陌生星系寻找回家路，每步决定改变命运。</p>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                <img src="https://picsum.photos/id/1012/32/32" alt="作者头像" class="w-8 h-8 rounded-full mr-2">
+                <span class="text-sm text-slate-500">星际旅行者</span>
+              </div>
+              <a href="story-detail.html?id=1" class="text-primary text-sm font-medium hover:underline">开始阅读 <i class="fa fa-arrow-right ml-1"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 故事卡片2 -->
+        <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow group">
+          <div class="relative h-48 overflow-hidden">
+            <img src="https://picsum.photos/id/1059/600/400" alt="魔法图书馆" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            <div class="absolute top-3 left-3 bg-secondary/90 text-white text-xs px-2 py-1 rounded">奇幻冒险</div>
+            <div class="absolute top-3 right-3 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded flex items-center">
+              <i class="fa fa-code-fork mr-1"></i> 12个结局
+            </div>
+          </div>
+          <div class="p-5">
+            <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">魔法图书馆</h3>
+            <p class="text-slate-600 text-sm mb-4 line-clamp-2">会移动的图书馆藏有改变现实的书，年轻管理员发现颠覆世界的秘密。</p>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                <img src="https://picsum.photos/id/1027/32/32" alt="作者头像" class="w-8 h-8 rounded-full mr-2">
+                <span class="text-sm text-slate-500">墨水法师</span>
+              </div>
+              <a href="story-detail.html?id=2" class="text-primary text-sm font-medium hover:underline">开始阅读 <i class="fa fa-arrow-right ml-1"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 故事卡片3-6：重复风格，替换图片、文字、id -->
+        <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow group">
+          <div class="relative h-48 overflow-hidden">
+            <img src="https://picsum.photos/id/1062/600/400" alt="午夜咖啡馆" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            <div class="absolute top-3 left-3 bg-amber-500/90 text-white text-xs px-2 py-1 rounded">悬疑推理</div>
+            <div class="absolute top-3 right-3 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded flex items-center">
+              <i class="fa fa-code-fork mr-1"></i> 6个结局
+            </div>
+          </div>
+          <div class="p-5">
+            <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">午夜咖啡馆</h3>
+            <p class="text-slate-600 text-sm mb-4 line-clamp-2">午夜开门的神秘咖啡馆，顾客能遇见未来的自己，改变未来需付代价。</p>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                <img src="https://picsum.photos/id/1025/32/32" alt="作者头像" class="w-8 h-8 rounded-full mr-2">
+                <span class="text-sm text-slate-500">时间旅人</span>
+              </div>
+              <a href="story-detail.html?id=3" class="text-primary text-sm font-medium hover:underline">开始阅读 <i class="fa fa-arrow-right ml-1"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow group">
+          <div class="relative h-48 overflow-hidden">
+            <img src="https://picsum.photos/id/1040/600/400" alt="海底城市" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            <div class="absolute top-3 left-3 bg-primary/90 text-white text-xs px-2 py-1 rounded">科幻未来</div>
+            <div class="absolute top-3 right-3 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded flex items-center">
+              <i class="fa fa-code-fork mr-1"></i> 9个结局
+            </div>
+          </div>
+          <div class="p-5">
+            <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">海底城市</h3>
+            <p class="text-slate-600 text-sm mb-4 line-clamp-2">海平面上升后，人类移居海底城市，一场神秘瘟疫威胁着生存。</p>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                <img src="https://picsum.photos/id/1014/32/32" alt="作者头像" class="w-8 h-8 rounded-full mr-2">
+                <span class="text-sm text-slate-500">深海探索者</span>
+              </div>
+              <a href="story-detail.html?id=4" class="text-primary text-sm font-medium hover:underline">开始阅读 <i class="fa fa-arrow-right ml-1"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow group">
+          <div class="relative h-48 overflow-hidden">
+            <img src="https://picsum.photos/id/1054/600/400" alt="精灵契约" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            <div class="absolute top-3 left-3 bg-secondary/90 text-white text-xs px-2 py-1 rounded">奇幻冒险</div>
+            <div class="absolute top-3 right-3 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded flex items-center">
+              <i class="fa fa-code-fork mr-1"></i> 11个结局
+            </div>
+          </div>
+          <div class="p-5">
+            <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">精灵契约</h3>
+            <p class="text-slate-600 text-sm mb-4 line-clamp-2">少年与精灵签订契约，获得魔法力量，但契约背后藏着古老诅咒。</p>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                <img src="https://picsum.photos/id/1005/32/32" alt="作者头像" class="w-8 h-8 rounded-full mr-2">
+                <span class="text-sm text-slate-500">森林守护者</span>
+              </div>
+              <a href="story-detail.html?id=5" class="text-primary text-sm font-medium hover:underline">开始阅读 <i class="fa fa-arrow-right ml-1"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow group">
+          <div class="relative h-48 overflow-hidden">
+            <img src="https://picsum.photos/id/1069/600/400" alt="时光邮局" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            <div class="absolute top-3 left-3 bg-amber-500/90 text-white text-xs px-2 py-1 rounded">悬疑推理</div>
+            <div class="absolute top-3 right-3 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded flex items-center">
+              <i class="fa fa-code-fork mr-1"></i> 7个结局
+            </div>
+          </div>
+          <div class="p-5">
+            <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">时光邮局</h3>
+            <p class="text-slate-600 text-sm mb-4 line-clamp-2">小镇邮局能寄送信件到过去，女孩寄信挽回父亲，却引发蝴蝶效应。</p>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                <img src="https://picsum.photos/id/1006/32/32" alt="作者头像" class="w-8 h-8 rounded-full mr-2">
+                <span class="text-sm text-slate-500">记忆信使</span>
+              </div>
+              <a href="story-detail.html?id=6" class="text-primary text-sm font-medium hover:underline">开始阅读 <i class="fa fa-arrow-right ml-1"></i></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 加载更多按钮 -->
+      <div class="text-center mt-12">
+        <button class="px-8 py-3 rounded-full bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">
+          加载更多故事 <i class="fa fa-refresh ml-2"></i>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 页脚：与index.html完全一致 -->
+  <footer class="bg-slate-900 text-white py-12 px-4">
+    <!-- 复制index.html的footer代码 -->
+  </footer>
+
+  <!-- JavaScript：与index.html完全一致 -->
+  <script>
+    // 复制index.html的JavaScript代码
+  </script>
+</body>
+</html>
