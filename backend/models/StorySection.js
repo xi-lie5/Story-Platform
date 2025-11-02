@@ -13,6 +13,12 @@ const StorySectionSchema = new mongoose.Schema({
         required: [true, '章节类型必填'],
         eum: ['text', 'choice']
     },
+    //章节顺序（数字越小越靠前）
+    order: {
+        type: Number,
+        required: [true, '章节顺序必填'],
+        min: 1 // 顺序从1开始（符合用户对“第一章”的认知）
+    },
     text: {
         type: String,
         required: [true, '章节文本必填']
@@ -37,5 +43,12 @@ const StorySectionSchema = new mongoose.Schema({
         timestamps: true
     }
 )
+
+//关键索引：同一故事内章节顺序不能重复
+StorySectionSchema.index(
+  { story: 1, order: 1 },
+  { unique: true, message: '同一故事内章节顺序不能重复' }
+);
+
 
 module.exports = mongoose.model('StorySection', StorySectionSchema);

@@ -10,13 +10,13 @@ const StorySchema = new mongoess.Schema({
     },
     author: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'User',//约等于设置User外键
         required: [true, '故事作者ID必填'],
-        index: true
+        index: true // 索引优化：按作者查询故事
     },
     category: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Category',
+        ref: 'Category',//约等于设置Category外键
         required: [true, '分类ID必填'],
         index: true // 索引优化：按分类筛选故事（API的category参数）
     },
@@ -28,12 +28,14 @@ const StorySchema = new mongoess.Schema({
         type: String,
         require: [true, '故事描述必填'],
     },
+    // 评分范围（API文档字段）
     rating: {
         type: Number,
         default: 0,
         min: 0,
         max: 5
     },
+    // 浏览量（API文档字段）
     view: {
         type: Number,
         default: 0,
@@ -51,8 +53,9 @@ const StorySchema = new mongoess.Schema({
 StorySchema.virtuals("sections", {
     ref: 'StorySection',
     localField: '_id',
-    foreignField: 'story',
+    foreignField: 'storyId',
 })
+
 // 索引优化：按标题/简介搜索（API的search参数）
 StorySchema.index({ title: 'text', description: 'text' });
 StorySchema.index({ createdAt: -1 });//Mongoose 提供了一个 timestamps 选项，可以自动为你的模型添加 createdAt 和 updatedAt 字段
