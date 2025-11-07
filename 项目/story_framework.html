@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>故事节点图谱 - StoryForge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#4f46e5',
+            node: '#4f46e5',
+            line: '#94a3b8',
+            canvas: '#fafafa'
+          },
+          boxShadow: {
+            'node': '0 2px 8px rgba(0, 0, 0, 0.08)',
+            'node-hover': '0 4px 16px rgba(0, 0, 0, 0.12)',
+            'node-active': '0 0 0 2px rgba(79, 70, 229, 0.5)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    /* 画布样式 */
+    #canvas-container {
+      touch-action: none;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+    }
+    #canvas-container.grabbing {
+      cursor: grabbing;
+    }
+    #story-canvas {
+      position: absolute;
+      width: 20000px;
+      height: 20000px;
+      top: 50%;
+      left: 50%;
+      transform-origin: center;
+      transition: transform 0.2s ease-out;
+    }
+    .canvas-wrapper {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 连线样式 */
+    .connection-line {
+      position: absolute;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .connection-line-path {
+      stroke: theme('colors.line');
+      stroke-width: 1.5px;
+      fill: none;
+    }
+    .connection-arrow {
+      fill: theme('colors.line');
+    }
+    .connection-label {
+      font-size: 12px;
+      fill: #64748b;
+      pointer-events: none;
+      text-anchor: middle;
+    }
+
+    /* 节点样式 */
+    .story-node {
+      position: absolute;
+      transition: all 0.2s ease;
+      cursor: grab;
+      user-select: none;
+      min-width: 220px;
+      max-width: 280px;
+      z-index: 10;
+    }
+    .story-node:active {
+      cursor: grabbing;
+    }
+    .story-node:hover {
+      transform: translateY(-2px);
+      box-shadow: theme('boxShadow.node-hover');
+    }
+    .story-node.dragging {
+      opacity: 0.9;
+      z-index: 20 !important;
+    }
+    .story-node.active {
+      box-shadow: theme('boxShadow.node-active');
+    }
+    .node-content {
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    /* 连线工具样式 */
+    .connection-tool {
+      position: absolute;
+      left: 20px;
+      top: 20px;
+      z-index: 30;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 10px;
+    }
+
+    /* 迷你地图 */
+    #minimap {
+      border: 1px solid #e2e8f0;
+      background-color: rgba(255, 255, 255, 0.9);
+      overflow: hidden;
+    }
+    #minimap-viewport {
+      position: absolute;
+      border: 2px solid theme('colors.primary');
+      background-color: rgba(79, 70, 229, 0.1);
+      pointer-events: none;
+    }
+    .minimap-node {
+      position: absolute;
+      border-radius: 4px;
+      background-color: theme('colors.node');
+      width: 6px;
+      height: 6px;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex flex-col">
+  <!-- 顶部导航 -->
+  <header class="bg-white border-b border-slate-200 shadow-sm z-30">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <i class="fa fa-project-diagram text-primary text-xl"></i>
+        <h1 class="text-lg font-bold">StoryForge 节点图谱</h1>
+      </div>
+      
+      <div class="flex items-center gap-4">
+        <button id="save-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors">
+          <i class="fa fa-save"></i>
+          <span>保存图谱</span>
+        </button>
+        <button id="export-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors">
+          <i class="fa fa-download"></i>
+          <span>导出数据</span>
+        </button>
+        <div class="h-6 w-px bg-slate-200"></div>
+        <button id="add-node-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-white rounded-md hover:bg-primary/90 transition-colors shadow-sm">
+          <i class="fa fa-plus"></i>
+          <span>添加节点</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 工具栏 -->
+  <div class="bg-white border-b border-slate-200 p-3 flex flex-wrap items-center justify-between gap-4 z-20">
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <h2 class="font-bold">故事节点图谱</h2>
+        <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">编辑中</span>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-4">
+      <!-- 缩放控制 -->
+      <div class="flex items-center border border-slate-200 rounded-md overflow-hidden">
+        <button id="zoom-out" class="w-8 h-8 flex items-center justify-center hover:bg-slate-50 transition-colors text-slate-600">
+          <i class="fa fa-minus text-xs"></i>
+        </button>
+        <div class="w-px h-6 bg-slate-200"></div>
+        <button id="zoom-reset" class="w-16 h-8 flex items-center justify-center hover:bg-slate-50 transition-colors text-slate-600 text-sm">
+          100%
+        </button>
+        <div class="w-px h-6 bg-slate-200"></div>
+        <button id="zoom-in" class="w-8 h-8 flex items-center justify-center hover:bg-slate-50 transition-colors text-slate-600">
+          <i class="fa fa-plus text-xs"></i>
+        </button>
+      </div>
+      
+      <!-- 统计信息 -->
+      <div class="flex items-center gap-4 text-sm text-slate-500">
+        <div><i class="fa fa-cube mr-1"></i> 节点: <span id="node-count">0</span></div>
+        <div><i class="fa fa-link mr-1"></i> 连接: <span id="connection-count">0</span></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 连线工具 -->
+  <div class="connection-tool">
+    <button id="start-connection" class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors">
+      <i class="fa fa-link text-primary"></i>
+      <span>创建连接</span>
+    </button>
+    <div id="connection-status" class="mt-2 text-xs text-slate-500 hidden">
+      选择起始节点...
+    </div>
+  </div>
+  
+  <!-- 主画布区域 -->
+  <main class="flex-1 relative flex overflow-hidden">
+    <div class="canvas-wrapper flex-1 bg-canvas" id="canvas-viewport">
+      <div id="canvas-container">
+        <!-- 故事节点画布 -->
+        <div id="story-canvas">
+          <!-- 节点将通过JS动态生成 -->
+        </div>
+      </div>
+    </div>
+    
+    <!-- 迷你地图 -->
+    <div id="minimap" class="w-64 h-48 rounded-md absolute right-4 bottom-4 z-20">
+      <div class="text-xs font-medium p-1.5 border-b border-slate-200 bg-slate-50">节点图谱预览</div>
+      <div id="minimap-content" class="relative w-full h-[calc(100%-40px)]">
+        <div id="minimap-viewport" style="width: 20%; height: 20%;"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // 节点图谱数据结构
+    let graphData = {
+      nodes: {},         // 节点集合 { id: { id, title, content, type, position: {x,y} } }
+      connections: []    // 连接关系 [{ from: id, to: id, description: "连接描述" }]
+    };
+
+    // 画布控制变量
+    let scale = 1;
+    const minScale = 0.1;
+    const maxScale = 3;
+    let panX = 0;
+    let panY = 0;
+    let isDraggingCanvas = false;
+    let startPanX, startPanY;
+    let activeNode = null;
+    let connectionMode = false;  // 是否处于连线模式
+    let connectionStart = null;  // 连线起始节点ID
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      loadGraphData();
+      // 关键改进：处理编辑页面创建的未关联分支（to为null的连接）
+      processUnlinkedConnections();
+      initCanvas();
+      bindEvents();
+    });
+
+    // 处理未关联的连接（编辑页面创建的分支）
+    function processUnlinkedConnections() {
+      // 查找所有"from存在但to为null"的连接（编辑页面创建的新分支）
+      const unlinkedConnections = graphData.connections.filter(conn => 
+        graphData.nodes[conn.from] && !conn.to
+      );
+
+      if (unlinkedConnections.length > 0) {
+        unlinkedConnections.forEach(conn => {
+          const fromNode = graphData.nodes[conn.from];
+          if (fromNode) {
+            // 为每个未关联连接创建新节点
+            const newNodeId = addNode(
+              `分支节点: ${conn.description}`,  // 新节点标题
+              `点击编辑"${conn.description}"后的故事内容...`,  // 新节点内容
+              { 
+                x: fromNode.position.x + 400,  // 位置在原节点右侧400px
+                y: fromNode.position.y + (Math.random() * 100 - 50)  // 轻微上下偏移避免重叠
+              },
+              false  // 不立即保存（批量处理后统一保存）
+            );
+
+            // 更新连接的to为新节点ID
+            conn.to = newNodeId;
+          }
+        });
+
+        // 批量保存更新后的数据
+        saveGraphData();
+        showToast(`已创建 ${unlinkedConnections.length} 个新节点`);
+      }
+    }
+
+    // 初始化画布
+    function initCanvas() {
+      // 如果没有节点，创建一个初始节点
+      if (Object.keys(graphData.nodes).length === 0) {
+        addNode("故事起点", "点击编辑节点内容...", { x: 0, y: 0 });
+      } else {
+        // 渲染所有节点
+        Object.values(graphData.nodes).forEach(node => {
+          renderNode(node);
+        });
+      }
+      
+      // 绘制所有连接
+      drawAllConnections();
+      
+      // 更新统计
+      updateStats();
+      // 更新迷你地图
+      updateMinimap();
+    }
+
+    // 渲染节点
+    function renderNode(node) {
+      const nodeElement = document.createElement('div');
+      nodeElement.className = 'story-node bg-node text-white p-4 rounded-lg shadow-node';
+      nodeElement.setAttribute('data-id', node.id);
+      nodeElement.style.left = `${node.position.x}px`;
+      nodeElement.style.top = `${node.position.y}px`;
+      
+      // 根据节点类型显示不同标识
+      const typeLabels = {
+        normal: "普通节点",
+        choice: "选择节点",
+        climax: "高潮节点",
+        ending: "结局节点"
+      };
+      
+      nodeElement.innerHTML = `
+        <div class="flex justify-between items-start mb-2">
+          <h3 class="font-bold text-base">${node.title}</h3>
+          <div class="flex gap-1">
+            <button class="edit-node-btn w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors" title="编辑节点">
+              <i class="fa fa-pencil text-xs"></i>
+            </button>
+            <button class="delete-node-btn w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors" title="删除节点">
+              <i class="fa fa-trash text-xs"></i>
+            </button>
+          </div>
+        </div>
+        <p class="text-sm opacity-90 node-content">${node.content}</p>
+        <div class="mt-2 pt-2 border-t border-white/20 flex justify-between items-center text-xs opacity-80">
+          <span>${typeLabels[node.type] || '普通节点'}</span>
+          <span>ID: ${node.id.slice(-4)}</span>
+        </div>
+      `;
+      
+      document.getElementById('story-canvas').appendChild(nodeElement);
+      bindNodeEvents(nodeElement);
+    }
+
+    // 绑定节点事件
+    function bindNodeEvents(nodeElement) {
+      const nodeId = nodeElement.getAttribute('data-id');
+      
+      // 编辑节点（跳转至编辑页面）
+      nodeElement.querySelector('.edit-node-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        // 跳转到编辑页面并传递节点ID
+        window.location.href = `story_editor.html?node=${nodeId}`;
+      });
+      
+      // 删除节点
+      nodeElement.querySelector('.delete-node-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm('确定要删除此节点吗？相关连接也会被删除')) {
+          deleteNode(nodeId);
+        }
+      });
+      
+      // 节点拖拽
+      let isDragging = false;
+      let startX, startY;
+      let nodeX, nodeY;
+      
+      nodeElement.addEventListener('mousedown', startDrag);
+      
+      function startDrag(e) {
+        e.stopPropagation();
+        if (connectionMode) {
+          handleConnectionNodeSelect(nodeId);
+          return;
+        }
+        
+        isDragging = true;
+        activeNode = nodeElement;
+        nodeElement.classList.add('dragging');
+        
+        const node = graphData.nodes[nodeId];
+        if (!node) return;
+        
+        // 记录初始位置
+        nodeX = node.position.x;
+        nodeY = node.position.y;
+        startX = e.clientX;
+        startY = e.clientY;
+        
+        document.addEventListener('mousemove', dragNode);
+        document.addEventListener('mouseup', endDrag);
+      }
+      
+      function dragNode(e) {
+        if (!isDragging || !activeNode) return;
+        
+        // 计算移动距离（考虑缩放）
+        const dx = (e.clientX - startX) / scale;
+        const dy = (e.clientY - startY) / scale;
+        
+        // 更新节点位置（无范围限制）
+        const newX = nodeX + dx;
+        const newY = nodeY + dy;
+        
+        const node = graphData.nodes[nodeId];
+        if (node) {
+          node.position.x = newX;
+          node.position.y = newY;
+          activeNode.style.left = `${newX}px`;
+          activeNode.style.top = `${newY}px`;
+          
+          // 更新关联连线
+          updateNodeConnections(nodeId);
+          updateMinimap();
+        }
+        
+        // 更新起点
+        startX = e.clientX;
+        startY = e.clientY;
+        nodeX = newX;
+        nodeY = newY;
+      }
+      
+      function endDrag() {
+        if (isDragging && activeNode) {
+          activeNode.classList.remove('dragging');
+          saveGraphData();
+        }
+        
+        isDragging = false;
+        activeNode = null;
+        document.removeEventListener('mousemove', dragNode);
+        document.removeEventListener('mouseup', endDrag);
+      }
+    }
+
+    // 处理连线模式下的节点选择
+    function handleConnectionNodeSelect(nodeId) {
+      if (!connectionStart) {
+        // 选择起始节点
+        connectionStart = nodeId;
+        document.querySelector(`.story-node[data-id="${nodeId}"]`).classList.add('active');
+        document.getElementById('connection-status').textContent = '选择目标节点...';
+        document.getElementById('connection-status').classList.remove('hidden');
+      } else if (connectionStart !== nodeId) {
+        // 选择目标节点，创建连接
+        createConnection(connectionStart, nodeId, "关联连接");
+        
+        // 重置连线模式
+        resetConnectionMode();
+      }
+    }
+
+    // 创建节点间连接
+    function createConnection(fromId, toId, description) {
+      // 避免重复连接
+      const exists = graphData.connections.some(conn => 
+        (conn.from === fromId && conn.to === toId) || 
+        (conn.from === toId && conn.to === fromId)
+      );
+      
+      if (!exists) {
+        graphData.connections.push({ 
+          from: fromId, 
+          to: toId,
+          description: description || "连接"
+        });
+        drawConnection(fromId, toId);
+        updateStats();
+        saveGraphData();
+      }
+    }
+
+    // 绘制所有连接
+    function drawAllConnections() {
+      // 清除现有连线
+      document.querySelectorAll('.connection-line').forEach(line => line.remove());
+      
+      // 绘制所有连接
+      graphData.connections.forEach(conn => {
+        drawConnection(conn.from, conn.to);
+      });
+    }
+
+    // 绘制单个连接（带描述文本）
+    function drawConnection(fromId, toId) {
+      const fromNode = graphData.nodes[fromId];
+      const toNode = graphData.nodes[toId];
+      const connection = graphData.connections.find(
+        conn => conn.from === fromId && conn.to === toId
+      );
+      
+      if (!fromNode || !toNode || !connection) return;
+      
+      const canvas = document.getElementById('story-canvas');
+      const fromEl = document.querySelector(`.story-node[data-id="${fromId}"]`);
+      const toEl = document.querySelector(`.story-node[data-id="${toId}"]`);
+      
+      if (!fromEl || !toEl) return;
+      
+      // 创建SVG元素
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.className = 'connection-line';
+      svg.style.width = '100%';
+      svg.style.height = '100%';
+      svg.style.position = 'absolute';
+      svg.style.top = '0';
+      svg.style.left = '0';
+      
+      // 计算节点中心点
+      const fromX = fromNode.position.x + fromEl.offsetWidth / 2;
+      const fromY = fromNode.position.y + fromEl.offsetHeight / 2;
+      const toX = toNode.position.x + toEl.offsetWidth / 2;
+      const toY = toNode.position.y + toEl.offsetHeight / 2;
+      
+      // 创建路径
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      
+      // 计算控制点（贝塞尔曲线使连线更自然）
+      const dx = Math.abs(toX - fromX);
+      const controlX = dx > 100 ? dx / 2 : 100;
+      
+      // 路径数据：M(起点) Q(控制点) (终点)
+      const pathData = `M ${fromX} ${fromY} Q ${fromX + controlX} ${fromY}, ${toX} ${toY}`;
+      path.setAttribute('d', pathData);
+      path.setAttribute('class', 'connection-line-path');
+      
+      // 添加箭头标记
+      svg.setAttribute('viewBox', `0 0 20000 20000`);
+      svg.insertAdjacentHTML('beforeend', `
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+                  refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" class="connection-arrow"/>
+          </marker>
+        </defs>
+      `);
+      path.setAttribute('marker-end', 'url(#arrowhead)');
+      
+      // 添加连接描述文本
+      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      const midX = (fromX + toX) / 2;
+      const midY = (fromY + toY) / 2 - 10; // 文本在连线上方10px
+      text.setAttribute('x', midX);
+      text.setAttribute('y', midY);
+      text.setAttribute('class', 'connection-label');
+      text.textContent = connection.description;
+      
+      svg.appendChild(path);
+      svg.appendChild(text);
+      canvas.appendChild(svg);
+      
+      // 存储连接信息
+      svg.setAttribute('data-from', fromId);
+      svg.setAttribute('data-to', toId);
+    }
+
+    // 更新节点关联的连线
+    function updateNodeConnections(nodeId) {
+      // 找到所有关联此节点的连接
+      const relatedConnections = graphData.connections.filter(conn => 
+        conn.from === nodeId || conn.to === nodeId
+      );
+      
+      // 重新绘制这些连接
+      relatedConnections.forEach(conn => {
+        // 先删除旧连线
+        document.querySelectorAll(`.connection-line[data-from="${conn.from}"][data-to="${conn.to}"]`)
+          .forEach(el => el.remove());
+        // 绘制新连线
+        drawConnection(conn.from, conn.to);
+      });
+    }
+
+    // 添加新节点
+    function addNode(title, content, position, save = true) {
+      const nodeId = Date.now().toString().slice(-6);
+      const newNode = {
+        id: nodeId,
+        title: title || "新节点",
+        content: content || "点击编辑内容...",
+        type: "normal",
+        position: position || { x: 0, y: 0 }
+      };
+      
+      graphData.nodes[nodeId] = newNode;
+      renderNode(newNode);
+      updateStats();
+      updateMinimap();
+      
+      if (save) {
+        saveGraphData();
+      }
+      
+      return nodeId;
+    }
+
+    // 删除节点
+    function deleteNode(nodeId) {
+      // 删除节点元素
+      const nodeEl = document.querySelector(`.story-node[data-id="${nodeId}"]`);
+      if (nodeEl) nodeEl.remove();
+      
+      // 删除关联连接
+      graphData.connections = graphData.connections.filter(conn => 
+        conn.from !== nodeId && conn.to !== nodeId
+      );
+      
+      // 从数据中删除节点
+      delete graphData.nodes[nodeId];
+      
+      // 重新绘制所有连线
+      drawAllConnections();
+      
+      // 更新统计和迷你地图
+      updateStats();
+      updateMinimap();
+      saveGraphData();
+    }
+
+    // 重置连线模式
+    function resetConnectionMode() {
+      connectionMode = false;
+      connectionStart = null;
+      document.getElementById('start-connection').classList.remove('bg-primary', 'text-white');
+      document.getElementById('start-connection').classList.add('bg-white', 'text-slate-600');
+      document.getElementById('connection-status').classList.add('hidden');
+      
+      // 移除所有节点的激活状态
+      document.querySelectorAll('.story-node').forEach(node => {
+        node.classList.remove('active');
+      });
+    }
+
+    // 更新统计信息
+    function updateStats() {
+      document.getElementById('node-count').textContent = Object.keys(graphData.nodes).length;
+      document.getElementById('connection-count').textContent = graphData.connections.length;
+    }
+
+    // 更新迷你地图
+    function updateMinimap() {
+      const minimapContent = document.getElementById('minimap-content');
+      const minimapWidth = minimapContent.clientWidth;
+      const minimapHeight = minimapContent.clientHeight;
+      const canvasSize = 20000; // 画布大小
+      
+      // 清除现有迷你节点
+      minimapContent.querySelectorAll('.minimap-node').forEach(node => node.remove());
+      
+      // 生成迷你节点
+      Object.values(graphData.nodes).forEach(node => {
+        const miniNode = document.createElement('div');
+        miniNode.className = 'minimap-node';
+        
+        // 计算迷你节点位置（相对画布比例）
+        const x = (node.position.x + canvasSize/2) / canvasSize * minimapWidth;
+        const y = (node.position.y + canvasSize/2) / canvasSize * minimapHeight;
+        
+        miniNode.style.left = `${x}px`;
+        miniNode.style.top = `${y}px`;
+        minimapContent.appendChild(miniNode);
+      });
+      
+      updateMinimapViewport();
+    }
+
+    // 更新迷你地图视口
+    function updateMinimapViewport() {
+      const viewport = document.getElementById('minimap-viewport');
+      const minimapContent = document.getElementById('minimap-content');
+      const minimapWidth = minimapContent.clientWidth;
+      const minimapHeight = minimapContent.clientHeight;
+      const canvasSize = 20000;
+      
+      // 计算视口在迷你地图中的位置和大小
+      const viewportScaleX = (minimapWidth * scale) / (canvasSize / minimapWidth);
+      const viewportScaleY = (minimapHeight * scale) / (canvasSize / minimapHeight);
+      
+      const viewportX = (panX / canvasSize) * minimapWidth + minimapWidth/2;
+      const viewportY = (panY / canvasSize) * minimapHeight + minimapHeight/2;
+      
+      viewport.style.width = `${Math.min(viewportScaleX, minimapWidth)}px`;
+      viewport.style.height = `${Math.min(viewportScaleY, minimapHeight)}px`;
+      viewport.style.left = `${Math.max(0, Math.min(viewportX, minimapWidth - viewportScaleX))}px`;
+      viewport.style.top = `${Math.max(0, Math.min(viewportY, minimapHeight - viewportScaleY))}px`;
+    }
+
+    // 更新画布变换
+    function updateCanvasTransform() {
+      const canvas = document.getElementById('story-canvas');
+      canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+      
+      // 更新缩放显示
+      document.getElementById('zoom-reset').textContent = `${Math.round(scale * 100)}%`;
+      
+      // 更新迷你地图视口
+      updateMinimapViewport();
+    }
+
+    // 保存图谱数据
+    function saveGraphData() {
+      localStorage.setItem('storyGraphData', JSON.stringify(graphData));
+    }
+
+    // 加载图谱数据
+    function loadGraphData() {
+      const saved = localStorage.getItem('storyGraphData');
+      if (saved) {
+        graphData = JSON.parse(saved);
+      }
+    }
+
+    // 显示提示消息
+    function showToast(message) {
+      let toast = document.querySelector('.toast-notification');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.className = 'toast-notification fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-md shadow-lg flex items-center gap-2 transition-opacity duration-300 z-50';
+        document.body.appendChild(toast);
+      }
+      
+      toast.innerHTML = `<i class="fa fa-info-circle text-blue-400"></i><span>${message}</span>`;
+      toast.style.opacity = '1';
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+      }, 2000);
+    }
+
+    // 绑定全局事件
+    function bindEvents() {
+      // 缩放控制
+      document.getElementById('zoom-in').addEventListener('click', () => {
+        scale = Math.min(scale + 0.1, maxScale);
+        updateCanvasTransform();
+      });
+      
+      document.getElementById('zoom-out').addEventListener('click', () => {
+        scale = Math.max(scale - 0.1, minScale);
+        updateCanvasTransform();
+      });
+      
+      document.getElementById('zoom-reset').addEventListener('click', () => {
+        scale = 1;
+        panX = 0;
+        panY = 0;
+        updateCanvasTransform();
+      });
+      
+      // 画布拖拽
+      const canvasContainer = document.getElementById('canvas-container');
+      
+      canvasContainer.addEventListener('mousedown', startCanvasDrag);
+      document.addEventListener('mousemove', dragCanvas);
+      document.addEventListener('mouseup', endCanvasDrag);
+      
+      function startCanvasDrag(e) {
+        // 如果点击在节点上，不拖拽画布
+        if (e.target.closest('.story-node') || connectionMode) return;
+        
+        isDraggingCanvas = true;
+        canvasContainer.classList.add('grabbing');
+        
+        startPanX = e.clientX;
+        startPanY = e.clientY;
+      }
+      
+      function dragCanvas(e) {
+        if (!isDraggingCanvas) return;
+        
+        // 计算平移距离
+        panX += (e.clientX - startPanX);
+        panY += (e.clientY - startPanY);
+        
+        // 更新起点
+        startPanX = e.clientX;
+        startPanY = e.clientY;
+        
+        updateCanvasTransform();
+      }
+      
+      function endCanvasDrag() {
+        if (isDraggingCanvas) {
+          canvasContainer.classList.remove('grabbing');
+        }
+        isDraggingCanvas = false;
+      }
+      
+      // 添加节点
+      document.getElementById('add-node-btn').addEventListener('click', () => {
+        // 在当前视图中心添加节点
+        const centerX = -panX / scale;
+        const centerY = -panY / scale;
+        const newNodeId = addNode("新节点", "点击编辑内容...", { x: centerX, y: centerY });
+        
+        // 聚焦新节点
+        const nodeEl = document.querySelector(`.story-node[data-id="${newNodeId}"]`);
+        if (nodeEl) nodeEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      });
+      
+      // 连线工具
+      document.getElementById('start-connection').addEventListener('click', () => {
+        if (connectionMode) {
+          resetConnectionMode();
+        } else {
+          connectionMode = true;
+          document.getElementById('start-connection').classList.remove('bg-white', 'text-slate-600');
+          document.getElementById('start-connection').classList.add('bg-primary', 'text-white');
+          document.getElementById('connection-status').textContent = '选择起始节点...';
+          document.getElementById('connection-status').classList.remove('hidden');
+        }
+      });
+      
+      // 保存图谱
+      document.getElementById('save-btn').addEventListener('click', () => {
+        saveGraphData();
+        showToast('图谱已保存');
+      });
+      
+      // 导出数据
+      document.getElementById('export-btn').addEventListener('click', () => {
+        const dataStr = JSON.stringify(graphData, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+        
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', 'story_graph.json');
+        linkElement.click();
+        
+        showToast('数据已导出');
+      });
+      
+      // 窗口大小变化时重绘连线
+      window.addEventListener('resize', drawAllConnections);
+    }
+  </script>
+</body>
+</html>

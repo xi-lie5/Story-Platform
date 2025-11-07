@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的作品 - StoryForge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#ec4899',
+                        progress: '#10b981'
+                    },
+                },
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <!-- 导航栏 -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur shadow-sm">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-book text-primary text-2xl"></i>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                    StoryForge</h1>
+            </div>
+
+            <nav class="hidden md:flex items-center space-x-8">
+                <a href="index.html" class="font-medium hover:text-primary transition-colors">首页</a>
+                <a href="explore.html" class="font-medium hover:text-primary transition-colors">探索故事</a>
+                <a href="create_story.html" class="font-medium hover:text-primary transition-colors">创建故事</a>
+                <a href="my_stories.html" class="font-medium text-primary transition-colors">我的作品</a>
+                <a href="about.html" class="font-medium hover:text-primary transition-colors">关于</a>
+            </nav>
+
+            <div class="flex items-center space-x-4">
+                <img src="https://picsum.photos/id/64/200" alt="用户头像"
+                    class="w-8 h-8 rounded-full object-cover border-2 border-primary">
+                <button class="md:hidden text-xl" id="mobile-menu-button">
+                    <i class="fa fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 移动端菜单 -->
+        <div class="md:hidden hidden bg-white shadow-lg absolute w-full" id="mobile-menu">
+            <div class="container mx-auto px-4 py-3 flex flex-col space-y-4">
+                <a href="index.html" class="font-medium py-2 hover:text-primary transition-colors">首页</a>
+                <a href="explore.html" class="font-medium py-2 hover:text-primary transition-colors">探索故事</a>
+                <a href="create_story.html" class="font-medium py-2 hover:text-primary transition-colors">创建故事</a>
+                <a href="my_stories.html" class="font-medium py-2 text-primary transition-colors">我的作品</a>
+                <a href="about.html" class="font-medium py-2 hover:text-primary transition-colors">关于</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要内容区 -->
+    <section class="pt-24 pb-20 px-4">
+        <div class="container mx-auto max-w-6xl">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <h2 class="text-2xl md:text-3xl font-bold">我的作品库</h2>
+                <a href="create_story.html"
+                    class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center">
+                    <i class="fa fa-plus mr-2"></i> 新建故事
+                </a>
+            </div>
+
+            <!-- 作品筛选 -->
+            <div class="bg-white rounded-2xl shadow-xl p-4 md:p-6 mb-8">
+                <div class="flex flex-wrap gap-3">
+                    <button class="px-4 py-2 bg-primary text-white rounded-lg text-sm">全部作品</button>
+                    <button
+                        class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition-colors">未完成</button>
+                    <button
+                        class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition-colors">已完成</button>
+                    <button
+                        class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition-colors">草稿</button>
+                </div>
+            </div>
+
+            <!-- 未完成作品 -->
+            <h3 class="text-xl font-bold mb-4 flex items-center">
+                <i class="fa fa-clock-o text-secondary mr-2"></i> 继续创作
+            </h3>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+                <!-- 未完成作品1（可直接跳转继续编辑） -->
+                <div
+                    class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border-l-4 border-secondary">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="font-bold text-lg mb-1">魔法森林的神秘之门</h3>
+                                <p class="text-sm text-slate-500">上次编辑：今天 14:35 · 奇幻冒险</p>
+                            </div>
+                            <span class="px-2 py-1 bg-secondary/10 text-secondary text-xs rounded-full">未完成</span>
+                        </div>
+
+                        <p class="text-slate-600 text-sm mb-4 line-clamp-2">年轻魔法师艾拉在森林中发现神秘门，她的每个选择都将触发不同的冒险历程...</p>
+
+                        <!-- 进度条 -->
+                        <div class="mb-4">
+                            <div class="flex justify-between text-xs text-slate-500 mb-1">
+                                <span>完成进度</span>
+                                <span>50%</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2">
+                                <div class="bg-progress h-2 rounded-full" style="width: 50%"></div>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <a href="story_editor.html"
+                                class="flex-1 px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors flex items-center justify-center text-sm">
+                                <i class="fa fa-edit mr-2"></i> 继续编辑
+                            </a>
+                            <a href="story_framework.html"
+                                class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center text-sm">
+                                <i class="fa fa-sitemap mr-2"></i> 查看框架
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 未完成作品2 -->
+                <div
+                    class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border-l-4 border-secondary">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="font-bold text-lg mb-1">时间旅行者的抉择</h3>
+                                <p class="text-sm text-slate-500">上次编辑：昨天 09:12 · 科幻未来</p>
+                            </div>
+                            <span class="px-2 py-1 bg-secondary/10 text-secondary text-xs rounded-full">未完成</span>
+                        </div>
+
+                        <p class="text-slate-600 text-sm mb-4 line-clamp-2">来自2077年的时间特工，必须在不改变历史的前提下完成拯救未来的任务...</p>
+
+                        <!-- 进度条 -->
+                        <div class="mb-4">
+                            <div class="flex justify-between text-xs text-slate-500 mb-1">
+                                <span>完成进度</span>
+                                <span>30%</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2">
+                                <div class="bg-progress h-2 rounded-full" style="width: 30%"></div>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <a href="story_editor.html?story=2&node=3"
+                                class="flex-1 px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors flex items-center justify-center text-sm">
+                                <i class="fa fa-edit mr-2"></i> 继续编辑
+                            </a>
+                            <a href="story_framework.html?story=2"
+                                class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center text-sm">
+                                <i class="fa fa-sitemap mr-2"></i> 查看框架
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 已完成作品 -->
+            <h3 class="text-xl font-bold mb-4 flex items-center">
+                <i class="fa fa-check-circle text-progress mr-2"></i> 已完成作品
+            </h3>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 已完成作品1 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="font-bold text-lg mb-1">老钟表店的秘密</h3>
+                                <p class="text-sm text-slate-500">完成于：2023-06-10 · 悬疑推理</p>
+                            </div>
+                            <span class="px-2 py-1 bg-progress/10 text-progress text-xs rounded-full">已完成</span>
+                        </div>
+
+                        <p class="text-slate-600 text-sm mb-4 line-clamp-2">小镇上的老钟表店能让人回到过去，但每次回溯都要付出意想不到的代价...</p>
+
+                        <div class="flex gap-3">
+                            <a href="#"
+                                class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center text-sm">
+                                <i class="fa fa-eye mr-2"></i> 查看完整故事
+                            </a>
+                            <a href="#"
+                                class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center text-sm">
+                                <i class="fa fa-share-alt mr-2"></i> 分享
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 已完成作品2 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="font-bold text-lg mb-1">雨季的图书馆</h3>
+                                <p class="text-sm text-slate-500">完成于：2023-05-28 · 爱情故事</p>
+                            </div>
+                            <span class="px-2 py-1 bg-progress/10 text-progress text-xs rounded-full">已完成</span>
+                        </div>
+
+                        <p class="text-slate-600 text-sm mb-4 line-clamp-2">每个雨季都会出现的神秘图书馆，藏着能改变命运的爱情小说，只读对的人...</p>
+
+                        <div class="flex gap-3">
+                            <a href="#"
+                                class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center text-sm">
+                                <i class="fa fa-eye mr-2"></i> 查看完整故事
+                            </a>
+                            <a href="#"
+                                class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center text-sm">
+                                <i class="fa fa-share-alt mr-2"></i> 分享
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="bg-slate-900 text-white py-12 px-4">
+        <div class="container mx-auto max-w-6xl">
+            <div class="border-t border-slate-800 pt-8 text-center text-slate-500 text-sm">
+                <p>&copy; 2023 StoryForge. 保留所有权利。</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 移动端菜单切换
+        document.getElementById('mobile-menu-button').addEventListener('click', function () {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // 通用功能：按钮点击反馈
+        document.querySelectorAll('button, a[href]').forEach(el => {
+            // 忽略外部链接和特定不需要反馈的元素
+            if (!el.href || el.href.includes(window.location.host) || el.tagName === 'BUTTON') {
+                el.addEventListener('click', function (e) {
+                    // 保存按钮逻辑
+                    if (this.innerHTML.includes('保存') || this.id === 'save-story' || this.id === 'save-btn') {
+                        e.preventDefault();
+                        showNotification('已保存成功！', 'success');
+                        return;
+                    }
+
+                    // 删除按钮逻辑
+                    if (this.innerHTML.includes('删除') || this.innerHTML.includes('放弃')) {
+                        e.preventDefault();
+                        if (confirm('确定要删除/放弃吗？此操作不可恢复')) {
+                            showNotification('已删除', 'info');
+                        }
+                        return;
+                    }
+
+                    // AI相关按钮逻辑
+                    if (this.id.includes('ai-') || this.innerHTML.includes('AI') || this.innerHTML.includes('续写')) {
+                        e.preventDefault();
+                        const originalHTML = this.innerHTML;
+                        this.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 处理中...';
+                        this.disabled = true;
+
+                        setTimeout(() => {
+                            this.innerHTML = originalHTML;
+                            this.disabled = false;
+                            showNotification('AI已完成处理，结果已更新', 'success');
+                        }, 1500);
+                        return;
+                    }
+
+                    // 添加分支/角色按钮逻辑
+                    if (this.innerHTML.includes('添加分支') || this.innerHTML.includes('添加角色')) {
+                        e.preventDefault();
+                        showNotification('已添加新分支/角色', 'success');
+                        return;
+                    }
+
+                    // 自动排列按钮逻辑
+                    if (this.innerHTML.includes('自动排列')) {
+                        e.preventDefault();
+                        showNotification('已自动排列节点', 'info');
+                        return;
+                    }
+
+                    // 导出按钮逻辑
+                    if (this.innerHTML.includes('导出')) {
+                        e.preventDefault();
+                        showNotification('导出成功，文件已下载', 'success');
+                        return;
+                    }
+                });
+            }
+        });
+
+        // 通知提示功能
+        function showNotification(message, type = 'info') {
+            // 创建通知元素
+            const notification = document.createElement('div');
+            notification.className = `fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center transition-all duration-300 transform translate-y-10 opacity-0`;
+
+            // 根据类型设置样式
+            if (type === 'success') {
+                notification.classList.add('bg-green-50', 'border', 'border-green-200', 'text-green-700');
+                notification.innerHTML = `<i class="fa fa-check-circle mr-2"></i>${message}`;
+            } else if (type === 'error') {
+                notification.classList.add('bg-red-50', 'border', 'border-red-200', 'text-red-700');
+                notification.innerHTML = `<i class="fa fa-exclamation-circle mr-2"></i>${message}`;
+            } else {
+                notification.classList.add('bg-blue-50', 'border', 'border-blue-200', 'text-blue-700');
+                notification.innerHTML = `<i class="fa fa-info-circle mr-2"></i>${message}`;
+            }
+
+            // 添加到页面
+            document.body.appendChild(notification);
+
+            // 显示动画
+            setTimeout(() => {
+                notification.classList.remove('translate-y-10', 'opacity-0');
+            }, 10);
+
+            // 3秒后隐藏
+            setTimeout(() => {
+                notification.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // 节点点击跳转（针对故事框架页）
+        document.querySelectorAll('.node-hover').forEach(node => {
+            node.addEventListener('click', function (e) {
+                if (!e.target.closest('button')) {
+                    const nodeTitle = this.querySelector('span').textContent;
+                    showNotification(`正在进入「${nodeTitle}」的编辑页面`, 'info');
+                    setTimeout(() => {
+                        window.location.href = 'story_editor.html';
+                    }, 500);
+                }
+            });
+        });
+
+        // 移动端菜单切换
+        document.getElementById('mobile-menu-button')?.addEventListener('click', function () {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // 初始化时检查是否有未完成作品跳转参数
+        window.addEventListener('DOMContentLoaded', function () {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('continue') === 'true') {
+                showNotification('检测到未完成作品，正在跳转...', 'info');
+            }
+        });
+    </script>
+</body>
+
+</html>

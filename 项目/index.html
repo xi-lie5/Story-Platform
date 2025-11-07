@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StoryForge - AI交互式故事生成平台</title>
+  <!-- 引入外部资源 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  
+  <!-- Tailwind配置 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6366f1', // 主色调：靛靛蓝色，代表创造力和智慧
+            secondary: '#ec4899', // 辅助色：粉色，代表想象力
+            dark: '#1e293b',
+            light: '#f8fafc'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['Playfair Display', 'serif']
+          },
+        },
+      }
+    }
+  </script>
+  
+  <!-- 自定义样式 -->
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .text-shadow {
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .animate-float {
+        animation: float 6s ease-in-out infinite;
+      }
+      .animate-pulse-slow {
+        animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      .backdrop-blur {
+        backdrop-filter: blur(8px);
+      }
+    }
+    
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-15px); }
+      100% { transform: translateY(0px); }
+    }
+  </style>
+</head>
+
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen text-slate-800 font-sans">
+  <!-- 导航栏 -->
+  <header class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" id="navbar">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between backdrop-blur bg-white/80 shadow-sm">
+      <div class="flex items-center space-x-2">
+        <i class="fa fa-book text-primary text-2xl"></i>
+        <h1 class="text-xl md:text-2xl font-display font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">StoryForge</h1>
+      </div>
+      
+      <nav class="hidden md:flex items-center space-x-8">
+        <a href="index.html" class="font-medium hover:text-primary transition-colors">首页</a>
+        <a href="about.html" class="font-medium hover:text-primary transition-colors">关于</a>
+      </nav>
+      
+      <div class="flex items-center space-x-4">
+        <button class="hidden md:block px-5 py-2 rounded-full bg-white text-primary border border-primary hover:bg-primary/5 transition-colors">
+          <a href="login.html" class="block w-full h-full">登录</a>
+        </button>
+        <button class="px-5 py-2 rounded-full bg-primary text-white hover:bg-primary/90 shadow-md hover:shadow-lg transition-all">
+            <a href="register.html" class="block w-full h-full">注册</a>
+        </button>
+        <button id="mobile-menu-button" class="md:hidden text-xl">
+          <i class="fa fa-bars"></i>
+        </button>
+      </div>
+    </div>
+    
+    <!-- 移动端菜单 -->
+    <div class="md:hidden hidden bg-white shadow-lg absolute w-full" id="mobile-menu">
+      <div class="p-4 space-y-3">
+        <a href="index.html" class="block font-medium py-2 hover:text-primary transition-colors">首页</a>
+        <a href="about.html" class="block font-medium py-2 hover:text-primary transition-colors">关于</a>
+        <button class="w-full px-5 py-2 rounded-full bg-white text-primary border border-primary hover:bg-primary/5 transition-colors">
+          <a href="login.html" class="block w-full h-full">登录</a>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 英雄区域 -->
+  <section class="pt-28 pb-20 md:pt-36 md:pb-28 px-4 relative overflow-hidden">
+    <div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/5 to-transparent -z-10"></div>
+    <div class="absolute bottom-0 left-0 w-1/3 h-1/2 bg-gradient-to-tr from-secondary/5 to-transparent -z-10"></div>
+    
+    <!-- 装饰元素 -->
+    <div class="absolute top-1/4 right-10 w-20 h-20 rounded-full bg-primary/10 animate-float"></div>
+    <div class="absolute bottom-1/3 left-1/4 w-12 h-12 rounded-full bg-secondary/10 animate-float" style="animation-delay: 1s"></div>
+    <div class="absolute top-1/2 left-1/3 w-16 h-16 rounded-full bg-primary/10 animate-float" style="animation-delay: 2s"></div>
+    
+    <div class="container mx-auto max-w-6xl">
+      <div class="flex flex-col md:flex-row items-center gap-12">
+        <div class="md:w-1/2 space-y-6">
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-display font-bold leading-tight text-shadow">
+            与AI一起<br>
+            <span class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">创造无限可能</span>的故事
+          </h1>
+          <p class="text-lg text-slate-600 max-w-lg">
+            告别灵感枯竭，与AI实时协作，生成个性化互动故事。你的每一个选择，都将开启一个全新的故事分支。
+          </p>
+          <div class="flex flex-wrap gap-4 pt-4">
+            <a href="create.html" class="px-8 py-3 rounded-full bg-primary text-white font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-1 transition-all inline-block">
+              开始创作 <i class="fa fa-magic ml-2"></i>
+            </a>
+            <a href="explore.html" class="px-8 py-3 rounded-full bg-white text-slate-700 font-medium border border-slate-200 shadow-md hover:shadow-lg hover:-translate-y-1 transition-all inline-block">
+              查看示例 <i class="fa fa-play-circle ml-2"></i>
+            </a>
+          </div>
+          
+          <div class="flex items-center gap-4 pt-6">
+            <div class="flex -space-x-2">
+              
+              
+              
+              
+            </div>
+            <div class="text-sm text-slate-600">
+              <span class="font-semibold text-primary">10,000+</span> 创作者已加入
+            </div>
+          </div>
+        </div>
+        
+        <div class="md:w-1/2 relative">
+          <div class="relative z-10 bg-white rounded-2xl shadow-2xl overflow-hidden transform rotate-1 hover:rotate-0 transition-transform duration-500">
+            <div class="h-6 bg-gradient-to-r from-primary to-secondary"></div>
+            
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+              <div class="p-6 text-white">
+                <h3 class="text-xl font-bold">神秘森林的冒险</h3>
+                <p class="text-white/80">一个关于勇气与发现的互动故事</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="absolute -bottom-6 -left-6 w-3/4 h-3/4 bg-primary/10 rounded-2xl -z-10"></div>
+          <div class="absolute -top-6 -right-6 w-3/4 h-3/4 bg-secondary/10 rounded-2xl -z-10"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 特色功能 -->
+  <section class="py-20 px-4 bg-white">
+    <div class="container mx-auto max-w-6xl">
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-3xl md:text-4xl font-display font-bold mb-4">用AI重塑故事创作体验</h2>
+        <p class="text-lg text-slate-600">我们的平台融合了先进的AI技术与直观的创作工具，让故事创作变得前所未有的简单而有趣</p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- 功能卡片1 -->
+        <div class="bg-slate-50 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow group">
+          <div class="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
+            <i class="fa fa-comments text-primary text-2xl"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-3">实时AI协作</h3>
+          <p class="text-slate-600">输入你的想法，AI会立即扩展并完善，形成流畅的故事内容。就像有一位永不疲倦的写作伙伴。</p>
+        </div>
+        
+        <!-- 功能卡片2 -->
+        <div class="bg-slate-50 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow group">
+          <div class="w-14 h-14 bg-secondary/10 rounded-lg flex items-center justify-center mb-6 group-hover:bg-secondary/20 transition-colors">
+            <i class="fa fa-code-fork text-secondary text-2xl"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-3">多结局分支</h3>
+          <p class="text-slate-600">在关键节点做出选择，探索不同的故事走向。每一个决定都可能带来完全不同的结局。</p>
+        </div>
+        
+        <!-- 功能卡片3 -->
+        <div class="bg-slate-50 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow group">
+          <div class="w-14 h-14 bg-green-100 rounded-lg flex items-center justify-center mb-6 group-hover:bg-green-20 transition-colors">
+            <i class="fa fa-paint-brush text-green-500 text-2xl"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-3">场景可视化</h3>
+          <p class="text-slate-600">故事场景自动转换为动态可视化效果，让你的故事不仅仅停留在文字层面，更能直观感受。</p>
+        </div>
+        
+        <!-- 功能卡片4 -->
+        <div class="bg-slate-50 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow group">
+          <div class="w-14 h-14 bg-amber-100 rounded-lg flex items-center justify-center mb-6 group-hover:bg-amber-200 transition-colors">
+            <i class="fa fa-users text-amber-500 text-2xl"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-3">协作编辑</h3>
+          <p class="text-slate-600">邀请朋友共同创作，多人实时编辑同一个故事，看到彼此的修改和想法，碰撞出更多创意。</p>
+        </div>
+        
+        <!-- 功能卡片5 -->
+        <div class="bg-slate-50 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow group">
+          <div class="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-6 group-hover:bg-purple-200 transition-colors">
+            <i class="fa fa-magic text-purple-500 text-2xl"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-3">风格转换</h3>
+          <p class="text-slate-600">一键转换故事风格，从科幻到奇幻，从悬疑到浪漫，同一个故事可以有多种表达方式。</p>
+        </div>
+        
+        <!-- 功能卡片6 -->
+        <div class="bg-slate-50 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow group">
+          <div class="w-14 h-14 bg-teal-100 rounded-lg flex items-center justify-center mb-6 group-hover:bg-teal-200 transition-colors">
+            <i class="fa fa-bar-chart text-teal-500 text-2xl"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-3">创作分析</h3>
+          <p class="text-slate-600">了解你的创作模式和风格特点，获取AI提供的改进建议，不断提升你的故事创作能力。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 创作流程 -->
+  <section class="py-20 px-4 bg-gradient-to-b from-white to-slate-50">
+    <div class="container mx-auto max-w-6xl">
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-3xl md:text-4xl font-display font-bold mb-4">三步创建你的互动故事</h2>
+        <p class="text-lg text-slate-600">简单直观的创作流程，让你专注于故事本身，而非技术细节</p>
+      </div>
+      
+      <div class="relative">
+        <!-- 连接线 - 桌面版 -->
+        <div class="hidden md:block absolute top-1/3 left-0 right-0 h-1 bg-slate-200 -z-10"></div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+          <!-- 步骤1 -->
+          <div class="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+            <div class="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg shadow-primary/20 mx-auto md:mx-0">1</div>
+            <h3 class="text-xl font-bold mb-3 text-center md:text-left">设定故事起点</h3>
+            <p class="text-slate-600 text-center md:text-left">输入故事的基本设定：主题、角色、场景或一个简单的开头，AI会理解并扩展你的想法。</p>
+            
+            <div class="mt-6 rounded-lg overflow-hidden border border-slate-200">
+              <div class="bg-slate-50 p-3 border-b border-slate-200 flex items-center">
+                <i class="fa fa-lightbulb-o text-primary mr-2"></i>
+                <span class="text-sm font-medium">故事创意输入</span>
+              </div>
+              <div class="p-4">
+                <textarea class="w-full border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" rows="3" placeholder="例如：一个年轻的魔法师在森林中发现了一扇神秘的门..."></textarea>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 步骤2 -->
+          <div class="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+            <div class="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg shadow-primary/20 mx-auto md:mx-0">2</div>
+            <h3 class="text-xl font-bold mb-3 text-center md:text-left">与AI共同创作</h3>
+            <p class="text-slate-600 text-center md:text-left">AI会基于你的输入生成故事内容，你可以继续添加想法、修改内容或引导故事走向。</p>
+            
+            <div class="mt-6 rounded-lg overflow-hidden border border-slate-200">
+              <div class="bg-slate-50 p-3 border-b border-slate-200 flex items-center">
+                <i class="fa fa-comments text-primary mr-2"></i>
+                <span class="text-sm font-medium">AI协作区</span>
+              </div>
+              <div class="p-4 h-32 overflow-y-auto bg-slate-50 text-sm">
+                <div class="mb-3">
+                  <span class="font-medium text-primary">你：</span>
+                  <span>一个年轻的魔法师在森林中发现了一扇神秘的门...</span>
+                </div>
+                <div>
+                  <span class="font-medium text-secondary">AI：</span>
+                  <span>艾拉小心翼翼地伸出手，指尖刚触碰到木门上雕刻的奇异符文，门突然发出一阵柔和的蓝光...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 步骤3 -->
+          <div class="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
+            <div class="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg shadow-primary/20 mx-auto md:mx-0">3</div>
+            <h3 class="text-xl font-bold mb-3 text-center md:text-left">添加分支与可视化</h3>
+            <p class="text-slate-600 text-center md:text-left">在关键情节设置选择分支，AI会为每个分支生成独特内容，并自动创建场景可视化。</p>
+            
+            <div class="mt-6 rounded-lg overflow-hidden border border-slate-200">
+              <div class="bg-slate-50 p-3 border-b border-slate-200 flex items-center">
+                <i class="fa fa-code-fork text-primary mr-2"></i>
+                <span class="text-sm font-medium">故事分支设置</span>
+              </div>
+              <div class="p-4">
+                <p class="text-sm mb-3">艾拉决定：</p>
+                <div class="space-y-2">
+                  <button class="w-full text-left px-3 py-2 border border-slate-200 rounded hover:bg-primary/5 text-sm">打开门，勇敢地走进去</button>
+                  <button class="w-full text-left px-3 py-2 border border-slate-200 rounded hover:bg-primary/5 text-sm">先研究门上的符文，再做决定</button>
+                  <button class="w-full text-left px-3 py-2 border border-slate-200 rounded hover:bg-primary/5 text-sm">返回村庄寻求帮助</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="text-center mt-12">
+        <a href="create.html" class="px-8 py-3 rounded-full bg-primary text-white font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-1 transition-all inline-block">
+          开始创作第一个故事 <i class="fa fa-arrow-right ml-2"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 探索故事 -->
+  <section class="py-20 px-4">
+    <div class="container mx-auto max-w-6xl">
+      <div class="flex flex-col md:flex-row md:items-end justify-between mb-12">
+        <div>
+          <h2 class="text-3xl md:text-4xl font-display font-bold mb-4">探索精彩故事</h2>
+          <p class="text-lg text-slate-600 max-w-2xl">发现社区创作者与AI协作完成的精彩故事，从中获取灵感或直接体验不同的故事分支</p>
+        </div>
+        
+        <div class="mt-6 md:mt-0 flex space-x-2 overflow-x-auto pb-2">
+          <button class="px-4 py-2 rounded-full bg-primary text-white whitespace-nowrap">全部故事</button>
+          <button class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 whitespace-nowrap">奇幻冒险</button>
+          <button class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 whitespace-nowrap">科幻未来</button>
+          <button class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 whitespace-nowrap">悬疑推理</button>
+          <button class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 whitespace-nowrap">爱情故事</button>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- 故事卡片1 -->
+        <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow group">
+          <div class="relative h-48 overflow-hidden">
+            
+            <div class="absolute top-3 left-3 bg-primary/90 text-white text-xs px-2 py-1 rounded">科幻未来</div>
+            <div class="absolute top-3 right-3 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded flex items-center">
+              <i class="fa fa-code-fork mr-1"></i> 8个结局
+            </div>
+          </div>
+          <div class="p-5">
+            <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">迷失的星系</h3>
+            <p class="text-slate-600 text-sm mb-4 line-clamp-2">一艘探索飞船意外穿越虫洞，船员们必须在陌生星系中寻找回家的路，每一个决定都可能导致截然不同的命运。</p>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                
+                <span class="text-sm text-slate-500">星际旅行者</span>
+              </div>
+              <a href="explore.html" class="text-primary text-sm font-medium hover:underline">开始阅读 <i class="fa fa-arrow-right ml-1"></i></a>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 故事卡片2 -->
+        <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow group">
+          <div class="relative h-48 overflow-hidden">
+            
+            <div class="absolute top-3 left-3 bg-secondary/90 text-white text-xs px-2 py-1 rounded">奇幻冒险</div>
+            <div class="absolute top-3 right-3 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded flex items-center">
+              <i class="fa fa-code-fork mr-1"></i> 12个结局
+            </div>
+          </div>
+          <div class="p-5">
+            <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">魔法图书馆</h3>
+            <p class="text-slate-600 text-sm mb-4 line-clamp-2">一座会移动的图书馆，藏有能改变现实的书籍。年轻的图书管理员发现了一个足以颠覆世界的秘密。</p>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                
+                <span class="text-sm text-slate-500">墨水法师</span>
+              </div>
+              <a href="explore.html" class="text-primary text-sm font-medium hover:underline">开始阅读 <i class="fa fa-arrow-right ml-1"></i></a>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 故事卡片3 -->
+        <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow group">
+          <div class="relative h-48 overflow-hidden">
+            
+            <div class="absolute top-3 left-3 bg-amber-500/90 text-white text-xs px-2 py-1 rounded">悬疑推理</div>
+            <div class="absolute top-3 right-3 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded flex items-center">
+              <i class="fa fa-code-fork mr-1"></i> 6个结局
+            </div>
+          </div>
+          <div class="p-5">
+            <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">午夜咖啡馆</h3>
+            <p class="text-slate-600 text-sm mb-4 line-clamp-2">只在午夜开门的神秘咖啡馆，每位顾客都能遇到未来的自己。但改变未来的代价，远比想象的要高。</p>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                
+                <span class="text-sm text-slate-500">时间旅人</span>
+              </div>
+              <a href="explore.html" class="text-primary text-sm font-medium hover:underline">开始阅读 <i class="fa fa-arrow-right ml-1"></i></a>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="text-center mt-10">
+        <a href="explore.html" class="px-6 py-2 rounded-full bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors inline-block">
+          查看更多故事 <i class="fa fa-chevron-down ml-1"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+ 
+  
+  <!-- JavaScript -->
+  <script>
+    // 移动端菜单切换
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (mobileMenuButton && mobileMenu) {
+      mobileMenuButton.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+      });
+    }
+    
+    // 模拟AI协作功能
+    const simulateAICollaboration = () => {
+      // 实际项目中，这里会调用后端API与AI服务交互
+      console.log('AI协作功能已触发');
+    };
+    
+    // 为AI协作按钮添加事件监听
+    document.querySelectorAll('button').forEach(button => {
+      if (button.textContent.includes('AI') || button.textContent.includes('创作')) {
+        button.addEventListener('click', simulateAICollaboration);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>创建新故事 - StoryForge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6366f1',
+            secondary: '#ec4899',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+  <!-- 导航栏 -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur shadow-sm">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <i class="fa fa-book text-primary text-2xl"></i>
+        <h1 class="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">StoryForge</h1>
+      </div>
+      
+      <nav class="hidden md:flex items-center space-x-8">
+        <a href="index.html" class="font-medium hover:text-primary transition-colors">首页</a>
+        <a href="explore.html" class="font-medium hover:text-primary transition-colors">探索故事</a>
+        <a href="create_story.html" class="font-medium text-primary transition-colors">创建故事</a>
+        <a href="my_stories.html" class="font-medium hover:text-primary transition-colors">我的作品</a>
+        <a href="about.html" class="font-medium hover:text-primary transition-colors">关于</a>
+      </nav>
+      
+      <div class="flex items-center space-x-4">
+        <img src="https://picsum.photos/id/64/200" alt="用户头像" class="w-8 h-8 rounded-full object-cover border-2 border-primary">
+        <button class="md:hidden text-xl" id="mobile-menu-button">
+          <i class="fa fa-bars"></i>
+        </button>
+      </div>
+    </div>
+    
+    <!-- 移动端菜单 -->
+    <div class="md:hidden hidden bg-white shadow-lg absolute w-full" id="mobile-menu">
+      <div class="container mx-auto px-4 py-3 flex flex-col space-y-4">
+        <a href="index.html" class="font-medium py-2 hover:text-primary transition-colors">首页</a>
+        <a href="explore.html" class="font-medium py-2 hover:text-primary transition-colors">探索故事</a>
+        <a href="create_story.html" class="font-medium py-2 text-primary transition-colors">创建故事</a>
+        <a href="my_stories.html" class="font-medium py-2 hover:text-primary transition-colors">我的作品</a>
+        <a href="about.html" class="font-medium py-2 hover:text-primary transition-colors">关于</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主要内容区 -->
+  <section class="pt-24 pb-20 px-4">
+    <div class="container mx-auto max-w-3xl">
+      <h2 class="text-2xl md:text-3xl font-bold mb-8">创建新故事</h2>
+      
+      <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+        <form id="story-form">
+          <div class="mb-6">
+            <label for="story-title" class="block text-sm font-medium text-slate-700 mb-1">故事标题 <span class="text-red-500">*</span></label>
+            <input type="text" id="story-title" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" placeholder="给你的故事起个名字" required>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label for="story-type" class="block text-sm font-medium text-slate-700 mb-1">故事类型 <span class="text-red-500">*</span></label>
+              <select id="story-type" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" required>
+                <option value="">选择类型</option>
+                <option value="fantasy">奇幻冒险</option>
+                <option value="sci-fi">科幻未来</option>
+                <option value="mystery">悬疑推理</option>
+                <option value="love">爱情故事</option>
+                <option value="horror">恐怖惊悚</option>
+                <option value="other">其他类型</option>
+              </select>
+            </div>
+            
+            <div>
+              <label for="story-style" class="block text-sm font-medium text-slate-700 mb-1">故事风格</label>
+              <select id="story-style" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors">
+                <option value="">选择风格</option>
+                <option value="classic">经典文学风</option>
+                <option value="modern">现代简约风</option>
+                <option value="humor">幽默搞笑风</option>
+                <option value="poetic">诗意优美风</option>
+                <option value="fast">快节奏叙事</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="mb-6">
+            <label for="story-desc" class="block text-sm font-medium text-slate-700 mb-1">故事简介</label>
+            <textarea id="story-desc" rows="4" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" placeholder="简单描述你的故事核心创意..."></textarea>
+          </div>
+          
+          <div class="mb-8">
+            <label class="block text-sm font-medium text-slate-700 mb-3">AI 辅助设置</label>
+            <div class="space-y-3">
+              <div class="flex items-center">
+                <input type="checkbox" id="ai-plot" class="w-4 h-4 text-primary focus:ring-primary border-slate-300 rounded" checked>
+                <label for="ai-plot" class="ml-2 text-sm text-slate-700">自动生成剧情分支建议</label>
+              </div>
+              <div class="flex items-center">
+                <input type="checkbox" id="ai-character" class="w-4 h-4 text-primary focus:ring-primary border-slate-300 rounded" checked>
+                <label for="ai-character" class="ml-2 text-sm text-slate-700">生成角色性格与对话示例</label>
+              </div>
+              <div class="flex items-center">
+                <input type="checkbox" id="ai-writing" class="w-4 h-4 text-primary focus:ring-primary border-slate-300 rounded">
+                <label for="ai-writing" class="ml-2 text-sm text-slate-700">AI 辅助续写内容</label>
+              </div>
+            </div>
+          </div>
+          
+          <div class="flex gap-4">
+            <button type="button" id="cancel-btn" class="flex-1 px-6 py-3 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+              取消
+            </button>
+            <button type="submit" class="flex-1 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+              创建故事框架 <i class="fa fa-arrow-right ml-2"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // 移动端菜单切换
+    document.getElementById('mobile-menu-button').addEventListener('click', function() {
+      const mobileMenu = document.getElementById('mobile-menu');
+      mobileMenu.classList.toggle('hidden');
+    });
+
+    // 表单提交
+    document.getElementById('story-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const title = document.getElementById('story-title').value;
+      
+      // 显示创建中提示
+      showNotification(`正在创建故事「${title}」...`, 'info');
+      
+      // 模拟创建过程
+      setTimeout(() => {
+        // 跳转到故事框架页
+        window.location.href = 'story_framework.html';
+      }, 1500);
+    });
+
+    // 取消按钮
+    document.getElementById('cancel-btn').addEventListener('click', function() {
+      if (confirm('确定要取消创建吗？已填写的内容将不会保存')) {
+        window.location.href = 'index.html';
+      }
+    });
+
+    // 通知功能（复用通用逻辑）
+    function showNotification(message, type = 'info') {
+      const notification = document.createElement('div');
+      notification.className = `fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center transition-all duration-300 transform translate-y-10 opacity-0`;
+      
+      if (type === 'success') {
+        notification.classList.add('bg-green-50', 'border', 'border-green-200', 'text-green-700');
+        notification.innerHTML = `<i class="fa fa-check-circle mr-2"></i>${message}`;
+      } else {
+        notification.classList.add('bg-blue-50', 'border', 'border-blue-200', 'text-blue-700');
+        notification.innerHTML = `<i class="fa fa-info-circle mr-2"></i>${message}`;
+      }
+      
+      document.body.appendChild(notification);
+      setTimeout(() => notification.classList.remove('translate-y-10', 'opacity-0'), 10);
+      setTimeout(() => {
+        notification.classList.add('translate-y-10', 'opacity-0');
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
