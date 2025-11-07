@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>常见问题 - StoryForge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6366f1',
+            secondary: '#ec4899',
+            dark: '#1e293b',
+            light: '#f8fafc'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['Playfair Display', 'serif']
+          },
+        },
+      }
+    }
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto { content-visibility: auto; }
+      .text-shadow { text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+      .animate-float { animation: float 6s ease-in-out infinite; }
+      .animate-pulse-slow { animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+      .backdrop-blur { backdrop-filter: blur(8px); }
+    }
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-15px); }
+      100% { transform: translateY(0px); }
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen text-slate-800 font-sans">
+  <!-- 导航栏（与首页一致） -->
+  <header class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" id="navbar">
+    <!-- 导航栏代码与about.html完全一致 -->
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between backdrop-blur bg-white/80 shadow-sm">
+      <div class="flex items-center space-x-2">
+        <i class="fa fa-book text-primary text-2xl"></i>
+        <h1 class="text-xl md:text-2xl font-display font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">StoryForge</h1>
+      </div>
+      <nav class="hidden md:flex items-center space-x-8">
+        <a href="index.html" class="font-medium hover:text-primary transition-colors">首页</a>
+        <a href="about.html" class="font-medium hover:text-primary transition-colors">关于</a>
+      </nav>
+      <div class="flex items-center space-x-4">
+        <button class="hidden md:block px-5 py-2 rounded-full bg-white text-primary border border-primary hover:bg-primary/5 transition-colors">
+          <a href="login.html" class="block w-full h-full">登录</a>
+        </button>
+        <button class="px-5 py-2 rounded-full bg-primary text-white hover:bg-primary/90 shadow-md hover:shadow-lg transition-all">
+          <a href="register.html" class="block w-full h-full">注册</a>
+        </button>
+        <button class="md:hidden text-xl" id="mobile-menu-button">
+          <i class="fa fa-bars"></i>
+        </button>
+      </div>
+    </div>
+    <div class="md:hidden hidden bg-white shadow-lg absolute w-full" id="mobile-menu">
+      <!-- 移动端菜单代码与about.html一致 -->
+      <div class="container mx-auto px-4 py-3 flex flex-col space-y-4">
+        <a href="index.html" class="font-medium py-2 hover:text-primary transition-colors">首页</a>
+        <a href="about.html" class="font-medium py-2 hover:text-primary transition-colors">关于</a>
+        <button class="px-5 py-2 rounded-full bg-white text-primary border border-primary hover:bg-primary/5 transition-colors">
+          <a href="login.html" class="block w-full h-full">登录</a>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 常见问题内容区域 -->
+  <section class="pt-32 pb-20 px-4">
+    <div class="container mx-auto max-w-4xl">
+      <!-- 页面标题 -->
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-3xl md:text-4xl font-display font-bold mb-4">常见问题</h2>
+        <p class="text-lg text-slate-600">我们收集了用户最常问的问题，希望能帮助你更好地使用StoryForge</p>
+      </div>
+
+      <!-- 问题分类 -->
+      <div class="flex flex-wrap justify-center mb-12 gap-2">
+        <button class="px-4 py-2 rounded-full bg-primary text-white text-sm">全部问题</button>
+        <button class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 text-sm">账号相关</button>
+        <button class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 text-sm">创作功能</button>
+        <button class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 text-sm">会员订阅</button>
+        <button class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 text-sm">社区互动</button>
+        <button class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 text-sm">技术支持</button>
+      </div>
+
+      <!-- 问题列表 -->
+      <div class="space-y-6">
+        <!-- 问题1 -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <button class="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-slate-50 transition-colors">
+            <h3 class="font-bold">如何开始创建我的第一个故事？</h3>
+            <i class="fa fa-chevron-down text-slate-400 transition-transform"></i>
+          </button>
+          <div class="px-6 pb-4 text-slate-600">
+            <p>注册账号后，点击首页的"开始创作"按钮或导航栏的"创建故事"，进入创作页面。你可以：</p>
+            <ul class="list-disc pl-5 mt-2 space-y-1">
+              <li>输入故事标题和基本设定</li>
+              <li>选择故事类型和风格</li>
+              <li>添加主要角色信息</li>
+              <li>输入故事开头（可选，AI会基于此扩展）</li>
+              <li>点击"下一步"进入AI协作创作环节</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 问题2 -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <button class="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-slate-50 transition-colors">
+            <h3 class="font-bold">AI是如何辅助故事创作的？</h3>
+            <i class="fa fa-chevron-down text-slate-400 transition-transform"></i>
+          </button>
+          <div class="px-6 pb-4 text-slate-600">
+            <p>我们的AI会基于你的输入和选择，实时生成符合上下文的故事内容：</p>
+            <ul class="list-disc pl-5 mt-2 space-y-1">
+              <li>扩展你的故事开头，生成连贯的情节发展</li>
+              <li>根据角色设定，生成符合角色性格的对话和行为</li>
+              <li>在分支节点提供合理的选项建议</li>
+              <li>支持一键转换故事风格（如从科幻转为奇幻）</li>
+              <li>可以根据你的反馈持续优化生成内容</li>
+            </ul>
+            <p class="mt-2">AI只是辅助工具，你始终可以修改、删除或重写任何AI生成的内容。</p>
+          </div>
+        </div>
+
+        <!-- 问题3 -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <button class="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-slate-50 transition-colors">
+            <h3 class="font-bold">免费版和付费版有什么区别？</h3>
+            <i class="fa fa-chevron-down text-slate-400 transition-transform"></i>
+          </button>
+          <div class="px-6 pb-4 text-slate-600">
+            <p>核心区别在于功能限制和创作规模：</p>
+            <ul class="list-disc pl-5 mt-2 space-y-1">
+              <li>免费版每月可创建3个故事，每个故事最多3个分支</li>
+              <li>付费版（创作者版/专业版）支持无限创建故事，分支数量更多</li>
+              <li>付费版解锁高级AI功能，如风格转换、角色深度塑造</li>
+              <li>付费版提供场景可视化和创作数据分析功能</li>
+              <li>专业版支持故事导出为多种格式（PDF、EPUB等）</li>
+            </ul>
+            <p class="mt-2">你可以在<a href="pricing.html" class="text-primary hover:underline">定价页面</a>查看完整的功能对比。</p>
+          </div>
+        </div>
+
+        <!-- 问题4 -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <button class="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-slate-50 transition-colors">
+            <h3 class="font-bold">我创作的故事版权属于谁？</h3>
+            <i class="fa fa-chevron-down text-slate-400 transition-transform"></i>
+          </button>
+          <div class="px-6 pb-4 text-slate-600">
+            <p>你在StoryForge上创作的所有故事内容，版权归你所有。你可以：</p>
+            <ul class="list-disc pl-5 mt-2 space-y-1">
+              <li>选择将故事设为私有（仅自己可见）</li>
+              <li>分享到社区（其他用户可阅读但不可修改）</li>
+              <li>导出故事用于非商业或商业用途</li>
+            </ul>
+            <p class="mt-2">StoryForge仅获得你授予的非独家许可，用于在平台上展示和运行你的故事，不会声称拥有你的创作内容的任何权利。</p>
+          </div>
+        </div>
+
+        <!-- 问题5 -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <button class="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-slate-50 transition-colors">
+            <h3 class="font-bold">如何找回我的账号密码？</h3>
+            <i class="fa fa-chevron-down text-slate-400 transition-transform"></i>
+          </button>
+          <div class="px-6 pb-4 text-slate-600">
+            <p>找回密码的步骤：</p>
+            <ol class="list-decimal pl-5 mt-2 space-y-1">
+              <li>点击登录页面的"忘记密码"链接</li>
+              <li>输入你注册时使用的电子邮箱</li>
+              <li>我们会发送密码重置链接到你的邮箱（请检查垃圾邮件文件夹）</li>
+              <li>点击邮件中的链接，设置新密码</li>
+              <li>使用新密码登录账号</li>
+            </ol>
+            <p class="mt-2">如果没有收到重置邮件，请联系我们的客服支持：support@storyforge.com</p>
+          </div>
+        </div>
+
+        <!-- 问题6 -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <button class="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-slate-50 transition-colors">
+            <h3 class="font-bold">可以导出我创作的故事吗？</h3>
+            <i class="fa fa-chevron-down text-slate-400 transition-transform"></i>
+          </button>
+          <div class="px-6 pb-4 text-slate-600">
+            <p>是的，创作者版和专业版支持故事导出功能：</p>
+            <ul class="list-disc pl-5 mt-2 space-y-1">
+              <li>创作者版：支持导出为PDF和纯文本格式</li>
+              <li>专业版：额外支持EPUB（电子书）和DOCX（Word）格式</li>
+              <li>导出内容包含完整故事线和所有分支选项</li>
+            </ul>
+            <p class="mt-2">免费版用户可以复制粘贴故事文本，但不支持正式导出功能。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 更多帮助 -->
+      <div class="mt-16 bg-white rounded-2xl shadow-xl p-8 text-center">
+        <h3 class="text-xl font-bold mb-4">还有其他问题？</h3>
+        <p class="text-slate-600 mb-6">我们的客服团队会在24小时内回复你的咨询</p>
+        <button class="px-8 py-3 rounded-full bg-primary text-white font-medium shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 hover:bg-primary/90 transition-all">
+          联系客服支持 <i class="fa fa-envelope ml-2"></i>
+        </button>
+      </div>
+    </div>
+  </section>
+
+
+
+  <!-- JavaScript（与首页一致） -->
+  <script>
+    // 导航栏滚动效果、移动端菜单切换、平滑滚动代码与about.html一致
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 50) {
+        navbar.classList.add('py-2', 'shadow-md');
+        navbar.classList.remove('py-3', 'shadow-sm');
+      } else {
+        navbar.classList.add('py-3', 'shadow-sm');
+        navbar.classList.remove('py-2', 'shadow-md');
+      }
+    });
+    
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    mobileMenuButton.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+    });
+    
+    // 问题展开/收起交互
+    document.querySelectorAll('.bg-white.rounded-xl.shadow-sm button').forEach(button => {
+      button.addEventListener('click', () => {
+        const content = button.nextElementSibling;
+        const icon = button.querySelector('i');
+        
+        if (content.style.display === 'none' || !content.style.display) {
+          content.style.display = 'block';
+          icon.style.transform = 'rotate(180deg)';
+        } else {
+          content.style.display = 'none';
+          icon.style.transform = 'rotate(0)';
+        }
+      });
+    });
+    
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('href');
+        if (targetId === '#') return;
+        
+        const targetElement = document.querySelector(targetId);
+        if (targetElement) {
+          window.scrollTo({
+            top: targetElement.offsetTop - 80,
+            behavior: 'smooth'
+          });
+          if (!mobileMenu.classList.contains('hidden')) {
+            mobileMenu.classList.add('hidden');
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>
