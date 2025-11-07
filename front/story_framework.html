@@ -147,26 +147,29 @@
 <body class="bg-slate-100 text-slate-800 flex flex-col">
   <!-- 顶部导航 -->
   <header class="bg-white border-b border-slate-200 shadow-sm z-30">
-    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="container mx-auto px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div class="flex items-center gap-2">
         <i class="fa fa-project-diagram text-primary text-xl"></i>
         <h1 class="text-lg font-bold">StoryForge 节点图谱</h1>
       </div>
-      
-      <div class="flex items-center gap-4">
-        <button id="save-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors">
-          <i class="fa fa-save"></i>
-          <span>保存图谱</span>
-        </button>
-        <button id="export-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors">
-          <i class="fa fa-download"></i>
-          <span>导出数据</span>
-        </button>
-        <div class="h-6 w-px bg-slate-200"></div>
-        <button id="add-node-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-white rounded-md hover:bg-primary/90 transition-colors shadow-sm">
-          <i class="fa fa-plus"></i>
-          <span>添加节点</span>
-        </button>
+
+      <div class="flex items-center gap-4 flex-wrap justify-end">
+        <div class="flex items-center gap-4">
+          <button id="save-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors">
+            <i class="fa fa-save"></i>
+            <span>保存图谱</span>
+          </button>
+          <button id="export-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors">
+            <i class="fa fa-download"></i>
+            <span>导出数据</span>
+          </button>
+          <div class="h-6 w-px bg-slate-200 hidden md:block"></div>
+          <button id="add-node-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary text-white rounded-md hover:bg-primary/90 transition-colors shadow-sm">
+            <i class="fa fa-plus"></i>
+            <span>添加节点</span>
+          </button>
+        </div>
+        <div class="flex items-center space-x-3" id="auth-area-desktop"></div>
       </div>
     </div>
   </header>
@@ -235,7 +238,10 @@
     </div>
   </main>
 
+  <script src="assets/js/auth.js"></script>
   <script>
+    AuthUI.init({ mobileArea: null, mobileMenu: null });
+
     // 节点图谱数据结构
     let graphData = {
       nodes: {},         // 节点集合 { id: { id, title, content, type, position: {x,y} } }

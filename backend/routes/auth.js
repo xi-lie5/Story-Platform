@@ -68,6 +68,7 @@ router.post('/register', [
         userId: user.id,
         username: user.username,
         email: user.email,
+        avatar: user.avatar,
         token: accessToken,
         refreshToken
       }
@@ -110,6 +111,7 @@ router.post('/login', [
         userId: user.id,
         username: user.username,
         email: user.email,
+        avatar: user.avatar,
         token: accessToken,
         refreshToken
       }

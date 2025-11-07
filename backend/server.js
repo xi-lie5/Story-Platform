@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
+const path = require('path');
 
 const errorHandler = require('./middleware/errorHandler');
 
@@ -20,6 +21,10 @@ app.use(cors({
   origin: process.env.CLIENT_ORIGIN ? process.env.CLIENT_ORIGIN.split(',') : true,
   credentials: true
 }));
+
+// 静态资源（头像、封面）
+app.use('/avatar', express.static(path.join(__dirname, 'avatar')));
+app.use('/coverImage', express.static(path.join(__dirname, 'coverImage')));
 
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));

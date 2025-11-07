@@ -30,10 +30,10 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-validator": "^7.3.0",
-    "helmet": "^7.1.0",
+    "helmet": "^7.2.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.19.2",
-    "morgan": "^1.10.0"
+    "mongoose": "^8.19.3",
+    "morgan": "^1.10.1"
   },
   "devDependencies": {
     "eslint": "^9.12.0",
