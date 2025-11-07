@@ -1,194 +1,421 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
-  <!-- 头部内容与index.html完全一致 -->
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>探索故事 - StoryForge</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-  <script>
-    tailwind.config = { /* 与index.html完全一致 */ }
-  </script>
-  <style type="text/tailwindcss">
-    @layer utilities { /* 与index.html完全一致 */ }
-    @keyframes float { /* 与index.html完全一致 */ }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>探索故事 - StoryForge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#ec4899',
+                    },
+                },
+            }
+        }
+    </script>
 </head>
-<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen text-slate-800 font-sans">
-  <!-- 导航栏：与index.html完全一致 -->
-  <header class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" id="navbar">
-    <!-- 复制index.html的header代码 -->
-  </header>
 
-  <!-- 探索故事内容区域（核心替换部分） -->
-  <section class="pt-32 pb-20 px-4">
-    <div class="container mx-auto max-w-6xl">
-      <!-- 页面标题与筛选 -->
-      <div class="flex flex-col md:flex-row md:items-end justify-between mb-12">
-        <div>
-          <h2 class="text-3xl md:text-4xl font-display font-bold mb-4">探索精彩故事</h2>
-          <p class="text-lg text-slate-600 max-w-2xl">发现社区创作者与AI协作的故事，获取灵感或体验不同分支</p>
-        </div>
-        <!-- 分类筛选（与原页面一致，添加跳转参数） -->
-        <div class="mt-6 md:mt-0 flex space-x-2 overflow-x-auto pb-2">
-          <a href="explore.html?type=all" class="px-4 py-2 rounded-full bg-primary text-white whitespace-nowrap">全部故事</a>
-          <a href="explore.html?type=fantasy" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 whitespace-nowrap">奇幻冒险</a>
-          <a href="explore.html?type=sci-fi" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 whitespace-nowrap">科幻未来</a>
-          <a href="explore.html?type=mystery" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 whitespace-nowrap">悬疑推理</a>
-          <a href="explore.html?type=romance" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 whitespace-nowrap">爱情故事</a>
-        </div>
-      </div>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <!-- 导航栏 -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur shadow-sm">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-book text-primary text-2xl"></i>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                    StoryForge</h1>
+            </div>
 
-      <!-- 故事列表（扩展原页面，增加更多卡片） -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- 故事卡片1 -->
-        <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow group">
-          <div class="relative h-48 overflow-hidden">
-            <img src="https://picsum.photos/id/1035/600/400" alt="迷失的星系" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-            <div class="absolute top-3 left-3 bg-primary/90 text-white text-xs px-2 py-1 rounded">科幻未来</div>
-            <div class="absolute top-3 right-3 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded flex items-center">
-              <i class="fa fa-code-fork mr-1"></i> 8个结局
+            <nav class="hidden md:flex items-center space-x-8">
+                <a href="index.html" class="font-medium hover:text-primary transition-colors">首页</a>
+                <a href="explore.html" class="font-medium text-primary transition-colors">探索故事</a>
+                <a href="create_story.html" class="font-medium hover:text-primary transition-colors">创建故事</a>
+                <a href="about.html" class="font-medium hover:text-primary transition-colors">关于</a>
+            </nav>
+
+            <div class="flex items-center space-x-4">
+                <img src="https://picsum.photos/id/64/200" alt="用户头像"
+                    class="w-8 h-8 rounded-full object-cover border-2 border-primary">
+                <button class="md:hidden text-xl" id="mobile-menu-button">
+                    <i class="fa fa-bars"></i>
+                </button>
             </div>
-          </div>
-          <div class="p-5">
-            <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">迷失的星系</h3>
-            <p class="text-slate-600 text-sm mb-4 line-clamp-2">飞船穿越虫洞，船员在陌生星系寻找回家路，每步决定改变命运。</p>
-            <div class="flex items-center justify-between">
-              <div class="flex items-center">
-                <img src="https://picsum.photos/id/1012/32/32" alt="作者头像" class="w-8 h-8 rounded-full mr-2">
-                <span class="text-sm text-slate-500">星际旅行者</span>
-              </div>
-              <a href="story-detail.html?id=1" class="text-primary text-sm font-medium hover:underline">开始阅读 <i class="fa fa-arrow-right ml-1"></i></a>
-            </div>
-          </div>
         </div>
 
-        <!-- 故事卡片2 -->
-        <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow group">
-          <div class="relative h-48 overflow-hidden">
-            <img src="https://picsum.photos/id/1059/600/400" alt="魔法图书馆" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-            <div class="absolute top-3 left-3 bg-secondary/90 text-white text-xs px-2 py-1 rounded">奇幻冒险</div>
-            <div class="absolute top-3 right-3 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded flex items-center">
-              <i class="fa fa-code-fork mr-1"></i> 12个结局
+        <!-- 移动端菜单 -->
+        <div class="md:hidden hidden bg-white shadow-lg absolute w-full" id="mobile-menu">
+            <div class="container mx-auto px-4 py-3 flex flex-col space-y-4">
+                <a href="index.html" class="font-medium py-2 hover:text-primary transition-colors">首页</a>
+                <a href="explore.html" class="font-medium py-2 text-primary transition-colors">探索故事</a>
+                <a href="create_story.html" class="font-medium py-2 hover:text-primary transition-colors">创建故事</a>
+                <a href="about.html" class="font-medium py-2 hover:text-primary transition-colors">关于</a>
             </div>
-          </div>
-          <div class="p-5">
-            <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">魔法图书馆</h3>
-            <p class="text-slate-600 text-sm mb-4 line-clamp-2">会移动的图书馆藏有改变现实的书，年轻管理员发现颠覆世界的秘密。</p>
-            <div class="flex items-center justify-between">
-              <div class="flex items-center">
-                <img src="https://picsum.photos/id/1027/32/32" alt="作者头像" class="w-8 h-8 rounded-full mr-2">
-                <span class="text-sm text-slate-500">墨水法师</span>
-              </div>
-              <a href="story-detail.html?id=2" class="text-primary text-sm font-medium hover:underline">开始阅读 <i class="fa fa-arrow-right ml-1"></i></a>
-            </div>
-          </div>
         </div>
+    </header>
 
-        <!-- 故事卡片3-6：重复风格，替换图片、文字、id -->
-        <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow group">
-          <div class="relative h-48 overflow-hidden">
-            <img src="https://picsum.photos/id/1062/600/400" alt="午夜咖啡馆" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-            <div class="absolute top-3 left-3 bg-amber-500/90 text-white text-xs px-2 py-1 rounded">悬疑推理</div>
-            <div class="absolute top-3 right-3 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded flex items-center">
-              <i class="fa fa-code-fork mr-1"></i> 6个结局
+    <!-- 主要内容区 -->
+    <section class="pt-24 pb-20 px-4">
+        <div class="container mx-auto max-w-6xl">
+            <h2 class="text-2xl md:text-3xl font-bold mb-8">探索精彩故事</h2>
+
+            <!-- 筛选区 -->
+            <div class="bg-white rounded-2xl shadow-xl p-6 mb-8">
+                <div class="flex flex-wrap gap-4">
+                    <div class="w-full md:w-auto md:flex-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">故事类型</label>
+                        <select
+                            class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all">
+                            <option value="">全部类型</option>
+                            <option value="fantasy">奇幻冒险</option>
+                            <option value="sci-fi">科幻未来</option>
+                            <option value="mystery">悬疑推理</option>
+                            <option value="romance">爱情故事</option>
+                            <option value="horror">恐怖惊悚</option>
+                        </select>
+                    </div>
+
+                    <div class="w-full md:w-auto md:flex-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">排序方式</label>
+                        <select
+                            class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all">
+                            <option value="popular">热门优先</option>
+                            <option value="recent">最新发布</option>
+                            <option value="complete">已完成</option>
+                            <option value="branches">分支最多</option>
+                        </select>
+                    </div>
+
+                    <div class="w-full md:w-auto self-end">
+                        <button
+                            class="w-full md:w-auto px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                            筛选
+                        </button>
+                    </div>
+                </div>
             </div>
-          </div>
-          <div class="p-5">
-            <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">午夜咖啡馆</h3>
-            <p class="text-slate-600 text-sm mb-4 line-clamp-2">午夜开门的神秘咖啡馆，顾客能遇见未来的自己，改变未来需付代价。</p>
-            <div class="flex items-center justify-between">
-              <div class="flex items-center">
-                <img src="https://picsum.photos/id/1025/32/32" alt="作者头像" class="w-8 h-8 rounded-full mr-2">
-                <span class="text-sm text-slate-500">时间旅人</span>
-              </div>
-              <a href="story-detail.html?id=3" class="text-primary text-sm font-medium hover:underline">开始阅读 <i class="fa fa-arrow-right ml-1"></i></a>
+
+            <!-- 故事列表 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 故事卡片1 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                    <div class="h-48 overflow-hidden">
+                        <img src="https://picsum.photos/id/1067/600/400" alt="故事封面"
+                            class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                    </div>
+                    <div class="p-5">
+                        <div class="flex items-center text-xs text-slate-500 mb-2">
+                            <span class="bg-fantasy/10 text-fantasy px-2 py-1 rounded-full mr-2">奇幻冒险</span>
+                            <span>8个分支</span>
+                            <span class="mx-2">•</span>
+                            <span>已完成</span>
+                        </div>
+                        <h3 class="font-bold text-lg mb-2">魔法森林的神秘之门</h3>
+                        <p class="text-slate-600 text-sm mb-4 line-clamp-2">年轻魔法师艾拉在森林中发现神秘门，每个选择都将触发不同的冒险历程...</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <img src="https://picsum.photos/id/64/100" alt="作者头像" class="w-6 h-6 rounded-full mr-2">
+                                <span class="text-sm text-slate-600">林小艾</span>
+                            </div>
+                            <button class="text-primary hover:text-primary/80 transition-colors">
+                                <i class="fa fa-book"></i> 阅读
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 故事卡片2 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                    <div class="h-48 overflow-hidden">
+                        <img src="https://picsum.photos/id/1071/600/400" alt="故事封面"
+                            class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                    </div>
+                    <div class="p-5">
+                        <div class="flex items-center text-xs text-slate-500 mb-2">
+                            <span class="bg-sci-fi/10 text-sci-fi px-2 py-1 rounded-full mr-2">科幻未来</span>
+                            <span>12个分支</span>
+                            <span class="mx-2">•</span>
+                            <span>更新中</span>
+                        </div>
+                        <h3 class="font-bold text-lg mb-2">时间旅行者的抉择</h3>
+                        <p class="text-slate-600 text-sm mb-4 line-clamp-2">来自2077年的时间特工，必须在不改变历史的前提下完成拯救未来的任务...</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <img src="https://picsum.photos/id/91/100" alt="作者头像" class="w-6 h-6 rounded-full mr-2">
+                                <span class="text-sm text-slate-600">陈未来</span>
+                            </div>
+                            <button class="text-primary hover:text-primary/80 transition-colors">
+                                <i class="fa fa-book"></i> 阅读
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 故事卡片3 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                    <div class="h-48 overflow-hidden">
+                        <img src="https://picsum.photos/id/1058/600/400" alt="故事封面"
+                            class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                    </div>
+                    <div class="p-5">
+                        <div class="flex items-center text-xs text-slate-500 mb-2">
+                            <span class="bg-mystery/10 text-mystery px-2 py-1 rounded-full mr-2">悬疑推理</span>
+                            <span>5个分支</span>
+                            <span class="mx-2">•</span>
+                            <span>已完成</span>
+                        </div>
+                        <h3 class="font-bold text-lg mb-2">老钟表店的秘密</h3>
+                        <p class="text-slate-600 text-sm mb-4 line-clamp-2">小镇上的老钟表店能让人回到过去，但每次回溯都要付出意想不到的代价...</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <img src="https://picsum.photos/id/26/100" alt="作者头像" class="w-6 h-6 rounded-full mr-2">
+                                <span class="text-sm text-slate-600">王时光</span>
+                            </div>
+                            <button class="text-primary hover:text-primary/80 transition-colors">
+                                <i class="fa fa-book"></i> 阅读
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 故事卡片4 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                    <div class="h-48 overflow-hidden">
+                        <img src="https://picsum.photos/id/1060/600/400" alt="故事封面"
+                            class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                    </div>
+                    <div class="p-5">
+                        <div class="flex items-center text-xs text-slate-500 mb-2">
+                            <span class="bg-romance/10 text-romance px-2 py-1 rounded-full mr-2">爱情故事</span>
+                            <span>7个分支</span>
+                            <span class="mx-2">•</span>
+                            <span>已完成</span>
+                        </div>
+                        <h3 class="font-bold text-lg mb-2">雨季的图书馆</h3>
+                        <p class="text-slate-600 text-sm mb-4 line-clamp-2">每个雨季都会出现的神秘图书馆，藏着能改变命运的爱情小说，只读对的人...</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <img src="https://picsum.photos/id/65/100" alt="作者头像" class="w-6 h-6 rounded-full mr-2">
+                                <span class="text-sm text-slate-600">雨小荷</span>
+                            </div>
+                            <button class="text-primary hover:text-primary/80 transition-colors">
+                                <i class="fa fa-book"></i> 阅读
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 故事卡片5 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                    <div class="h-48 overflow-hidden">
+                        <img src="https://picsum.photos/id/1059/600/400" alt="故事封面"
+                            class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                    </div>
+                    <div class="p-5">
+                        <div class="flex items-center text-xs text-slate-500 mb-2">
+                            <span class="bg-horror/10 text-horror px-2 py-1 rounded-full mr-2">恐怖惊悚</span>
+                            <span>9个分支</span>
+                            <span class="mx-2">•</span>
+                            <span>更新中</span>
+                        </div>
+                        <h3 class="font-bold text-lg mb-2">午夜收音机</h3>
+                        <p class="text-slate-600 text-sm mb-4 line-clamp-2">废弃电台的午夜广播会播放未发生的死亡事件，收听者必须阻止预言成真...</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <img src="https://picsum.photos/id/177/100" alt="作者头像"
+                                    class="w-6 h-6 rounded-full mr-2">
+                                <span class="text-sm text-slate-600">张夜声</span>
+                            </div>
+                            <button class="text-primary hover:text-primary/80 transition-colors">
+                                <i class="fa fa-book"></i> 阅读
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 故事卡片6 -->
+                <div
+                    class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border-2 border-dashed border-slate-300 flex flex-col items-center justify-center p-6 h-[320px]">
+                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                        <i class="fa fa-plus text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="font-bold text-center mb-2">创建你的故事</h3>
+                    <p class="text-sm text-slate-500 text-center mb-4">分享你的创意，让更多人体验你的故事</p>
+                    <a href="create_story.html"
+                        class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm">
+                        开始创作
+                    </a>
+                </div>
             </div>
-          </div>
+
+            <!-- 分页 -->
+            <div class="mt-10 flex justify-center">
+                <div class="flex items-center gap-2">
+                    <button
+                        class="w-10 h-10 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+                        <i class="fa fa-angle-left"></i>
+                    </button>
+                    <button
+                        class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary text-white">1</button>
+                    <button
+                        class="w-10 h-10 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">2</button>
+                    <button
+                        class="w-10 h-10 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">3</button>
+                    <span class="text-slate-500">...</span>
+                    <button
+                        class="w-10 h-10 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">8</button>
+                    <button
+                        class="w-10 h-10 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+                        <i class="fa fa-angle-right"></i>
+                    </button>
+                </div>
+            </div>
         </div>
+    </section>
 
-        <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow group">
-          <div class="relative h-48 overflow-hidden">
-            <img src="https://picsum.photos/id/1040/600/400" alt="海底城市" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-            <div class="absolute top-3 left-3 bg-primary/90 text-white text-xs px-2 py-1 rounded">科幻未来</div>
-            <div class="absolute top-3 right-3 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded flex items-center">
-              <i class="fa fa-code-fork mr-1"></i> 9个结局
+    <!-- 页脚 -->
+    <footer class="bg-slate-900 text-white py-12 px-4">
+        <div class="container mx-auto max-w-6xl">
+            <div class="border-t border-slate-800 pt-8 text-center text-slate-500 text-sm">
+                <p>&copy; 2023 StoryForge. 保留所有权利。</p>
             </div>
-          </div>
-          <div class="p-5">
-            <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">海底城市</h3>
-            <p class="text-slate-600 text-sm mb-4 line-clamp-2">海平面上升后，人类移居海底城市，一场神秘瘟疫威胁着生存。</p>
-            <div class="flex items-center justify-between">
-              <div class="flex items-center">
-                <img src="https://picsum.photos/id/1014/32/32" alt="作者头像" class="w-8 h-8 rounded-full mr-2">
-                <span class="text-sm text-slate-500">深海探索者</span>
-              </div>
-              <a href="story-detail.html?id=4" class="text-primary text-sm font-medium hover:underline">开始阅读 <i class="fa fa-arrow-right ml-1"></i></a>
-            </div>
-          </div>
         </div>
+    </footer>
 
-        <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow group">
-          <div class="relative h-48 overflow-hidden">
-            <img src="https://picsum.photos/id/1054/600/400" alt="精灵契约" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-            <div class="absolute top-3 left-3 bg-secondary/90 text-white text-xs px-2 py-1 rounded">奇幻冒险</div>
-            <div class="absolute top-3 right-3 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded flex items-center">
-              <i class="fa fa-code-fork mr-1"></i> 11个结局
-            </div>
-          </div>
-          <div class="p-5">
-            <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">精灵契约</h3>
-            <p class="text-slate-600 text-sm mb-4 line-clamp-2">少年与精灵签订契约，获得魔法力量，但契约背后藏着古老诅咒。</p>
-            <div class="flex items-center justify-between">
-              <div class="flex items-center">
-                <img src="https://picsum.photos/id/1005/32/32" alt="作者头像" class="w-8 h-8 rounded-full mr-2">
-                <span class="text-sm text-slate-500">森林守护者</span>
-              </div>
-              <a href="story-detail.html?id=5" class="text-primary text-sm font-medium hover:underline">开始阅读 <i class="fa fa-arrow-right ml-1"></i></a>
-            </div>
-          </div>
-        </div>
+    <script>
+        // 移动端菜单切换
+        document.getElementById('mobile-menu-button').addEventListener('click', function () {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
 
-        <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow group">
-          <div class="relative h-48 overflow-hidden">
-            <img src="https://picsum.photos/id/1069/600/400" alt="时光邮局" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-            <div class="absolute top-3 left-3 bg-amber-500/90 text-white text-xs px-2 py-1 rounded">悬疑推理</div>
-            <div class="absolute top-3 right-3 bg-white/90 text-slate-700 text-xs px-2 py-1 rounded flex items-center">
-              <i class="fa fa-code-fork mr-1"></i> 7个结局
-            </div>
-          </div>
-          <div class="p-5">
-            <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">时光邮局</h3>
-            <p class="text-slate-600 text-sm mb-4 line-clamp-2">小镇邮局能寄送信件到过去，女孩寄信挽回父亲，却引发蝴蝶效应。</p>
-            <div class="flex items-center justify-between">
-              <div class="flex items-center">
-                <img src="https://picsum.photos/id/1006/32/32" alt="作者头像" class="w-8 h-8 rounded-full mr-2">
-                <span class="text-sm text-slate-500">记忆信使</span>
-              </div>
-              <a href="story-detail.html?id=6" class="text-primary text-sm font-medium hover:underline">开始阅读 <i class="fa fa-arrow-right ml-1"></i></a>
-            </div>
-          </div>
-        </div>
-      </div>
+        // 通用功能：按钮点击反馈
+        document.querySelectorAll('button, a[href]').forEach(el => {
+            // 忽略外部链接和特定不需要反馈的元素
+            if (!el.href || el.href.includes(window.location.host) || el.tagName === 'BUTTON') {
+                el.addEventListener('click', function (e) {
+                    // 保存按钮逻辑
+                    if (this.innerHTML.includes('保存') || this.id === 'save-story' || this.id === 'save-btn') {
+                        e.preventDefault();
+                        showNotification('已保存成功！', 'success');
+                        return;
+                    }
 
-      <!-- 加载更多按钮 -->
-      <div class="text-center mt-12">
-        <button class="px-8 py-3 rounded-full bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">
-          加载更多故事 <i class="fa fa-refresh ml-2"></i>
-        </button>
-      </div>
-    </div>
-  </section>
+                    // 删除按钮逻辑
+                    if (this.innerHTML.includes('删除') || this.innerHTML.includes('放弃')) {
+                        e.preventDefault();
+                        if (confirm('确定要删除/放弃吗？此操作不可恢复')) {
+                            showNotification('已删除', 'info');
+                        }
+                        return;
+                    }
 
-  <!-- 页脚：与index.html完全一致 -->
-  <footer class="bg-slate-900 text-white py-12 px-4">
-    <!-- 复制index.html的footer代码 -->
-  </footer>
+                    // AI相关按钮逻辑
+                    if (this.id.includes('ai-') || this.innerHTML.includes('AI') || this.innerHTML.includes('续写')) {
+                        e.preventDefault();
+                        const originalHTML = this.innerHTML;
+                        this.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 处理中...';
+                        this.disabled = true;
 
-  <!-- JavaScript：与index.html完全一致 -->
-  <script>
-    // 复制index.html的JavaScript代码
-  </script>
+                        setTimeout(() => {
+                            this.innerHTML = originalHTML;
+                            this.disabled = false;
+                            showNotification('AI已完成处理，结果已更新', 'success');
+                        }, 1500);
+                        return;
+                    }
+
+                    // 添加分支/角色按钮逻辑
+                    if (this.innerHTML.includes('添加分支') || this.innerHTML.includes('添加角色')) {
+                        e.preventDefault();
+                        showNotification('已添加新分支/角色', 'success');
+                        return;
+                    }
+
+                    // 自动排列按钮逻辑
+                    if (this.innerHTML.includes('自动排列')) {
+                        e.preventDefault();
+                        showNotification('已自动排列节点', 'info');
+                        return;
+                    }
+
+                    // 导出按钮逻辑
+                    if (this.innerHTML.includes('导出')) {
+                        e.preventDefault();
+                        showNotification('导出成功，文件已下载', 'success');
+                        return;
+                    }
+                });
+            }
+        });
+
+        // 通知提示功能
+        function showNotification(message, type = 'info') {
+            // 创建通知元素
+            const notification = document.createElement('div');
+            notification.className = `fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center transition-all duration-300 transform translate-y-10 opacity-0`;
+
+            // 根据类型设置样式
+            if (type === 'success') {
+                notification.classList.add('bg-green-50', 'border', 'border-green-200', 'text-green-700');
+                notification.innerHTML = `<i class="fa fa-check-circle mr-2"></i>${message}`;
+            } else if (type === 'error') {
+                notification.classList.add('bg-red-50', 'border', 'border-red-200', 'text-red-700');
+                notification.innerHTML = `<i class="fa fa-exclamation-circle mr-2"></i>${message}`;
+            } else {
+                notification.classList.add('bg-blue-50', 'border', 'border-blue-200', 'text-blue-700');
+                notification.innerHTML = `<i class="fa fa-info-circle mr-2"></i>${message}`;
+            }
+
+            // 添加到页面
+            document.body.appendChild(notification);
+
+            // 显示动画
+            setTimeout(() => {
+                notification.classList.remove('translate-y-10', 'opacity-0');
+            }, 10);
+
+            // 3秒后隐藏
+            setTimeout(() => {
+                notification.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // 节点点击跳转（针对故事框架页）
+        document.querySelectorAll('.node-hover').forEach(node => {
+            node.addEventListener('click', function (e) {
+                if (!e.target.closest('button')) {
+                    const nodeTitle = this.querySelector('span').textContent;
+                    showNotification(`正在进入「${nodeTitle}」的编辑页面`, 'info');
+                    setTimeout(() => {
+                        window.location.href = 'story_editor.html';
+                    }, 500);
+                }
+            });
+        });
+
+        // 移动端菜单切换
+        document.getElementById('mobile-menu-button')?.addEventListener('click', function () {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // 初始化时检查是否有未完成作品跳转参数
+        window.addEventListener('DOMContentLoaded', function () {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('continue') === 'true') {
+                showNotification('检测到未完成作品，正在跳转...', 'info');
+            }
+        });
+
+    </script>
 </body>
+
 </html>
