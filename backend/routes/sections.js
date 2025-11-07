@@ -1,11 +1,12 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Story = require('../models/Story');
-const Section = require('../models/Section');
+const StorySection = require('../models/StorySection');
 const { body, validationResult } = require('express-validator');
-const { protect } = require('../middleware/auth');
+const protect = require('../middleware/auth');
 const { errorFormat } = require('../utils/errorFormat');
 
-const router = express.Router({ mergeParams: true }); // 继承父路由的params（storyId）
+const router = express.Router();
 
 
 /**
@@ -13,18 +14,23 @@ const router = express.Router({ mergeParams: true }); // 继承父路由的param
  * GET /api/v1/stories/:storyId/sections
  * 按order升序排列
  */
-router.get('/', async (req, res) => {
+router.get('/:storyId', async (req, res, next) => {
   try {
     const { storyId } = req.params;
-
-    // 验证故事存在
+    
+    // 验证storyId格式
+    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+      return next(errorFormat(400, '无效的故事ID', [], 10010));
+    }
+    
+    // 验证故事是否存在
     const story = await Story.findById(storyId);
     if (!story) {
-      return next(errorFormat(404, '故事不存在', [], 10010));
+      return next(errorFormat(404, '故事不存在', [], 10012));
     }
 
     // 查询章节并按顺序排序
-    const sections = await StorySection.find({ story: storyId })
+    const sections = await StorySection.find({ storyId })
       .sort({ order: 1 });
 
     res.status(200).json({
@@ -53,14 +59,24 @@ router.get('/', async (req, res) => {
  * 2. 获取单个章节（公开接口）
  * GET /api/v1/stories/:storyId/sections/:sectionId
  */
-router.get('/:sectionId', async (req, res) => {
+router.get('/:storyId/:sectionId', async (req, res, next) => {
   try {
     const { storyId, sectionId } = req.params;
 
+    // 验证storyId格式
+    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+      return next(errorFormat(400, '无效的故事ID', [], 10010));
+    }
+    
+    // 验证sectionId格式
+    if (!mongoose.Types.ObjectId.isValid(sectionId)) {
+      return next(errorFormat(400, '无效的章节ID', [], 10011));
+    }
+    
     // 验证故事和章节存在，且章节属于该故事
     const section = await StorySection.findOne({
       _id: sectionId,
-      story: storyId
+      storyId
     });
 
     if (!section) {
@@ -92,9 +108,20 @@ router.get('/:sectionId', async (req, res) => {
  * POST /api/v1/stories/:storyId/sections
  * 需指定order（章节顺序）
  */
-router.post(
-  '/',
+router.post('/:storyId',
   protect,
+  async (req, res, next) => {
+    try {
+      const { storyId } = req.params;
+      const story = await Story.findById(storyId);
+      if (!story || story.author.toString() !== req.user.id) {
+        return next(errorFormat(403, '没有权限修改此故事章节', [], 10020));
+      }
+      next();
+    } catch (err) {
+      next(err);
+    }
+  },
   [
     body('order').isInt({ min: 1 }).withMessage('章节顺序必须是正整数'),
     body('type').isIn(['text', 'choice']).withMessage('章节类型只能是text或choice'),
@@ -107,10 +134,10 @@ router.post(
       }
       return true;
     })
-  ], async (req, res) => {
+  ], async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return next(errorFormat(400, '创建章节失败', errors.array()));
+      return next(errorFormat(400, '请求数据无效', errors.array(), 10001));
     }
 
     try {
@@ -118,7 +145,7 @@ router.post(
       const { order, type, text, choices, isEnd } = req.body;
 
       // 检查同故事内是否已有相同order的章节（通过索引也会报错，这里提前提示更友好）
-      const existingSection = await StorySection.findOne({ story: storyId, order });
+    const existingSection = await StorySection.findOne({ storyId, order });
       if (existingSection) {
         return next(errorFormat(
           400,
@@ -129,11 +156,11 @@ router.post(
 
       // 创建章节
       const section = await StorySection.create({
-        story: storyId,
+        storyId,
+        storytype: type,
         order,
-        type,
         text,
-        choices: type === 'choice' ? choices : [], // 非选择型章节清空choices
+        choice: type === 'choice' ? choices : [], // 非选择型章节清空choices
         isEnd: isEnd || false
       });
 
@@ -165,12 +192,25 @@ router.post(
  * 4. 更新章节（需作者权限）
  * PUT /api/v1/stories/:storyId/sections/:sectionId
  */
-router.put('/:sectionId', protect, storyAuth, [
-  body('order').optional().isInt({ min: 1 }).withMessage('章节顺序必须是正整数'),
-  body('type').optional().isIn(['text', 'choice']).withMessage('章节类型只能是text或choice'),
-  body('text').optional().notEmpty().withMessage('章节文本不能为空')
-    .isLength({ max: 2000 }).withMessage('文本不能超过2000字')
-], async (req, res, next) => {
+router.put('/:storyId/:sectionId', protect,
+  async (req, res, next) => {
+    try {
+      const { storyId } = req.params;
+      const story = await Story.findById(storyId);
+      if (!story || story.author.toString() !== req.user.id) {
+        return next(errorFormat(403, '没有权限修改此故事章节', [], 10020));
+      }
+      next();
+    } catch (err) {
+      next(err);
+    }
+  }, 
+  [
+    body('order').optional().isInt({ min: 1 }).withMessage('章节顺序必须是正整数'),
+    body('type').optional().isIn(['text', 'choice']).withMessage('章节类型只能是text或choice'),
+    body('text').optional().notEmpty().withMessage('章节文本不能为空')
+      .isLength({ max: 2000 }).withMessage('文本不能超过2000字')
+  ], async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(errorFormat(400, '更新章节失败', errors.array()));
@@ -183,7 +223,7 @@ router.put('/:sectionId', protect, storyAuth, [
     // 如果更新order，检查新order是否已被占用
     if (updateData.order) {
       const existingSection = await StorySection.findOne({
-        story: storyId,
+        storyId,
         order: updateData.order,
         _id: { $ne: sectionId } // 排除当前章节
       });
@@ -196,14 +236,24 @@ router.put('/:sectionId', protect, storyAuth, [
       }
     }
 
-    // 非选择型章节清空choices
+    // 非选择型章节清空choice
     if (updateData.type === 'text') {
-      updateData.choices = [];
+      updateData.choice = [];
+    }
+    
+    // 确保字段名正确
+    if (updateData.type) {
+      updateData.storytype = updateData.type;
+      delete updateData.type;
+    }
+    if (updateData.choices) {
+      updateData.choice = updateData.choices;
+      delete updateData.choices;
     }
 
     // 更新章节
     const section = await StorySection.findOneAndUpdate(
-      { _id: sectionId, story: storyId }, // 确保章节属于该故事
+      { _id: sectionId, storyId }, // 确保章节属于该故事
       updateData,
       { new: true, runValidators: true }
     );
@@ -239,7 +289,19 @@ router.put('/:sectionId', protect, storyAuth, [
  * DELETE /api/v1/stories/:storyId/sections/:sectionId
  * 可选：删除后自动调整后续章节的order（避免顺序断层）
  */
-router.delete('/:sectionId', protect, storyAuth, async (req, res, next) => {
+router.delete('/:storyId/:sectionId', protect,
+  async (req, res, next) => {
+    try {
+      const { storyId } = req.params;
+      const story = await Story.findById(storyId);
+      if (!story || story.author.toString() !== req.user.id) {
+        return next(errorFormat(403, '没有权限删除此故事章节', [], 10020));
+      }
+      next();
+    } catch (err) {
+      next(err);
+    }
+  }, async (req, res, next) => {
   try {
     const { storyId, sectionId } = req.params;
     const { adjustOrder = true } = req.query; // 是否自动调整后续章节顺序
@@ -247,7 +309,7 @@ router.delete('/:sectionId', protect, storyAuth, async (req, res, next) => {
     // 查找章节
     const section = await StorySection.findOne({
       _id: sectionId,
-      story: storyId
+      storyId
     });
 
     if (!section) {
@@ -262,7 +324,7 @@ router.delete('/:sectionId', protect, storyAuth, async (req, res, next) => {
     // 如果需要调整顺序：后续章节的order-1
     if (adjustOrder === 'true') {
       await StorySection.updateMany(
-        { story: storyId, order: { $gt: deletedOrder } }, // 只调整顺序更大的章节
+        { storyId, order: { $gt: deletedOrder } }, // 只调整顺序更大的章节
         { $inc: { order: -1 } } // order减1
       );
     }

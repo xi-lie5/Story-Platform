@@ -11,7 +11,7 @@ const StorySectionSchema = new mongoose.Schema({
     storytype: {
         type: String,
         required: [true, '章节类型必填'],
-        eum: ['text', 'choice']
+        enum: ['text', 'choice']
     },
     //章节顺序（数字越小越靠前）
     order: {
@@ -46,7 +46,7 @@ const StorySectionSchema = new mongoose.Schema({
 
 //关键索引：同一故事内章节顺序不能重复
 StorySectionSchema.index(
-  { story: 1, order: 1 },
+  { storyId: 1, order: 1 },
   { unique: true, message: '同一故事内章节顺序不能重复' }
 );
 

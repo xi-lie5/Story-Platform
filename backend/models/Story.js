@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 
-const StorySchema = new mongoess.Schema({
+const StorySchema = new mongoose.Schema({
     title: {
         type: String,
         required: [true, '故事标题必填'],
@@ -50,7 +50,7 @@ const StorySchema = new mongoess.Schema({
     }
 )
 
-StorySchema.virtuals("sections", {
+StorySchema.virtual("sections", {
     ref: 'StorySection',
     localField: '_id',
     foreignField: 'storyId',

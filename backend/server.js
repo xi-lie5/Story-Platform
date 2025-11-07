@@ -25,16 +25,33 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // 注册路由（匹配API文档的基础URL：/api/v1）
 const BASE_URL = '/api/v1';
-// 原挂载代码（第40行）
+
+// 处理API根路径请求
+app.get(BASE_URL, (req, res) => {
+  res.status(200).json({ 
+    message: '欢迎使用AI故事创作平台API',
+    version: '1.0.0',
+    endpoints: [
+      `${BASE_URL}/auth`,
+      `${BASE_URL}/stories`,
+      `${BASE_URL}/sections`, 
+      `${BASE_URL}/categories`,
+      `${BASE_URL}/users`,
+      `${BASE_URL}/test`
+    ]
+  });
+});
+
+// 挂载所有路由
 app.use(`${BASE_URL}/auth`, authRoutes);
-// app.use('/api/auth',authRoutes);
-// app.use('/api/stories', require('./routes/stories'));
+app.use(`${BASE_URL}/stories`, require('./routes/stories'));
+app.use(`${BASE_URL}/sections`, require('./routes/sections'));
+app.use(`${BASE_URL}/categories`, require('./routes/categories'));
+app.use(`${BASE_URL}/users`, require('./routes/users'));
 
- 
-
-// 测试接口（访问http://localhost:5000/api/test会返回成功消息）
+// 测试接口
 app.get(`${BASE_URL}/test`, (req, res) => {
-  res.send({ message: '后端接口能通啦！' });
+  res.status(200).json({ message: '后端接口能通啦！' });
 });
 
 // 全局错误处理中间件（最后注册）

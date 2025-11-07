@@ -4,7 +4,7 @@ const { body, validationResult } = require('express-validator');
 const Story = require('../models/Story');
 const Category = require('../models/Category');
 const StorySection = require('../models/StorySection');
-const { protect } = require('../middleware/auth');
+const protect = require('../middleware/auth');
 const { errorFormat } = require('../utils/errorFormat');
 
 const router = express.Router();
@@ -97,7 +97,7 @@ router.get('/:storyId', async (req, res, next) => {
 
     }
     // 浏览量+1（每次查看详情递增）
-    story.views += 1;
+    story.view += 1;
     await story.save();
 
     res.status(200).json({
@@ -135,7 +135,7 @@ router.get('/:storyId', async (req, res, next) => {
 router.post('/', protect, [
   body('title').notEmpty().withMessage('故事标题必填').isLength({ max: 100 }).withMessage('标题不能超过100字'),
   body('categoryId').notEmpty().withMessage('分类ID必填'),
-  body('description').notEmpty().withMessage('故事简介必填').isLength({ max: 200 }).withMessage('简介不能超过500字')
+  body('description').notEmpty().withMessage('故事简介必填').isLength({ max: 500 }).withMessage('简介不能超过500字')
 ], async (req, res, next) => {
   try {
     const errors = validationResult(req);
@@ -202,37 +202,37 @@ router.put('/:storyId', protect, async (req, res, next) => {
     session.startTransaction(); // 开始事务
 
     const { storyId } = req.params;//必须要有
-    const Story = await Story.findById(storyId).session(session);
-    if (!Story) {
+    const story = await Story.findById(storyId).session(session);
+    if (!story) {
       return next(errorFormat(404, '故事不存在', [], 10010));
     }
-    if (Story.author.toString() !== req.user.id) {
+    if (story.author.toString() !== req.user.id) {
       return next(errorFormat(403, '没有权限', [], 10011));
     }
     const UpdateData = req.body; // 更新数据--不确定请求体内有什么内容，逐一检查
     if (UpdateData.title) {
-      Story.title = UpdateData.title;
+      story.title = UpdateData.title;
     }
     if (UpdateData.category) {
       const newcategory = await Category.findOne({ name: UpdateData.category }).session(session);
       if (!newcategory) {
         return next(errorFormat(404, '分类不存在', [], 10012));
       }
-      const storycatgory = await Category.findById(Story.category).session(session);
+      const storycatgory = await Category.findById(story.category).session(session);
       storycatgory.storyCount -= 1;
       newcategory.storyCount += 1;
       storycatgory.save({ session });
       newcategory.save({ session });
-      Story.category = newcategory._id;
+      story.category = newcategory._id;
     }
     if (UpdateData.description) {
-      Story.description = UpdateData.description;
+      story.description = UpdateData.description;
     }
     // 图片存储后续再说
     if (UpdateData.coverImage) {
-      Story.coverImage = UpdateData.coverImage;
+      story.coverImage = UpdateData.coverImage;
     }
-    Story.save({ session });
+    story.save({ session });
     // 提交事务
     await session.commitTransaction();
     session.endSession();

@@ -5,7 +5,7 @@ const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { errorFormat } = require('../utils/errorFormat');
-const { refreshAuth } = require('../middleware/refreshAuth');
+const refreshAuth = require('../middleware/refreshAuth');
 
 const router = express.Router();
 const BASE_URL = '/api/v1';
@@ -122,4 +122,4 @@ router.post('/refresh', refreshAuth, async (req, res, next) => {
 
 });
 
-module.exports = router; 
+module.exports = router;
