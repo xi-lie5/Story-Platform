@@ -124,7 +124,7 @@ router.put('/me/change-password',
       const { currentPassword, newPassword } = req.body;
       
       // 获取用户信息
-      const user = await User.findById(req.user.id);
+      const user = await User.findById(req.user.id).select('+password');
       
       // 验证当前密码
       const isMatch = await user.matchPassword(currentPassword);

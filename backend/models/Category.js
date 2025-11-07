@@ -8,7 +8,7 @@ const categorySchema = new mongoose.Schema({
     },
     description: {
         type: String,
-        required: [true, '分类描述必填']
+        default: ''
     },
     storyCount: {
         type: Number,

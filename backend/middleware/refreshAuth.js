@@ -29,7 +29,7 @@ module.exports = async (req, res, next) => {
         const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
         // 4. 根据令牌中的用户 ID 查找用户
-        const user = await User.findById(decoded.id);
+        const user = await User.findById(decoded.id).select('+refreshToken');
         if (!user) {
             return next(errorFormat(
                 404,
