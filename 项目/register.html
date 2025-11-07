@@ -6,7 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>注册 - StoryForge</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <!-- 使用cdnjs的Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
   <script>
     tailwind.config = { /* 与index.html完全一致 */ }
   </script>
@@ -99,6 +100,128 @@
   <!-- JavaScript：与index.html完全一致 -->
   <script>
     // 复制index.html的JavaScript代码
+  </script>
+  
+  <!-- 注册功能脚本 -->
+  <script>
+  // 注册功能的JavaScript代码
+
+  // 表单提交处理
+  document.querySelector('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // 获取表单数据
+    const username = document.getElementById('reg-name').value;
+    const email = document.getElementById('reg-email').value;
+    const password = document.getElementById('reg-password').value;
+    const confirmPassword = document.getElementById('reg-confirm').value;
+    const agreeTerms = document.getElementById('reg-agree').checked;
+    
+    // 表单验证
+    if (!agreeTerms) {
+      alert('请同意服务条款和隐私政策');
+      return;
+    }
+    
+    try {
+      // 发送注册请求到后端API
+      const response = await fetch('http://localhost:5000/api/v1/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+          confirmPassword
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // 注册成功，保存token并跳转到登录页或首页
+        localStorage.setItem('token', result.data.token);
+        localStorage.setItem('refreshToken', result.data.refreshToken);
+        localStorage.setItem('userInfo', JSON.stringify({
+          userId: result.data.userId,
+          username: result.data.username,
+          email: result.data.email
+        }));
+        
+        alert('注册成功！即将跳转到登录页');
+        window.location.href = 'login.html';
+      } else {
+        // 显示错误信息
+        let errorMsg = '注册失败';
+        if (result.errors && result.errors.length > 0) {
+          errorMsg = result.errors.map(err => err.message || err).join('\n');
+        } else if (result.message) {
+          errorMsg = result.message;
+        }
+        alert(errorMsg);
+      }
+    } catch (error) {
+      console.error('注册请求失败:', error);
+      alert('网络错误，请稍后重试');
+    }
+  });
+
+  // 密码强度验证
+  const passwordInput = document.getElementById('reg-password');
+  passwordInput.addEventListener('input', function() {
+    const password = this.value;
+    const requirements = [];
+    
+    if (password.length >= 8) {
+      requirements.push('✓ 长度符合要求');
+    } else {
+      requirements.push('✗ 长度至少8位');
+    }
+    
+    if (/[A-Za-z]/.test(password) && /[0-9]/.test(password)) {
+      requirements.push('✓ 包含字母和数字');
+    } else {
+      requirements.push('✗ 必须包含字母和数字');
+    }
+    
+    // 创建或更新密码要求提示
+    let passwordTips = document.getElementById('password-tips');
+    if (!passwordTips) {
+      passwordTips = document.createElement('div');
+      passwordTips.id = 'password-tips';
+      passwordTips.className = 'text-sm text-slate-600 mt-1';
+      this.parentNode.appendChild(passwordTips);
+    }
+    
+    passwordTips.innerHTML = requirements.join('<br>');
+  });
+
+  // 确认密码验证
+  const confirmInput = document.getElementById('reg-confirm');
+  confirmInput.addEventListener('input', function() {
+    const password = passwordInput.value;
+    const confirm = this.value;
+    
+    let confirmTips = document.getElementById('confirm-tips');
+    if (!confirmTips) {
+      confirmTips = document.createElement('div');
+      confirmTips.id = 'confirm-tips';
+      confirmTips.className = 'text-sm mt-1';
+      this.parentNode.appendChild(confirmTips);
+    }
+    
+    if (password && confirm && password !== confirm) {
+      confirmTips.textContent = '✗ 两次输入的密码不一致';
+      confirmTips.className = 'text-sm text-red-500 mt-1';
+    } else if (password && confirm && password === confirm) {
+      confirmTips.textContent = '✓ 密码一致';
+      confirmTips.className = 'text-sm text-green-500 mt-1';
+    } else {
+      confirmTips.textContent = '';
+    }
+  });
   </script>
 </body>
 </html>
