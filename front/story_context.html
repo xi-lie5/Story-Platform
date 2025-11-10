@@ -110,9 +110,9 @@
       <!-- 故事工具栏 -->
       <div class="bg-white rounded-2xl shadow-md p-4 flex flex-wrap justify-between items-center mb-8 gap-4">
         <div class="flex items-center gap-6">
-          <button class="flex items-center gap-2 text-slate-600 hover:text-primary transition-colors">
-            <i class="fa fa-heart-o"></i>
-            <span>收藏 (128)</span>
+          <button id="collect-btn" class="flex items-center gap-2 text-slate-600 hover:text-primary transition-colors">
+            <i class="fa fa-heart-o" id="collect-icon"></i>
+            <span id="collect-text">收藏 (128)</span>
           </button>
           <button class="flex items-center gap-2 text-slate-600 hover:text-primary transition-colors">
             <i class="fa fa-star-o"></i>
@@ -282,6 +282,7 @@
   </footer>
 
   <!-- JavaScript（与首页一致） -->
+  <script src="assets/js/auth.js"></script>
   <script>
     // 导航栏滚动效果
     const navbar = document.getElementById('navbar');
@@ -321,6 +322,121 @@
         }
       });
     });
+
+    AuthUI.init();
+
+    // 收藏功能实现
+    const collectBtn = document.getElementById('collect-btn');
+    const collectIcon = document.getElementById('collect-icon');
+    const collectText = document.getElementById('collect-text');
+    const storyId = new URLSearchParams(window.location.search).get('id');
+
+    if (collectBtn && storyId) {
+        collectBtn.addEventListener('click', async () => {
+            const authState = AuthUI.getAuthState();
+            if (!authState) {
+                alert('请先登录后再收藏');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                // 检查是否已收藏
+                const isCollected = collectIcon.classList.contains('fa-heart');
+                
+                if (isCollected) {
+                    // 取消收藏
+                    await fetch('/api/v1/users/collections/' + storyId, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': 'Bearer ' + authState.token,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    collectIcon.classList.remove('fa-heart');
+                    collectIcon.classList.add('fa-heart-o');
+                    collectIcon.classList.remove('text-red-500');
+                    collectBtn.classList.remove('text-red-500');
+                    showNotification('已取消收藏', 'info');
+                } else {
+                    // 添加收藏
+                    const response = await fetch('/api/v1/users/collections', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': 'Bearer ' + authState.token,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ storyId })
+                    });
+                    
+                    if (response.ok) {
+                        collectIcon.classList.remove('fa-heart-o');
+                        collectIcon.classList.add('fa-heart');
+                        collectIcon.classList.add('text-red-500');
+                        collectBtn.classList.add('text-red-500');
+                        showNotification('收藏成功', 'success');
+                    }
+                }
+            } catch (error) {
+                console.error('收藏操作失败:', error);
+                showNotification('操作失败，请稍后重试', 'error');
+            }
+        });
+
+        // 初始检查收藏状态
+        async function checkCollectionStatus() {
+            const authState = AuthUI.getAuthState();
+            if (authState) {
+                try {
+                    const response = await fetch('/api/v1/users/collections', {
+                        headers: {
+                            'Authorization': 'Bearer ' + authState.token
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const isCollected = data.data.some(collection => collection.story._id === storyId);
+                        
+                        if (isCollected) {
+                            collectIcon.classList.remove('fa-heart-o');
+                            collectIcon.classList.add('fa-heart');
+                            collectIcon.classList.add('text-red-500');
+                            collectBtn.classList.add('text-red-500');
+                        }
+                    }
+                } catch (error) {
+                    console.error('检查收藏状态失败:', error);
+                }
+            }
+        }
+
+        checkCollectionStatus();
+    }
+
+    // 通知提示功能
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center transition-all duration-300 transform translate-y-10 opacity-0`;
+
+        if (type === 'success') {
+            notification.classList.add('bg-green-50', 'border', 'border-green-200', 'text-green-700');
+            notification.innerHTML = `<i class="fa fa-check-circle mr-2"></i>${message}`;
+        } else if (type === 'error') {
+            notification.classList.add('bg-red-50', 'border', 'border-red-200', 'text-red-700');
+            notification.innerHTML = `<i class="fa fa-exclamation-circle mr-2"></i>${message}`;
+        } else {
+            notification.classList.add('bg-blue-50', 'border', 'border-blue-200', 'text-blue-700');
+            notification.innerHTML = `<i class="fa fa-info-circle mr-2"></i>${message}`;
+        }
+
+        document.body.appendChild(notification);
+        setTimeout(() => notification.classList.remove('translate-y-10', 'opacity-0'), 10);
+        setTimeout(() => {
+            notification.classList.add('translate-y-10', 'opacity-0');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
   </script>
 </body>
 </html>

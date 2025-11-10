@@ -116,15 +116,15 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div class="p-5 rounded-xl bg-primary/5 border border-primary/10">
                 <div class="text-sm text-slate-500 mb-1">已发布故事</div>
-                <div class="text-3xl font-bold text-primary" id="profile-published">0</div>
+                <div class="text-3xl font-bold text-primary" id="stories-count">0</div>
               </div>
               <div class="p-5 rounded-xl bg-secondary/5 border border-secondary/10">
                 <div class="text-sm text-slate-500 mb-1">创作中</div>
                 <div class="text-3xl font-bold text-secondary" id="profile-drafts">0</div>
               </div>
-              <div class="p-5 rounded-xl bg-accent/5 border border-accent/10">
+              <div class="p-5 rounded-xl bg-red-50 border border-red-100">
                 <div class="text-sm text-slate-500 mb-1">收藏故事</div>
-                <div class="text-3xl font-bold text-accent" id="profile-favorites">0</div>
+                <div class="text-3xl font-bold" id="collections-count">0</div>
               </div>
             </div>
             <p class="text-sm text-slate-500 mt-4">* 数据统计功能尚在开发中，敬请期待。</p>
@@ -190,12 +190,44 @@
     }
 
     renderProfile();
+    loadUserStats();
 
     window.addEventListener('storage', (event) => {
       if (!event.key || AuthUI.AUTH_STORAGE_KEYS.includes(event.key)) {
         renderProfile();
+        loadUserStats();
       }
     });
+
+    // 加载用户统计信息（故事数、收藏数）
+    async function loadUserStats() {
+      const authState = AuthUI.getAuthState();
+      if (!authState) return;
+
+      try {
+        // 加载收藏数
+        const collectionsResponse = await fetch('/api/v1/users/collections', {
+          headers: {
+            'Authorization': 'Bearer ' + authState.token
+          }
+        });
+
+        if (collectionsResponse.ok) {
+          const data = await collectionsResponse.json();
+          document.getElementById('collections-count').textContent = data.pagination.total || 0;
+        }
+
+        // 加载故事数（可以复用现有的逻辑）
+        const userId = authState.userInfo.userId;
+        const storiesResponse = await fetch(`/api/v1/users/${userId}/stories`);
+        if (storiesResponse.ok) {
+          const storiesData = await storiesResponse.json();
+          document.getElementById('stories-count').textContent = storiesData.total || 0;
+        }
+      } catch (error) {
+        console.error('加载用户统计信息失败:', error);
+      }
+    }
   </script>
 </body>
 </html>
