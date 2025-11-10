@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <!-- 头部内容与index.html完全一致（Tailwind配置、外部资源、自定义样式） -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - StoryForge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = { /* 与index.html完全一致 */ }
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities { /* 与index.html完全一致 */ }
+    @keyframes float { /* 与index.html完全一致 */ }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen text-slate-800 font-sans">
+  <!-- 导航栏：与index.html完全一致 -->
+  <header class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" id="navbar">
+    <!-- 导航栏代码复制index.html的header部分 -->
+  </header>
+
+  <!-- 登录内容区域（核心替换部分） -->
+  <section class="pt-32 pb-20 px-4">
+    <div class="container mx-auto max-w-md">
+      <div class="bg-white rounded-2xl shadow-xl p-8 md:p-10">
+        <div class="text-center mb-8">
+          <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fa fa-sign-in text-primary text-2xl"></i>
+          </div>
+          <h2 class="text-2xl md:text-3xl font-display font-bold">欢迎回来</h2>
+          <p class="text-slate-600 mt-2">登录你的账号，继续创作之旅</p>
+        </div>
+
+        <!-- 登录表单 -->
+        <form class="space-y-6" id="login-form">
+          <div>
+            <label for="login-email" class="block text-sm font-medium text-slate-700 mb-2">电子邮箱</label>
+            <input type="email" id="login-email" class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="请输入你的电子邮箱" required>
+          </div>
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label for="login-password" class="block text-sm font-medium text-slate-700">密码</label>
+              <a href="forgot-password.html" class="text-xs text-primary hover:underline">忘记密码？</a>
+            </div>
+            <input type="password" id="login-password" class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="请输入你的密码" required>
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox" id="remember-me" class="w-4 h-4 text-primary focus:ring-primary/50 border-slate-300 rounded">
+            <label for="remember-me" class="ml-2 text-sm text-slate-600">记住我</label>
+          </div>
+          <button type="submit" class="w-full py-3 rounded-lg bg-primary text-white font-medium shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 hover:bg-primary/90 transition-all">
+            登录账号
+          </button>
+          <div class="text-center text-sm text-slate-600">
+            还没有账号？<a href="register.html" class="text-primary font-medium hover:underline">立即注册</a>
+          </div>
+        </form>
+
+        <!-- 第三方登录（仅框架） -->
+       
+      </div>
+    </div>
+  </section>
+
+  <!-- 页脚：与index.html完全一致 -->
+  <footer class="bg-slate-900 text-white py-12 px-4">
+    <!-- 页脚代码复制index.html的footer部分 -->
+  </footer>
+
+  <!-- JavaScript：与index.html完全一致（导航栏、移动端菜单等交互） -->
+  <script>
+    // 复制index.html的JavaScript代码
+  </script>
+
+  <!-- 登录功能脚本 -->
+  <script>
+    (function () {
+      const form = document.getElementById('login-form');
+      if (!form) return;
+
+      const emailInput = document.getElementById('login-email');
+      const passwordInput = document.getElementById('login-password');
+      const rememberCheckbox = document.getElementById('remember-me');
+      const submitButton = form.querySelector('button[type="submit"]');
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+        const rememberMe = rememberCheckbox.checked;
+
+        if (!email || !password) {
+          alert('请输入邮箱和密码');
+          return;
+        }
+
+        const originalButtonText = submitButton.innerHTML;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 正在登录...';
+
+        try {
+          const response = await fetch('http://localhost:5000/api/v1/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+          });
+
+          const result = await response.json();
+
+          if (!response.ok || !result.success) {
+            const message = (result.errors && result.errors[0]?.message) || result.message || '登录失败，请检查账号密码';
+            throw new Error(message);
+          }
+
+          const storage = rememberMe ? localStorage : sessionStorage;
+          storage.setItem('token', result.data.token);
+          storage.setItem('refreshToken', result.data.refreshToken);
+          storage.setItem('userInfo', JSON.stringify({
+            userId: result.data.userId,
+            username: result.data.username,
+            email: result.data.email,
+            avatar: result.data.avatar
+          }));
+
+          // 清理另一种存储，避免冗余
+          const otherStorage = rememberMe ? sessionStorage : localStorage;
+          otherStorage.removeItem('token');
+          otherStorage.removeItem('refreshToken');
+          otherStorage.removeItem('userInfo');
+
+          alert('登录成功，正在跳转到首页');
+          window.location.href = 'index.html';
+        } catch (error) {
+          console.error('登录失败:', error);
+          alert(error.message || '登录失败，请稍后再试');
+        } finally {
+          submitButton.disabled = false;
+          submitButton.innerHTML = originalButtonText;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
