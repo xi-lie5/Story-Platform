@@ -56,6 +56,7 @@ app.use(`${BASE_URL}/stories`, require('./routes/stories'));
 app.use(`${BASE_URL}/sections`, require('./routes/sections'));
 app.use(`${BASE_URL}/categories`, require('./routes/categories'));
 app.use(`${BASE_URL}/users`, require('./routes/users'));
+app.use(`${BASE_URL}`, require('./routes/collections')); // 收藏功能路由
 
 // 错误处理
 app.use(errorHandler);
