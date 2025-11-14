@@ -62,8 +62,25 @@
     <div class="container mx-auto max-w-5xl">
       <!-- 标题与操作区 -->
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div>
-          <h2 class="text-2xl font-bold mb-1" id="node-title-display">编辑节点：加载中...</h2>
+        <div class="flex-1">
+          <div class="flex items-center gap-3 mb-2">
+            <h2 class="text-2xl font-bold" id="node-title-display">编辑节点：加载中...</h2>
+            <button id="edit-title-btn" class="p-2 text-slate-400 hover:text-primary transition-colors" title="编辑标题">
+              <i class="fa fa-edit"></i>
+            </button>
+          </div>
+          <!-- 实时编辑标题的输入框（默认隐藏） -->
+          <div id="title-edit-container" class="hidden mb-2">
+            <div class="flex items-center gap-2">
+              <input type="text" id="quick-title-input" class="flex-1 px-3 py-2 border border-primary rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" placeholder="输入节点标题...">
+              <button id="save-quick-title" class="px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                <i class="fa fa-check"></i>
+              </button>
+              <button id="cancel-quick-title" class="px-3 py-2 bg-slate-200 text-slate-600 rounded-lg hover:bg-slate-300 transition-colors">
+                <i class="fa fa-times"></i>
+              </button>
+            </div>
+          </div>
           <p class="text-slate-500">所属故事：魔法森林的神秘之门</p>
         </div>
         <div class="flex gap-3 w-full md:w-auto">
@@ -229,6 +246,9 @@
       
       // 加载节点数据到表单
       loadNodeDataToForm();
+      
+      // 初始化快速标题编辑功能
+      setupQuickTitleEdit();
     }
     
     // 加载节点数据到表单
@@ -242,6 +262,7 @@
       // 更新标题显示
       document.getElementById('node-title-display').textContent = `编辑节点：${node.title}`;
       document.getElementById('node-title-input').value = node.title;
+      document.getElementById('quick-title-input').value = node.title; // 同步到快速编辑框
       
       // 更新内容
       document.getElementById('node-content').value = node.content || '';
@@ -251,6 +272,98 @@
       
       // 加载当前节点的分支（from为当前节点且to为null的连接）
       loadBranches(currentNodeId);
+    }
+    
+    // 快速标题编辑功能
+    function setupQuickTitleEdit() {
+      const editBtn = document.getElementById('edit-title-btn');
+      const titleDisplay = document.getElementById('node-title-display');
+      const editContainer = document.getElementById('title-edit-container');
+      const quickInput = document.getElementById('quick-title-input');
+      const saveBtn = document.getElementById('save-quick-title');
+      const cancelBtn = document.getElementById('cancel-quick-title');
+      const rightSideInput = document.getElementById('node-title-input'); // 右侧输入框
+      
+      // 点击编辑按钮
+      editBtn.addEventListener('click', function() {
+        titleDisplay.parentElement.classList.add('hidden');
+        editContainer.classList.remove('hidden');
+        quickInput.focus();
+        quickInput.select();
+      });
+      
+      // 保存快速编辑的标题
+      function saveQuickTitle() {
+        const newTitle = quickInput.value.trim() || "未命名节点";
+        
+        // 更新数据
+        graphData.nodes[currentNodeId].title = newTitle;
+        
+        // 同步到所有输入框
+        rightSideInput.value = newTitle;
+        document.getElementById('node-title-display').textContent = `编辑节点：${newTitle}`;
+        
+        // 保存到本地存储
+        localStorage.setItem('storyGraphData', JSON.stringify(graphData));
+        
+        // 尝试保存到后端
+        if (currentStoryId && currentStoryId !== 'default') {
+          saveNodeToBackend();
+        }
+        
+        // 切换显示状态
+        editContainer.classList.add('hidden');
+        titleDisplay.parentElement.classList.remove('hidden');
+        
+        showNotification('节点标题已更新', 'success');
+      }
+      
+      // 保存按钮
+      saveBtn.addEventListener('click', saveQuickTitle);
+      
+      // 回车保存
+      quickInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          saveQuickTitle();
+        }
+      });
+      
+      // 取消编辑
+      cancelBtn.addEventListener('click', function() {
+        quickInput.value = graphData.nodes[currentNodeId].title; // 恢复原值
+        editContainer.classList.add('hidden');
+        titleDisplay.parentElement.classList.remove('hidden');
+      });
+      
+      // ESC取消
+      quickInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          cancelBtn.click();
+        }
+      });
+      
+      // 右侧输入框实时同步
+      rightSideInput.addEventListener('input', function() {
+        const newTitle = this.value.trim() || "未命名节点";
+        
+        // 更新数据
+        graphData.nodes[currentNodeId].title = newTitle;
+        
+        // 同步到显示和其他输入框
+        document.getElementById('node-title-display').textContent = `编辑节点：${newTitle}`;
+        quickInput.value = newTitle;
+        
+        // 实时保存到本地存储（防抖）
+        clearTimeout(window.titleSaveTimeout);
+        window.titleSaveTimeout = setTimeout(() => {
+          localStorage.setItem('storyGraphData', JSON.stringify(graphData));
+          
+          // 尝试保存到后端
+          if (currentStoryId && currentStoryId !== 'default') {
+            saveNodeToBackend();
+          }
+        }, 500);
+      });
     }
     
     // 加载当前节点的分支

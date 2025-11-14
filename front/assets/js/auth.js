@@ -56,6 +56,14 @@
     });
   }
 
+  function goToLogin(currentUrl = null) {
+    if (!currentUrl) {
+      currentUrl = window.location.href;
+    }
+    const encodedUrl = encodeURIComponent(currentUrl);
+    window.location.href = `login.html?redirect=${encodedUrl}`;
+  }
+
   function renderAreas(context) {
     const { desktopArea, mobileArea, mobileMenu } = context;
     if (!desktopArea) return;
@@ -65,7 +73,7 @@
     if (!authState) {
       desktopArea.innerHTML = `
         <button class="hidden md:block px-5 py-2 rounded-full bg-white text-primary border border-primary hover:bg-primary/5 transition-colors">
-          <a href="login.html" class="block w-full h-full">登录</a>
+          <a href="javascript:void(0)" onclick="window.AuthUI.goToLogin()" class="block w-full h-full">登录</a>
         </button>
         <button class="px-5 py-2 rounded-full bg-primary text-white hover:bg-primary/90 shadow-md hover:shadow-lg transition-all">
           <a href="register.html" class="block w-full h-full">注册</a>
@@ -75,7 +83,7 @@
       if (mobileArea) {
         mobileArea.innerHTML = `
           <button class="w-full px-5 py-2 rounded-full bg-white text-primary border border-primary hover:bg-primary/5 transition-colors">
-            <a href="login.html" class="block w-full h-full">登录</a>
+            <a href="javascript:void(0)" onclick="window.AuthUI.goToLogin()" class="block w-full h-full">登录</a>
           </button>
           <button class="w-full px-5 py-2 rounded-full bg-primary text-white hover:bg-primary/90 shadow-md hover:shadow-lg transition-all">
             <a href="register.html" class="block w-full h-full">注册</a>
@@ -174,6 +182,7 @@
     getAuthState,
     resolveAvatarUrl,
     clearAuthStorage,
+    goToLogin,
     BACKEND_BASE_URL,
     AUTH_STORAGE_KEYS: [...AUTH_STORAGE_KEYS]
   });
