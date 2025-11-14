@@ -51,7 +51,60 @@ storySchema.virtual('sections', {
   foreignField: 'storyId'
 });
 
+// 添加复合索引以优化常用查询
 storySchema.index({ title: 'text', description: 'text' });
 storySchema.index({ createdAt: -1 });
+storySchema.index({ updatedAt: -1 });
+storySchema.index({ author: 1, createdAt: -1 });
+storySchema.index({ category: 1, rating: -1 });
+storySchema.index({ category: 1, view: -1 });
+storySchema.index({ isPublic: 1, createdAt: -1 });
+storySchema.index({ isPublic: 1, rating: -1 });
+storySchema.index({ isPublic: 1, view: -1 });
+
+// 添加批量更新方法以减少数据库操作
+storySchema.statics.bulkUpdateStats = async function(storyIds, updates) {
+  return this.updateMany(
+    { _id: { $in: storyIds } },
+    { $set: updates },
+    { multi: true }
+  );
+};
+
+// 添加查询优化方法
+storySchema.statics.findWithPagination = async function(query, options = {}) {
+  const page = parseInt(options.page) || 1;
+  const limit = parseInt(options.limit) || 10;
+  const skip = (page - 1) * limit;
+  const sort = options.sort || { createdAt: -1 };
+
+  // 构建查询条件
+  const queryObj = { ...query };
+  if (queryObj.isPublic === undefined) {
+    queryObj.isPublic = true;
+  }
+
+  // 执行查询
+  const stories = await this.find(queryObj)
+    .populate('author', 'username avatar')
+    .populate('category', 'name')
+    .sort(sort)
+    .skip(skip)
+    .limit(limit)
+    .lean(); // 使用lean()提高查询性能
+
+  const total = await this.countDocuments(queryObj);
+
+  return {
+    stories,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      hasNext: page * limit < total
+    }
+  };
+};
 
 module.exports = mongoose.model('Story', storySchema);

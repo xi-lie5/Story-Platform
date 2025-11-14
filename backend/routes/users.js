@@ -5,6 +5,7 @@ const Story = require('../models/Story');
 const { body, validationResult } = require('express-validator');
 const protect = require('../middleware/auth');
 const { errorFormat } = require('../utils/errorFormat');
+const { cacheMiddleware, clearUserCache } = require('../middleware/cache');
 
 const router = express.Router();
 
@@ -82,6 +83,9 @@ router.put('/me',
         { new: true, runValidators: true }
       ).select('-password -refreshToken');
       
+      // 清除用户缓存
+      clearUserCache(req.user.id);
+      
       res.status(200).json({
         success: true,
         message: '用户信息更新成功',
@@ -136,6 +140,9 @@ router.put('/me/change-password',
       user.password = newPassword;
       await user.save();
       
+      // 清除用户缓存
+      clearUserCache(req.user.id);
+      
       res.status(200).json({
         success: true,
         message: '密码修改成功'
@@ -150,7 +157,7 @@ router.put('/me/change-password',
  * 4. 获取用户的故事列表
  * GET /api/v1/users/:userId/stories
  */
-router.get('/:userId/stories', async (req, res, next) => {
+router.get('/:userId/stories', protect, cacheMiddleware(180), async (req, res, next) => {
   try {
     const { userId } = req.params;
     const { page = 1, limit = 10 } = req.query;
@@ -164,6 +171,11 @@ router.get('/:userId/stories', async (req, res, next) => {
     const user = await User.findById(userId);
     if (!user) {
       return next(errorFormat(404, '用户不存在', [], 10040));
+    }
+    
+    // 验证当前用户只能访问自己的故事列表
+    if (req.user.id !== userId) {
+      return next(errorFormat(403, '无权访问其他用户的故事列表', [], 10044));
     }
     
     // 计算跳过的文档数
@@ -192,10 +204,10 @@ router.get('/:userId/stories', async (req, res, next) => {
 });
 
 /**
- * 5. 获取用户资料
+ * 5. 获取用户资料（公开信息）
  * GET /api/v1/users/:userId
  */
-router.get('/:userId', async (req, res, next) => {
+router.get('/:userId', cacheMiddleware(300), async (req, res, next) => {
   try {
     const { userId } = req.params;
     
@@ -204,8 +216,8 @@ router.get('/:userId', async (req, res, next) => {
       return next(errorFormat(400, '无效的用户ID', [], 10040));
     }
     
-    // 查询用户信息
-    const user = await User.findById(userId).select('-password -refreshToken');
+    // 查询用户信息（只返回公开信息）
+    const user = await User.findById(userId).select('username email avatar bio createdAt');
     
     if (!user) {
       return next(errorFormat(404, '用户不存在', [], 10040));

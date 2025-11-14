@@ -26,6 +26,9 @@ app.use(cors({
 app.use('/avatar', express.static(path.join(__dirname, 'avatar')));
 app.use('/coverImage', express.static(path.join(__dirname, 'coverImage')));
 
+// 配置前端静态文件服务
+app.use(express.static(path.join(__dirname, '../front')));
+
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
@@ -45,7 +48,8 @@ app.get(BASE_URL, (req, res) => {
       `${BASE_URL}/stories`,
       `${BASE_URL}/sections`,
       `${BASE_URL}/categories`,
-      `${BASE_URL}/users`
+      `${BASE_URL}/users`,
+      `${BASE_URL}/interactions`
     ]
   });
 });
@@ -56,7 +60,7 @@ app.use(`${BASE_URL}/stories`, require('./routes/stories'));
 app.use(`${BASE_URL}/sections`, require('./routes/sections'));
 app.use(`${BASE_URL}/categories`, require('./routes/categories'));
 app.use(`${BASE_URL}/users`, require('./routes/users'));
-app.use(`${BASE_URL}`, require('./routes/collections')); // 收藏功能路由
+app.use(`${BASE_URL}/interactions`, require('./routes/interactions')); // 用户交互功能路由（收藏、评分等）
 
 // 错误处理
 app.use(errorHandler);
