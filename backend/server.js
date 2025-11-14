@@ -8,7 +8,8 @@ const path = require('path');
 
 const errorHandler = require('./middleware/errorHandler');
 
-dotenv.config();
+// server.js从server根目录加载.env
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const BASE_URL = '/api/v1';
