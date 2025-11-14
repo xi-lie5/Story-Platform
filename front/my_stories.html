@@ -85,145 +85,56 @@
                 </div>
             </div>
 
-            <!-- 未完成作品 -->
-            <h3 class="text-xl font-bold mb-4 flex items-center">
-                <i class="fa fa-clock-o text-secondary mr-2"></i> 继续创作
-            </h3>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
-                <!-- 未完成作品1（可直接跳转继续编辑） -->
-                <div
-                    class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border-l-4 border-secondary">
-                    <div class="p-6">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="font-bold text-lg mb-1">魔法森林的神秘之门</h3>
-                                <p class="text-sm text-slate-500">上次编辑：今天 14:35 · 奇幻冒险</p>
-                            </div>
-                            <span class="px-2 py-1 bg-secondary/10 text-secondary text-xs rounded-full">未完成</span>
-                        </div>
-
-                        <p class="text-slate-600 text-sm mb-4 line-clamp-2">年轻魔法师艾拉在森林中发现神秘门，她的每个选择都将触发不同的冒险历程...</p>
-
-                        <!-- 进度条 -->
-                        <div class="mb-4">
-                            <div class="flex justify-between text-xs text-slate-500 mb-1">
-                                <span>完成进度</span>
-                                <span>50%</span>
-                            </div>
-                            <div class="w-full bg-slate-100 rounded-full h-2">
-                                <div class="bg-progress h-2 rounded-full" style="width: 50%"></div>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-3">
-                            <a href="story_editor.html"
-                                class="flex-1 px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors flex items-center justify-center text-sm">
-                                <i class="fa fa-edit mr-2"></i> 继续编辑
-                            </a>
-                            <a href="story_framework.html"
-                                class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center text-sm">
-                                <i class="fa fa-sitemap mr-2"></i> 查看框架
-                            </a>
-                        </div>
-                    </div>
+            <!-- 作品列表容器 -->
+            <div id="stories-container">
+                <!-- 加载中状态 -->
+                <div id="loading-state" class="text-center py-12">
+                    <i class="fa fa-spinner fa-spin text-4xl text-primary mb-4"></i>
+                    <p class="text-slate-600">正在加载您的作品...</p>
                 </div>
-
-                <!-- 未完成作品2 -->
-                <div
-                    class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border-l-4 border-secondary">
-                    <div class="p-6">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="font-bold text-lg mb-1">时间旅行者的抉择</h3>
-                                <p class="text-sm text-slate-500">上次编辑：昨天 09:12 · 科幻未来</p>
-                            </div>
-                            <span class="px-2 py-1 bg-secondary/10 text-secondary text-xs rounded-full">未完成</span>
-                        </div>
-
-                        <p class="text-slate-600 text-sm mb-4 line-clamp-2">来自2077年的时间特工，必须在不改变历史的前提下完成拯救未来的任务...</p>
-
-                        <!-- 进度条 -->
-                        <div class="mb-4">
-                            <div class="flex justify-between text-xs text-slate-500 mb-1">
-                                <span>完成进度</span>
-                                <span>30%</span>
-                            </div>
-                            <div class="w-full bg-slate-100 rounded-full h-2">
-                                <div class="bg-progress h-2 rounded-full" style="width: 30%"></div>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-3">
-                            <a href="story_editor.html?story=2&node=3"
-                                class="flex-1 px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors flex items-center justify-center text-sm">
-                                <i class="fa fa-edit mr-2"></i> 继续编辑
-                            </a>
-                            <a href="story_framework.html?story=2"
-                                class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center text-sm">
-                                <i class="fa fa-sitemap mr-2"></i> 查看框架
-                            </a>
-                        </div>
+                
+                <!-- 空状态（默认隐藏） -->
+                <div id="empty-state" class="text-center py-12 hidden">
+                    <i class="fa fa-book text-6xl text-slate-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-slate-700 mb-2">还没有作品</h3>
+                    <p class="text-slate-500 mb-6">开始创建您的第一个互动故事吧！</p>
+                    <a href="create.html" class="inline-flex items-center px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                        <i class="fa fa-plus mr-2"></i> 创建第一个故事
+                    </a>
+                </div>
+                
+                <!-- 未登录状态（默认隐藏） -->
+                <div id="not-logged-in" class="text-center py-12 hidden">
+                    <i class="fa fa-lock text-6xl text-slate-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-slate-700 mb-2">请先登录</h3>
+                    <p class="text-slate-500 mb-6">登录后即可查看和管理您的作品</p>
+                    <div class="flex justify-center gap-4">
+                        <a href="login.html" class="inline-flex items-center px-6 py-3 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors">
+                            登录
+                        </a>
+                        <a href="register.html" class="inline-flex items-center px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                            注册
+                        </a>
                     </div>
                 </div>
             </div>
-
-            <!-- 已完成作品 -->
-            <h3 class="text-xl font-bold mb-4 flex items-center">
-                <i class="fa fa-check-circle text-progress mr-2"></i> 已完成作品
-            </h3>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- 已完成作品1 -->
-                <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                    <div class="p-6">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="font-bold text-lg mb-1">老钟表店的秘密</h3>
-                                <p class="text-sm text-slate-500">完成于：2023-06-10 · 悬疑推理</p>
-                            </div>
-                            <span class="px-2 py-1 bg-progress/10 text-progress text-xs rounded-full">已完成</span>
-                        </div>
-
-                        <p class="text-slate-600 text-sm mb-4 line-clamp-2">小镇上的老钟表店能让人回到过去，但每次回溯都要付出意想不到的代价...</p>
-
-                        <div class="flex gap-3">
-                            <a href="#"
-                                class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center text-sm">
-                                <i class="fa fa-eye mr-2"></i> 查看完整故事
-                            </a>
-                            <a href="#"
-                                class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center text-sm">
-                                <i class="fa fa-share-alt mr-2"></i> 分享
-                            </a>
-                        </div>
-                    </div>
+            
+            <!-- 动态内容区域 -->
+            <div id="dynamic-content" class="hidden">
+                <!-- 未完成作品区域 -->
+                <div id="incomplete-stories-section" class="hidden">
+                    <h3 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fa fa-clock-o text-secondary mr-2"></i> 继续创作
+                    </h3>
+                    <div id="incomplete-stories-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12"></div>
                 </div>
-
-                <!-- 已完成作品2 -->
-                <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                    <div class="p-6">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="font-bold text-lg mb-1">雨季的图书馆</h3>
-                                <p class="text-sm text-slate-500">完成于：2023-05-28 · 爱情故事</p>
-                            </div>
-                            <span class="px-2 py-1 bg-progress/10 text-progress text-xs rounded-full">已完成</span>
-                        </div>
-
-                        <p class="text-slate-600 text-sm mb-4 line-clamp-2">每个雨季都会出现的神秘图书馆，藏着能改变命运的爱情小说，只读对的人...</p>
-
-                        <div class="flex gap-3">
-                            <a href="#"
-                                class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center text-sm">
-                                <i class="fa fa-eye mr-2"></i> 查看完整故事
-                            </a>
-                            <a href="#"
-                                class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center text-sm">
-                                <i class="fa fa-share-alt mr-2"></i> 分享
-                            </a>
-                        </div>
-                    </div>
+                
+                <!-- 已完成作品区域 -->
+                <div id="completed-stories-section" class="hidden">
+                    <h3 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fa fa-check-circle text-progress mr-2"></i> 已完成作品
+                    </h3>
+                    <div id="completed-stories-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
                 </div>
             </div>
         </div>
@@ -248,7 +159,23 @@
             });
         }
 
-        AuthUI.init();
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 初始化认证UI
+            AuthUI.init();
+            
+            // 监听认证状态变化
+            document.addEventListener('authStateChanged', function(event) {
+                const { isLoggedIn, userInfo } = event.detail;
+                console.log('认证状态变化:', { isLoggedIn, userInfo });
+                
+                // 重新加载故事数据
+                loadUserStories();
+            });
+            
+            // 初始加载用户故事数据
+            await loadUserStories();
+        });
 
         // 通用功能：按钮点击反馈
         document.querySelectorAll('button, a[href]').forEach(el => {
@@ -352,7 +279,10 @@
                     const nodeTitle = this.querySelector('span').textContent;
                     showNotification(`正在进入「${nodeTitle}」的编辑页面`, 'info');
                     setTimeout(() => {
-                        window.location.href = 'story_editor.html';
+                        // 从URL获取storyId
+                        const params = new URLSearchParams(window.location.search);
+                        const storyId = params.get('story') || '1';
+                        window.location.href = `story_tree.html?story=${storyId}`;
                     }, 500);
                 }
             });
@@ -362,8 +292,211 @@
             const params = new URLSearchParams(window.location.search);
             if (params.get('continue') === 'true') {
                 showNotification('检测到未完成作品，正在跳转...', 'info');
+                // 延迟一小段时间再跳转
+                setTimeout(() => {
+                    window.location.href = 'story_tree.html?story=1';
+                }, 1000);
             }
         });
+        
+        // 从后端加载用户故事数据
+        async function loadUserStories() {
+            const loadingState = document.getElementById('loading-state');
+            const emptyState = document.getElementById('empty-state');
+            const notLoggedInState = document.getElementById('not-logged-in');
+            const dynamicContent = document.getElementById('dynamic-content');
+            const incompleteSection = document.getElementById('incomplete-stories-section');
+            const completedSection = document.getElementById('completed-stories-section');
+            const incompleteGrid = document.getElementById('incomplete-stories-grid');
+            const completedGrid = document.getElementById('completed-stories-grid');
+
+            // 隐藏所有状态，显示加载中
+            loadingState.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+            notLoggedInState.classList.add('hidden');
+            dynamicContent.classList.add('hidden');
+            incompleteSection.classList.add('hidden');
+            completedSection.classList.add('hidden');
+
+            try {
+                // 检查用户是否已登录
+                const authState = AuthUI.getAuthState();
+                if (!authState) {
+                    // 用户未登录
+                    loadingState.classList.add('hidden');
+                    notLoggedInState.classList.remove('hidden');
+                    return;
+                }
+
+                // 获取当前用户信息
+                const userInfo = authState.userInfo;
+                const userId = userInfo._id || userInfo.id;
+
+                if (!userId) {
+                    throw new Error('无法获取用户ID');
+                }
+
+                // 调用正确的API：获取用户的故事列表
+                const response = await fetch(`${AuthUI.BACKEND_BASE_URL}/api/v1/users/${userId}/stories`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        // Token过期或无效，清除登录状态
+                        AuthUI.clearAuthStorage();
+                        loadingState.classList.add('hidden');
+                        notLoggedInState.classList.remove('hidden');
+                        return;
+                    }
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                const stories = result.data || [];
+
+                // 隐藏加载状态
+                loadingState.classList.add('hidden');
+
+                if (stories.length === 0) {
+                    // 没有作品
+                    emptyState.classList.remove('hidden');
+                } else {
+                    // 有作品，显示动态内容
+                    dynamicContent.classList.remove('hidden');
+                    
+                    // 分类故事：已完成和未完成
+                    const incompleteStories = stories.filter(story => !story.isCompleted);
+                    const completedStories = stories.filter(story => story.isCompleted);
+
+                    // 渲染未完成作品
+                    if (incompleteStories.length > 0) {
+                        incompleteSection.classList.remove('hidden');
+                        incompleteGrid.innerHTML = incompleteStories.map(story => createStoryCard(story, false)).join('');
+                    }
+
+                    // 渲染已完成作品
+                    if (completedStories.length > 0) {
+                        completedSection.classList.remove('hidden');
+                        completedGrid.innerHTML = completedStories.map(story => createStoryCard(story, true)).join('');
+                    }
+
+                    // 如果没有任何作品显示（虽然总数大于0，但可能都是某种状态）
+                    if (incompleteStories.length === 0 && completedStories.length === 0) {
+                        emptyState.classList.remove('hidden');
+                        dynamicContent.classList.add('hidden');
+                    }
+                }
+
+            } catch (error) {
+                console.error('加载故事失败:', error);
+                loadingState.classList.add('hidden');
+                
+                // 显示错误提示
+                showNotification('加载作品失败，请刷新页面重试', 'error');
+                
+                // 显示空状态作为后备
+                emptyState.classList.remove('hidden');
+            }
+        }
+
+        // 创建故事卡片HTML
+        function createStoryCard(story, isCompleted) {
+            const storyId = story._id || story.id;
+            const title = story.title || '未命名故事';
+            const description = story.description || '暂无描述';
+            const category = story.category || '未分类';
+            const updatedAt = new Date(story.updatedAt).toLocaleDateString('zh-CN');
+            const progress = story.progress || 0;
+
+            if (isCompleted) {
+                return `
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                        <div class="p-6">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 class="font-bold text-lg mb-1">${title}</h3>
+                                    <p class="text-sm text-slate-500">完成于：${updatedAt} · ${category}</p>
+                                </div>
+                                <span class="px-2 py-1 bg-progress/10 text-progress text-xs rounded-full">已完成</span>
+                            </div>
+                            <p class="text-slate-600 text-sm mb-4 line-clamp-2">${description}</p>
+                            <div class="flex gap-3">
+                                <a href="story_tree.html?story=${storyId}&view=true"
+                                    class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center text-sm">
+                                    <i class="fa fa-eye mr-2"></i> 查看完整故事
+                                </a>
+                                <a href="#"
+                                    class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center text-sm"
+                                    onclick="shareStory('${storyId}', '${title}'); return false;">
+                                    <i class="fa fa-share-alt mr-2"></i> 分享
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border-l-4 border-secondary">
+                        <div class="p-6">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 class="font-bold text-lg mb-1">${title}</h3>
+                                    <p class="text-sm text-slate-500">上次编辑：${updatedAt} · ${category}</p>
+                                </div>
+                                <span class="px-2 py-1 bg-secondary/10 text-secondary text-xs rounded-full">未完成</span>
+                            </div>
+                            <p class="text-slate-600 text-sm mb-4 line-clamp-2">${description}</p>
+                            <div class="mb-4">
+                                <div class="flex justify-between text-xs text-slate-500 mb-1">
+                                    <span>完成进度</span>
+                                    <span>${progress}%</span>
+                                </div>
+                                <div class="w-full bg-slate-100 rounded-full h-2">
+                                    <div class="bg-progress h-2 rounded-full" style="width: ${progress}%"></div>
+                                </div>
+                            </div>
+                            <div class="flex gap-3">
+                                <a href="story_tree.html?story=${storyId}"
+                                    class="flex-1 px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors flex items-center justify-center text-sm">
+                                    <i class="fa fa-edit mr-2"></i> 继续编辑
+                                </a>
+                                <a href="story_tree.html?story=${storyId}"
+                                    class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center text-sm">
+                                    <i class="fa fa-sitemap mr-2"></i> 查看故事节点
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // 分享故事功能
+        function shareStory(storyId, title) {
+            const shareUrl = `${window.location.origin}/story_tree.html?story=${storyId}&view=true`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: title,
+                    text: `来看看我创作的互动故事《${title}》！`,
+                    url: shareUrl
+                }).catch(err => console.log('分享取消或失败'));
+            } else {
+                // 复制到剪贴板
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    showNotification('故事链接已复制到剪贴板', 'success');
+                }).catch(() => {
+                    showNotification('复制失败，请手动复制链接', 'error');
+                });
+            }
+        }
+        
+
     </script>
 </body>
 

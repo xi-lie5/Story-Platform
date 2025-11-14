@@ -67,7 +67,7 @@
           <p class="text-slate-500">所属故事：魔法森林的神秘之门</p>
         </div>
         <div class="flex gap-3 w-full md:w-auto">
-          <a href="story_tree.html" class="flex-1 md:flex-none px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center">
+          <a id="back-to-tree" href="story_tree.html" class="flex-1 md:flex-none px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center">
             <i class="fa fa-sitemap mr-2"></i> 返回节点图谱
           </a>
           <button id="save-story" class="flex-1 md:flex-none px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center">
@@ -183,13 +183,28 @@
 
     // 页面加载时获取节点ID并加载数据
     window.addEventListener('DOMContentLoaded', function() {
-      // 从URL获取节点ID
+      // 从URL获取节点ID和故事ID
       const params = new URLSearchParams(window.location.search);
       currentNodeId = params.get('node');
+      currentStoryId = params.get('story');
+      const returnTo = params.get('returnTo');
+      
+      // 设置返回链接，确保能返回到正确的页面
+      const backLink = document.getElementById('back-to-tree');
+      if (backLink && currentStoryId) {
+        backLink.href = `story_tree.html?story=${currentStoryId}`;
+        // 如果是从故事树跳转过来的，添加返回标记
+        if (returnTo === 'story_tree.html') {
+          backLink.href += '&returned=true';
+        }
+      }
       
       // 加载图谱数据
       loadGraphData();
     });
+    
+    // 当前故事ID
+    let currentStoryId = null;
     
     // 加载图谱数据
     function loadGraphData() {
@@ -200,7 +215,7 @@
       }
       
       // 如果是新节点
-      if (currentNodeId === 'new') {
+      if (currentNodeId === 'new' || !graphData.nodes[currentNodeId]) {
         currentNodeId = Date.now().toString().slice(-6);
         graphData.nodes[currentNodeId] = {
           id: currentNodeId,
@@ -320,6 +335,11 @@
       // 保存到本地存储
       localStorage.setItem('storyGraphData', JSON.stringify(graphData));
       
+      // 尝试保存到后端
+      if (currentStoryId && currentStoryId !== 'default') {
+        saveNodeToBackend();
+      }
+      
       // 更新标题显示
       document.getElementById('node-title-display').textContent = `编辑节点：${title}`;
       
@@ -372,13 +392,68 @@
         // 保存数据
         localStorage.setItem('storyGraphData', JSON.stringify(graphData));
         
+        // 尝试从后端删除
+        if (currentStoryId && currentStoryId !== 'default') {
+          deleteNodeFromBackend();
+        }
+        
         showNotification('节点已删除，正在返回图谱', 'info');
         setTimeout(() => {
-          window.location.href = 'story_tree.html';
+          // 确保返回时能恢复缩放状态
+          const returnUrl = currentStoryId ? `story_tree.html?story=${currentStoryId}&returned=true` : 'story_tree.html';
+          window.location.href = returnUrl;
         }, 1000);
       }
     });
 
+    // 保存节点到后端
+    async function saveNodeToBackend() {
+      try {
+        const node = graphData.nodes[currentNodeId];
+        if (!node) return;
+        
+        // 准备节点数据
+        const sectionData = {
+          storyId: currentStoryId,
+          type: node.type === 'choice' ? 'choice' : 'text',
+          order: 1, // 简化处理
+          text: node.content,
+          choices: graphData.connections
+            .filter(conn => conn.from === currentNodeId)
+            .map(conn => ({
+              text: conn.description,
+              nextSectionId: conn.to || null
+            })),
+          isEnd: node.type === 'ending'
+        };
+        
+        console.log('保存到后端的节点数据:', sectionData);
+        
+        // 这里应该根据节点ID是否是后端生成的来决定是创建还是更新
+        // 简化示例，实际应该有更复杂的逻辑
+        
+      } catch (error) {
+        console.error('保存节点到后端失败', error);
+        // 后端保存失败不影响本地操作
+      }
+    }
+    
+    // 从后端删除节点
+    async function deleteNodeFromBackend() {
+      try {
+        // 检查节点ID是否是后端生成的ObjectId格式
+        if (/^[0-9a-fA-F]{24}$/.test(currentNodeId)) {
+          console.log('从后端删除节点:', currentNodeId);
+          // 实际实现时应该调用API删除
+          // await fetch(`http://localhost:5000/api/v1/sections/${currentStoryId}/${currentNodeId}`, {
+          //   method: 'DELETE'
+          // });
+        }
+      } catch (error) {
+        console.error('从后端删除节点失败', error);
+      }
+    }
+    
     // 通知功能
     function showNotification(message, type = 'info') {
       const notification = document.createElement('div');

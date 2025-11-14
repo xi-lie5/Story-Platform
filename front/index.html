@@ -67,37 +67,157 @@
       
       <nav class="hidden md:flex items-center space-x-8">
         <a href="index.html" class="font-medium hover:text-primary transition-colors">首页</a>
+        <a href="explore.html" class="font-medium hover:text-primary transition-colors">探索故事</a>
+        <a href="#" id="nav-create-story" class="font-medium hover:text-primary transition-colors">创建故事</a>
+        <a href="my_stories.html" class="font-medium hover:text-primary transition-colors">我的作品</a>
         <a href="about.html" class="font-medium hover:text-primary transition-colors">关于</a>
       </nav>
       
       <div class="flex items-center space-x-4" id="auth-area-desktop">
-        <button class="hidden md:block px-5 py-2 rounded-full bg-white text-primary border border-primary hover:bg-primary/5 transition-colors">
-          <a href="login.html" class="block w-full h-full">登录</a>
-        </button>
-        <button class="px-5 py-2 rounded-full bg-primary text-white hover:bg-primary/90 shadow-md hover:shadow-lg transition-all">
-          <a href="register.html" class="block w-full h-full">注册</a>
-        </button>
+        <!-- 已登录状态 (将由JS控制显示) -->
+        <div id="user-logged-in" class="hidden flex items-center space-x-4">
+          <a href="my_stories.html" class="font-medium hover:text-primary transition-colors">我的作品</a>
+          <div class="relative group">
+            <button class="flex items-center space-x-2 px-3 py-1 rounded-full bg-white border border-slate-200 hover:border-primary transition-colors">
+              <img src="https://picsum.photos/32/32" alt="用户头像" class="w-8 h-8 rounded-full object-cover">
+              <span class="font-medium">用户名</span>
+              <i class="fa fa-caret-down text-xs"></i>
+            </button>
+            <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 hidden group-hover:block transition-all">
+              <a href="profile.html" class="block px-4 py-2 text-sm hover:bg-slate-100 transition-colors">
+                <i class="fa fa-user mr-2"></i> 个人设置
+              </a>
+              <a href="my_stories.html" class="block px-4 py-2 text-sm hover:bg-slate-100 transition-colors">
+                <i class="fa fa-book mr-2"></i> 我的作品
+              </a>
+              <div class="border-t border-slate-200 my-1"></div>
+              <a href="login.html" class="block px-4 py-2 text-sm text-red-500 hover:bg-slate-100 transition-colors" id="logout-btn">
+                <i class="fa fa-sign-out mr-2"></i> 退出登录
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 未登录状态 (默认显示) -->
+        <div id="user-not-logged-in">
+          <button class="hidden md:block px-5 py-2 rounded-full bg-white text-primary border border-primary hover:bg-primary/5 transition-colors">
+            <a href="login.html" class="block w-full h-full">登录</a>
+          </button>
+          <button class="px-5 py-2 rounded-full bg-primary text-white hover:bg-primary/90 shadow-md hover:shadow-lg transition-all">
+            <a href="register.html" class="block w-full h-full">注册</a>
+          </button>
+        </div>
       </div>
       <div class="flex items-center space-x-4 md:hidden">
-        <button id="mobile-menu-button" class="text-xl">
-          <i class="fa fa-bars"></i>
-        </button>
-      </div>
+          <button id="mobile-menu-button" class="text-xl">
+            <i class="fa fa-bars"></i>
+          </button>
+        </div>
+        
+        <script>
+          // 移动端菜单切换
+          document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+          });
+          
+          // 检查登录状态并更新UI
+          function checkLoginStatus() {
+            const token = localStorage.getItem('token');
+            
+            if (token) {
+              // 已登录状态
+              document.getElementById('user-logged-in').classList.remove('hidden');
+              document.getElementById('user-not-logged-in').classList.add('hidden');
+              document.getElementById('auth-area-mobile-logged-in').classList.remove('hidden');
+              document.getElementById('auth-area-mobile').classList.add('hidden');
+              
+              // 尝试获取用户信息
+              try {
+                // 模拟从token中获取用户信息
+                const userInfo = {
+                  username: localStorage.getItem('username') || '用户'
+                };
+                
+                // 更新用户名显示
+                const usernameElements = document.querySelectorAll('.user-logged-in .font-medium');
+                usernameElements.forEach(el => {
+                  if (el.textContent === '用户名') {
+                    el.textContent = userInfo.username;
+                  }
+                });
+              } catch (error) {
+                console.error('解析用户信息失败:', error);
+              }
+            } else {
+              // 未登录状态
+              document.getElementById('user-logged-in').classList.add('hidden');
+              document.getElementById('user-not-logged-in').classList.remove('hidden');
+              document.getElementById('auth-area-mobile-logged-in').classList.add('hidden');
+              document.getElementById('auth-area-mobile').classList.remove('hidden');
+            }
+          }
+          
+          // 退出登录功能
+          document.getElementById('logout-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            if (confirm('确定要退出登录吗？')) {
+              localStorage.removeItem('token');
+              localStorage.removeItem('username');
+              checkLoginStatus();
+              // 可以添加一个成功提示
+              alert('已成功退出登录');
+              window.location.href = 'index.html';
+            }
+          });
+          
+          // 移动端退出登录
+          if (document.getElementById('mobile-logout-btn')) {
+            document.getElementById('mobile-logout-btn').addEventListener('click', function(e) {
+              e.preventDefault();
+              if (confirm('确定要退出登录吗？')) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('username');
+                checkLoginStatus();
+                // 可以添加一个成功提示
+                alert('已成功退出登录');
+                window.location.href = 'index.html';
+              }
+            });
+          }
+          
+          // 页面加载时检查登录状态
+          window.addEventListener('DOMContentLoaded', checkLoginStatus);
+        </script>
     </div>
     
     <!-- 移动端菜单 -->
     <div class="md:hidden hidden bg-white shadow-lg absolute w-full" id="mobile-menu">
-      <div class="p-4 space-y-3">
-        <a href="index.html" class="block font-medium py-2 hover:text-primary transition-colors">首页</a>
-        <a href="about.html" class="block font-medium py-2 hover:text-primary transition-colors">关于</a>
-        <div id="auth-area-mobile" class="pt-2 space-y-3">
-          <button class="w-full px-5 py-2 rounded-full bg-white text-primary border border-primary hover:bg-primary/5 transition-colors">
-            <a href="login.html" class="block w-full h-full">登录</a>
-          </button>
-          <button class="w-full px-5 py-2 rounded-full bg-primary text-white hover:bg-primary/90 shadow-md hover:shadow-lg transition-all">
-            <a href="register.html" class="block w-full h-full">注册</a>
-          </button>
-        </div>
+        <div class="p-4 space-y-3">
+          <a href="index.html" class="block font-medium py-2 hover:text-primary transition-colors">首页</a>
+          <a href="explore.html" class="block font-medium py-2 hover:text-primary transition-colors">探索故事</a>
+          <a href="#" id="mobile-nav-create-story" class="block font-medium py-2 hover:text-primary transition-colors">创建故事</a>
+          
+          <!-- 已登录状态 (将由JS控制显示) -->
+          <div id="auth-area-mobile-logged-in" class="hidden">
+            <a href="my_stories.html" class="block font-medium py-2 hover:text-primary transition-colors">我的作品</a>
+            <a href="profile.html" class="block font-medium py-2 hover:text-primary transition-colors">
+              <i class="fa fa-user mr-2"></i> 个人设置
+            </a>
+            <a href="login.html" class="block font-medium py-2 text-red-500 hover:text-red-600 transition-colors" id="mobile-logout-btn">
+              <i class="fa fa-sign-out mr-2"></i> 退出登录
+            </a>
+          </div>
+          
+          <!-- 未登录状态 (默认显示) -->
+          <div id="auth-area-mobile" class="pt-2 space-y-3">
+            <button class="w-full px-5 py-2 rounded-full bg-white text-primary border border-primary hover:bg-primary/5 transition-colors">
+              <a href="login.html" class="block w-full h-full">登录</a>
+            </button>
+            <button class="w-full px-5 py-2 rounded-full bg-primary text-white hover:bg-primary/90 shadow-md hover:shadow-lg transition-all">
+              <a href="register.html" class="block w-full h-full">注册</a>
+            </button>
+          </div>
       </div>
     </div>
   </header>
@@ -123,9 +243,9 @@
             告别灵感枯竭，与AI实时协作，生成个性化互动故事。你的每一个选择，都将开启一个全新的故事分支。
           </p>
           <div class="flex flex-wrap gap-4 pt-4">
-            <a href="create.html" class="px-8 py-3 rounded-full bg-primary text-white font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-1 transition-all inline-block">
+            <button id="start-creation-btn" class="px-8 py-3 rounded-full bg-primary text-white font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-1 transition-all inline-block">
               开始创作 <i class="fa fa-magic ml-2"></i>
-            </a>
+            </button>
             <a href="explore.html" class="px-8 py-3 rounded-full bg-white text-slate-700 font-medium border border-slate-200 shadow-md hover:shadow-lg hover:-translate-y-1 transition-all inline-block">
               查看示例 <i class="fa fa-play-circle ml-2"></i>
             </a>
@@ -133,10 +253,11 @@
           
           <div class="flex items-center gap-4 pt-6">
             <div class="flex -space-x-2">
-              
-              
-              
-              
+              <img src="https://picsum.photos/id/1001/32/32" alt="用户头像" class="w-8 h-8 rounded-full border-2 border-white">
+              <img src="https://picsum.photos/id/1002/32/32" alt="用户头像" class="w-8 h-8 rounded-full border-2 border-white">
+              <img src="https://picsum.photos/id/1003/32/32" alt="用户头像" class="w-8 h-8 rounded-full border-2 border-white">
+              <img src="https://picsum.photos/id/1004/32/32" alt="用户头像" class="w-8 h-8 rounded-full border-2 border-white">
+              <div class="w-8 h-8 rounded-full border-2 border-white bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">+9996</div>
             </div>
             <div class="text-sm text-slate-600">
               <span class="font-semibold text-primary">10,000+</span> 创作者已加入
@@ -308,9 +429,9 @@
       </div>
       
       <div class="text-center mt-12">
-        <a href="create.html" class="px-8 py-3 rounded-full bg-primary text-white font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-1 transition-all inline-block">
+        <button id="start-creation-btn" class="px-8 py-3 rounded-full bg-primary text-white font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-1 transition-all inline-block">
           开始创作第一个故事 <i class="fa fa-arrow-right ml-2"></i>
-        </a>
+        </button>
       </div>
     </div>
   </section>
@@ -423,6 +544,113 @@
     }
 
     AuthUI.init();
+
+    // 显示登录提示模态框
+    function showLoginPrompt() {
+      // 创建模态框元素
+      const modalHtml = `
+        <div id="login-prompt-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
+          <div class="bg-white rounded-lg p-6 max-w-md mx-4 transform transition-transform">
+            <div class="text-center">
+              <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-primary/20 mb-4">
+                <i class="fa fa-lock text-primary text-xl"></i>
+              </div>
+              <h3 class="text-lg font-medium text-gray-900 mb-2">需要登录</h3>
+              <p class="text-sm text-gray-500 mb-6">请先登录后再开始创作故事，登录后即可使用完整的创作功能。</p>
+              <div class="flex space-x-3">
+                <button onclick="closeLoginPrompt()" class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                  取消
+                </button>
+                <button onclick="goToLogin()" class="flex-1 px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary/90">
+                  去登录
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // 将模态框添加到页面
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+      
+      // 显示模态框
+      const modal = document.getElementById('login-prompt-modal');
+      modal.style.display = 'flex';
+      
+      // 3秒后自动跳转到登录页面
+      window.loginRedirectTimer = setTimeout(() => {
+        goToLogin();
+      }, 3000);
+    }
+
+    // 关闭登录提示模态框
+    function closeLoginPrompt() {
+      const modal = document.getElementById('login-prompt-modal');
+      if (modal) {
+        // 清除自动跳转的定时器
+        if (window.loginRedirectTimer) {
+          clearTimeout(window.loginRedirectTimer);
+          window.loginRedirectTimer = null;
+        }
+        // 完全移除模态框
+        modal.remove();
+      }
+    }
+
+    // 跳转到登录页面
+    function goToLogin() {
+      window.location.href = 'login.html';
+    }
+
+    // 开始创作按钮点击事件处理
+    const startCreationBtn = document.getElementById('start-creation-btn');
+    if (startCreationBtn) {
+      startCreationBtn.addEventListener('click', () => {
+        const authState = AuthUI.getAuthState();
+        
+        if (authState) {
+          // 用户已登录，直接跳转到创作页面
+          window.location.href = 'create.html';
+        } else {
+          // 用户未登录，显示登录提示并跳转到登录页面
+          showLoginPrompt();
+        }
+      });
+    }
+
+    // 导航栏"创建故事"链接点击事件处理
+    const navCreateStory = document.getElementById('nav-create-story');
+    if (navCreateStory) {
+      navCreateStory.addEventListener('click', (e) => {
+        e.preventDefault();
+        const authState = AuthUI.getAuthState();
+        
+        if (authState) {
+          // 用户已登录，直接跳转到创作页面
+          window.location.href = 'create.html';
+        } else {
+          // 用户未登录，显示登录提示并跳转到登录页面
+          showLoginPrompt();
+        }
+      });
+    }
+
+    // 移动端导航"创建故事"链接点击事件处理
+    const mobileNavCreateStory = document.getElementById('mobile-nav-create-story');
+    if (mobileNavCreateStory) {
+      mobileNavCreateStory.addEventListener('click', (e) => {
+        e.preventDefault();
+        const authState = AuthUI.getAuthState();
+        
+        if (authState) {
+          // 用户已登录，直接跳转到创作页面
+          window.location.href = 'create.html';
+        } else {
+          // 用户未登录，显示登录提示并跳转到登录页面
+          showLoginPrompt();
+        }
+      });
+    }
 
     // 模拟AI协作功能
     const simulateAICollaboration = () => {

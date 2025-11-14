@@ -16,9 +16,153 @@
   </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen text-slate-800 font-sans">
-  <!-- 导航栏：与index.html完全一致 -->
+  <!-- 导航栏 -->
   <header class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" id="navbar">
-    <!-- 导航栏代码复制index.html的header部分 -->
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between backdrop-blur bg-white/80 shadow-sm">
+      <div class="flex items-center space-x-2">
+        <i class="fa fa-book text-primary text-2xl"></i>
+        <h1 class="text-xl md:text-2xl font-display font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">StoryForge</h1>
+      </div>
+      
+      <nav class="hidden md:flex items-center space-x-8">
+        <a href="index.html" class="font-medium hover:text-primary transition-colors">首页</a>
+        <a href="explore.html" class="font-medium hover:text-primary transition-colors">探索故事</a>
+        <a href="create.html" class="font-medium hover:text-primary transition-colors">创建故事</a>
+        <a href="my_stories.html" class="font-medium hover:text-primary transition-colors">我的作品</a>
+        <a href="about.html" class="font-medium hover:text-primary transition-colors">关于</a>
+      </nav>
+      
+      <div class="flex items-center space-x-4" id="auth-area-desktop">
+        <!-- 已登录状态 (将由JS控制显示) -->
+        <div id="user-logged-in" class="hidden flex items-center space-x-4">
+          <a href="my_stories.html" class="font-medium hover:text-primary transition-colors">我的作品</a>
+          <div class="relative group">
+            <button class="flex items-center space-x-2 px-3 py-1 rounded-full bg-white border border-slate-200 hover:border-primary transition-colors">
+              <img src="https://picsum.photos/32/32" alt="用户头像" class="w-8 h-8 rounded-full object-cover">
+              <span class="font-medium">用户名</span>
+              <i class="fa fa-caret-down text-xs"></i>
+            </button>
+            <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 hidden group-hover:block transition-all">
+              <a href="profile.html" class="block px-4 py-2 text-sm hover:bg-slate-100 transition-colors">
+                <i class="fa fa-user mr-2"></i> 个人设置
+              </a>
+              <a href="my_stories.html" class="block px-4 py-2 text-sm hover:bg-slate-100 transition-colors">
+                <i class="fa fa-book mr-2"></i> 我的作品
+              </a>
+              <div class="border-t border-slate-200 my-1"></div>
+              <a href="login.html" class="block px-4 py-2 text-sm text-red-500 hover:bg-slate-100 transition-colors" id="logout-btn">
+                <i class="fa fa-sign-out mr-2"></i> 退出登录
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 未登录状态 (默认显示) -->
+        <div id="user-not-logged-in">
+          <button class="hidden md:block px-5 py-2 rounded-full bg-white text-primary border border-primary hover:bg-primary/5 transition-colors">
+            <a href="login.html" class="block w-full h-full">登录</a>
+          </button>
+          <button class="px-5 py-2 rounded-full bg-primary text-white hover:bg-primary/90 shadow-md hover:shadow-lg transition-all">
+            <a href="register.html" class="block w-full h-full">注册</a>
+          </button>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4 md:hidden">
+        <button id="mobile-menu-button" class="text-xl">
+          <i class="fa fa-bars"></i>
+        </button>
+      </div>
+      
+      <script>
+        // 移动端菜单切换
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+          const mobileMenu = document.getElementById('mobile-menu');
+          if (mobileMenu) {
+            mobileMenu.classList.toggle('hidden');
+          }
+        });
+        
+        // 检查登录状态并更新UI
+        function checkLoginStatus() {
+          const token = localStorage.getItem('token');
+          
+          if (token) {
+            // 已登录状态
+            document.getElementById('user-logged-in').classList.remove('hidden');
+            document.getElementById('user-not-logged-in').classList.add('hidden');
+            
+            // 尝试获取用户信息
+            try {
+              // 从localStorage获取用户信息
+              const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+              
+              // 更新用户名显示
+              const usernameElements = document.querySelectorAll('.user-logged-in .font-medium');
+              usernameElements.forEach(el => {
+                if (el.textContent === '用户名') {
+                  el.textContent = userInfo.username || '用户';
+                }
+              });
+            } catch (error) {
+              console.error('解析用户信息失败:', error);
+            }
+          } else {
+            // 未登录状态
+            document.getElementById('user-logged-in').classList.add('hidden');
+            document.getElementById('user-not-logged-in').classList.remove('hidden');
+          }
+        }
+        
+        // 退出登录功能
+        document.getElementById('logout-btn').addEventListener('click', function(e) {
+          e.preventDefault();
+          if (confirm('确定要退出登录吗？')) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('userInfo');
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('refreshToken');
+            sessionStorage.removeItem('userInfo');
+            checkLoginStatus();
+            alert('已成功退出登录');
+            window.location.href = 'index.html';
+          }
+        });
+        
+        // 页面加载时检查登录状态
+        window.addEventListener('DOMContentLoaded', checkLoginStatus);
+      </script>
+    </div>
+    
+    <!-- 移动端菜单 -->
+    <div class="md:hidden hidden bg-white shadow-lg absolute w-full" id="mobile-menu">
+      <div class="p-4 space-y-3">
+        <a href="index.html" class="block font-medium py-2 hover:text-primary transition-colors">首页</a>
+        <a href="explore.html" class="block font-medium py-2 hover:text-primary transition-colors">探索故事</a>
+        <a href="create.html" class="block font-medium py-2 hover:text-primary transition-colors">创建故事</a>
+        
+        <!-- 已登录状态 (将由JS控制显示) -->
+        <div id="auth-area-mobile-logged-in" class="hidden">
+          <a href="my_stories.html" class="block font-medium py-2 hover:text-primary transition-colors">我的作品</a>
+          <a href="profile.html" class="block font-medium py-2 hover:text-primary transition-colors">
+            <i class="fa fa-user mr-2"></i> 个人设置
+          </a>
+          <a href="login.html" class="block font-medium py-2 text-red-500 hover:text-red-600 transition-colors" id="mobile-logout-btn">
+            <i class="fa fa-sign-out mr-2"></i> 退出登录
+          </a>
+        </div>
+        
+        <!-- 未登录状态 (默认显示) -->
+        <div id="auth-area-mobile" class="pt-2 space-y-3">
+          <button class="w-full px-5 py-2 rounded-full bg-white text-primary border border-primary hover:bg-primary/5 transition-colors">
+            <a href="login.html" class="block w-full h-full">登录</a>
+          </button>
+          <button class="w-full px-5 py-2 rounded-full bg-primary text-white hover:bg-primary/90 shadow-md hover:shadow-lg transition-all">
+            <a href="register.html" class="block w-full h-full">注册</a>
+          </button>
+        </div>
+      </div>
+    </div>
   </header>
 
   <!-- 登录内容区域（核心替换部分） -->
@@ -69,9 +213,26 @@
     <!-- 页脚代码复制index.html的footer部分 -->
   </footer>
 
-  <!-- JavaScript：与index.html完全一致（导航栏、移动端菜单等交互） -->
+  <!-- 补充移动端菜单的JavaScript -->
   <script>
-    // 复制index.html的JavaScript代码
+    // 移动端退出登录功能
+    if (document.getElementById('mobile-logout-btn')) {
+      document.getElementById('mobile-logout-btn').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (confirm('确定要退出登录吗？')) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('userInfo');
+          localStorage.removeItem('username');
+          sessionStorage.removeItem('token');
+          sessionStorage.removeItem('refreshToken');
+          sessionStorage.removeItem('userInfo');
+          sessionStorage.removeItem('username');
+          alert('已成功退出登录');
+          window.location.href = 'index.html';
+        }
+      });
+    }
   </script>
 
   <!-- 登录功能脚本 -->
@@ -132,9 +293,33 @@
           otherStorage.removeItem('token');
           otherStorage.removeItem('refreshToken');
           otherStorage.removeItem('userInfo');
+          
+          // 确保设置单独的username字段，与导航栏登录状态检查逻辑配合
+          storage.setItem('username', result.data.username);
 
-          alert('登录成功，正在跳转到首页');
-          window.location.href = 'index.html';
+          // 检查是否有重定向参数
+          const params = new URLSearchParams(window.location.search);
+          const redirectUrl = params.get('redirect');
+          
+          if (redirectUrl) {
+            // 验证重定向URL是否安全，只允许站内跳转
+            try {
+              const parsedUrl = new URL(redirectUrl, window.location.origin);
+              if (parsedUrl.origin === window.location.origin) {
+                alert('登录成功，正在跳转...');
+                window.location.href = redirectUrl;
+              } else {
+                alert('登录成功，正在跳转到首页');
+                window.location.href = 'index.html';
+              }
+            } catch (e) {
+              alert('登录成功，正在跳转到首页');
+              window.location.href = 'index.html';
+            }
+          } else {
+            alert('登录成功，正在跳转到首页');
+            window.location.href = 'index.html';
+          }
         } catch (error) {
           console.error('登录失败:', error);
           alert(error.message || '登录失败，请稍后再试');

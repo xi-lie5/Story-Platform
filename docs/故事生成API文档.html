@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>故事生成API文档</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1, h2, h3, h4 {
+            color: #2c3e50;
+        }
+        h1 {
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #3498db;
+        }
+        .api-section {
+            background-color: white;
+            padding: 25px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .endpoint {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .endpoint:last-child {
+            border-bottom: none;
+        }
+        .method {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .get { background-color: #61affe; color: white; }
+        .post { background-color: #49cc90; color: white; }
+        .put { background-color: #fca130; color: white; }
+        .delete { background-color: #f93e3e; color: white; }
+        .url {
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        .description {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        .params, .response, .request-body {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .param-item, .field-item {
+            margin-bottom: 10px;
+        }
+        .param-name, .field-name {
+            font-weight: bold;
+            color: #3498db;
+        }
+        .param-type, .field-type {
+            color: #e74c3c;
+            font-family: monospace;
+            margin-left: 5px;
+        }
+        .param-required, .field-required {
+            color: #e74c3c;
+            font-size: 0.9em;
+        }
+        .param-desc, .field-desc {
+            margin-left: 10px;
+            color: #666;
+        }
+        .code {
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            border-left: 4px solid #3498db;
+        }
+        .note {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <h1>故事生成API文档</h1>
+    
+    <div class="api-section">
+        <h2>1. 概述</h2>
+        <p>本文档详细描述了故事生成系统的API接口，包括故事管理、章节管理和分类管理等功能。这些API为前端提供了完整的故事创建、编辑、查询和删除功能。</p>
+        
+        <h3>1.1 基础URL</h3>
+        <p>所有API请求的基础URL为：<code>http://localhost:5000/api/v1</code></p>
+        
+        <h3>1.2 响应格式</h3>
+        <p>所有API响应均采用JSON格式，包含以下字段：</p>
+        <ul>
+            <li><code>success</code>: 布尔值，表示请求是否成功</li>
+            <li><code>message</code>: 字符串，描述请求结果的消息</li>
+            <li><code>data</code>: 对象或数组，包含请求的主要数据</li>
+            <li><code>pagination</code>: 对象，包含分页信息（仅在列表请求中）</li>
+        </ul>
+    </div>
+    
+    <div class="api-section">
+        <h2>2. 故事管理API</h2>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span> 获取故事列表</h3>
+            <p class="url">/api/v1/stories</p>
+            <p class="description">获取故事列表，支持分页、分类筛选和搜索功能。</p>
+            
+            <div class="params">
+                <h4>查询参数</h4>
+                <div class="param-item">
+                    <span class="param-name">page</span>
+                    <span class="param-type">[number]</span>
+                    <span class="param-required">(可选)</span>
+                    <span class="param-desc">页码，默认值为1</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-name">limit</span>
+                    <span class="param-type">[number]</span>
+                    <span class="param-required">(可选)</span>
+                    <span class="param-desc">每页数量，默认值为9，最大值为50</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-name">category</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(可选)</span>
+                    <span class="param-desc">分类名称，用于筛选特定分类的故事</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-name">search</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(可选)</span>
+                    <span class="param-desc">搜索关键词，用于模糊搜索故事标题和描述</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-name">sort</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(可选)</span>
+                    <span class="param-desc">排序方式，可选值：latest(默认)、popular、rating</span>
+                </div>
+            </div>
+            
+            <div class="response">
+                <h4>响应示例</h4>
+                <div class="code">
+{
+  "success": true,
+  "message": "获取故事列表成功",
+  "data": {
+    "stories": [
+      {
+        "id": "60d5f7e5a5b2c34567890123",
+        "title": "神秘森林冒险",
+        "description": "一个关于勇气和友谊的故事",
+        "category": { "id": "60d5f7e5a5b2c34567890456", "name": "冒险" },
+        "author": { "username": "storyteller", "avatar": "avatar_url" },
+        "coverImage": "cover_url",
+        "view": 150,
+        "rating": 4.8,
+        "createdAt": "2023-06-20T12:34:56.789Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 9,
+      "total": 120,
+      "pages": 14
+    }
+  }
+}
+                </div>
+            </div>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span> 获取故事详情</h3>
+            <p class="url">/api/v1/stories/:storyId</p>
+            <p class="description">获取指定故事的详细信息，包括所有章节内容。</p>
+            
+            <div class="params">
+                <h4>路径参数</h4>
+                <div class="param-item">
+                    <span class="param-name">storyId</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(必填)</span>
+                    <span class="param-desc">故事ID</span>
+                </div>
+            </div>
+            
+            <div class="response">
+                <h4>响应示例</h4>
+                <div class="code">
+{
+  "success": true,
+  "message": "获取故事详情成功",
+  "data": {
+    "id": "60d5f7e5a5b2c34567890123",
+    "title": "神秘森林冒险",
+    "author": { "username": "storyteller", "avatar": "avatar_url" },
+    "category": { "id": "60d5f7e5a5b2c34567890456", "name": "冒险" },
+    "coverImage": "cover_url",
+    "description": "一个关于勇气和友谊的故事",
+    "sections": [
+      {
+        "id": "60d5f7e5a5b2c34567890789",
+        "order": 1,
+        "type": "text",
+        "text": "小明决定去探索那片传说中的神秘森林...",
+        "choices": [],
+        "isEnd": false
+      }
+    ],
+    "view": 151,
+    "rating": 4.8,
+    "createdAt": "2023-06-20T12:34:56.789Z",
+    "updatedAt": "2023-06-21T09:23:45.678Z"
+  }
+}
+                </div>
+            </div>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method post">POST</span> 创建故事</h3>
+            <p class="url">/api/v1/stories</p>
+            <p class="description">创建新的故事，需要用户登录。</p>
+            
+            <div class="note">
+                <strong>注意：</strong>需要在请求头中添加 Authorization 令牌
+            </div>
+            
+            <div class="request-body">
+                <h4>请求体参数</h4>
+                <div class="field-item">
+                    <span class="field-name">title</span>
+                    <span class="field-type">[string]</span>
+                    <span class="field-required">(必填)</span>
+                    <span class="field-desc">故事标题，最大长度100个字符</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">categoryId</span>
+                    <span class="field-type">[string]</span>
+                    <span class="field-required">(必填)</span>
+                    <span class="field-desc">分类ID</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">description</span>
+                    <span class="field-type">[string]</span>
+                    <span class="field-required">(必填)</span>
+                    <span class="field-desc">故事简介，最大长度500个字符</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">coverImage</span>
+                    <span class="field-type">[string]</span>
+                    <span class="field-required">(可选)</span>
+                    <span class="field-desc">封面图片URL</span>
+                </div>
+            </div>
+            
+            <div class="response">
+                <h4>响应示例</h4>
+                <div class="code">
+{
+  "success": true,
+  "message": "创建故事成功",
+  "data": {
+    "id": "60d5f7e5a5b2c34567890123",
+    "title": "神秘森林冒险"
+  }
+}
+                </div>
+            </div>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method put">PUT</span> 更新故事</h3>
+            <p class="url">/api/v1/stories/:storyId</p>
+            <p class="description">更新指定的故事，需要用户登录且必须是故事作者。</p>
+            
+            <div class="note">
+                <strong>注意：</strong>需要在请求头中添加 Authorization 令牌
+            </div>
+            
+            <div class="params">
+                <h4>路径参数</h4>
+                <div class="param-item">
+                    <span class="param-name">storyId</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(必填)</span>
+                    <span class="param-desc">故事ID</span>
+                </div>
+            </div>
+            
+            <div class="request-body">
+                <h4>请求体参数（所有参数都是可选的）</h4>
+                <div class="field-item">
+                    <span class="field-name">title</span>
+                    <span class="field-type">[string]</span>
+                    <span class="field-desc">故事标题</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">description</span>
+                    <span class="field-type">[string]</span>
+                    <span class="field-desc">故事简介</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">categoryId</span>
+                    <span class="field-type">[string]</span>
+                    <span class="field-desc">分类ID</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">coverImage</span>
+                    <span class="field-type">[string]</span>
+                    <span class="field-desc">封面图片URL</span>
+                </div>
+            </div>
+            
+            <div class="response">
+                <h4>响应示例</h4>
+                <div class="code">
+{
+  "success": true,
+  "message": "故事更新成功"
+}
+                </div>
+            </div>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method delete">DELETE</span> 删除故事</h3>
+            <p class="url">/api/v1/stories/:storyId</p>
+            <p class="description">删除指定的故事及其所有章节，需要用户登录且必须是故事作者。</p>
+            
+            <div class="note">
+                <strong>注意：</strong>需要在请求头中添加 Authorization 令牌
+            </div>
+            
+            <div class="params">
+                <h4>路径参数</h4>
+                <div class="param-item">
+                    <span class="param-name">storyId</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(必填)</span>
+                    <span class="param-desc">故事ID</span>
+                </div>
+            </div>
+            
+            <div class="response">
+                <h4>响应示例</h4>
+                <div class="code">
+{
+  "success": true,
+  "message": "故事及关联章节已删除"
+}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="api-section">
+        <h2>3. 章节管理API</h2>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span> 获取故事章节列表</h3>
+            <p class="url">/api/v1/sections/:storyId</p>
+            <p class="description">获取指定故事的所有章节。</p>
+            
+            <div class="params">
+                <h4>路径参数</h4>
+                <div class="param-item">
+                    <span class="param-name">storyId</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(必填)</span>
+                    <span class="param-desc">故事ID</span>
+                </div>
+            </div>
+            
+            <div class="response">
+                <h4>响应示例</h4>
+                <div class="code">
+{
+  "success": true,
+  "data": [
+    {
+      "id": "60d5f7e5a5b2c34567890789",
+      "order": 1,
+      "type": "text",
+      "text": "小明决定去探索那片传说中的神秘森林...",
+      "choices": [],
+      "isEnd": false,
+      "createdAt": "2023-06-20T12:34:56.789Z"
+    },
+    {
+      "id": "60d5f7e5a5b2c34567891011",
+      "order": 2,
+      "type": "choice",
+      "text": "小明在森林中遇到了一个岔路口，他应该：",
+      "choices": [
+        { "text": "选择左边的小路", "nextSection": "60d5f7e5a5b2c34567891213" },
+        { "text": "选择右边的小路", "nextSection": "60d5f7e5a5b2c34567891415" }
+      ],
+      "isEnd": false,
+      "createdAt": "2023-06-20T13:45:67.890Z"
+    }
+  ]
+}
+                </div>
+            </div>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span> 获取单个章节</h3>
+            <p class="url">/api/v1/sections/:storyId/:sectionId</p>
+            <p class="description">获取指定故事的特定章节详情。</p>
+            
+            <div class="params">
+                <h4>路径参数</h4>
+                <div class="param-item">
+                    <span class="param-name">storyId</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(必填)</span>
+                    <span class="param-desc">故事ID</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-name">sectionId</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(必填)</span>
+                    <span class="param-desc">章节ID</span>
+                </div>
+            </div>
+            
+            <div class="response">
+                <h4>响应示例</h4>
+                <div class="code">
+{
+  "success": true,
+  "data": {
+    "id": "60d5f7e5a5b2c34567890789",
+    "storyId": "60d5f7e5a5b2c34567890123",
+    "order": 1,
+    "type": "text",
+    "text": "小明决定去探索那片传说中的神秘森林...",
+    "choices": [],
+    "isEnd": false,
+    "createdAt": "2023-06-20T12:34:56.789Z",
+    "updatedAt": "2023-06-20T12:34:56.789Z"
+  }
+}
+                </div>
+            </div>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method post">POST</span> 创建章节</h3>
+            <p class="url">/api/v1/sections/:storyId</p>
+            <p class="description">为指定故事创建新章节，需要用户登录且必须是故事作者。</p>
+            
+            <div class="note">
+                <strong>注意：</strong>需要在请求头中添加 Authorization 令牌
+            </div>
+            
+            <div class="params">
+                <h4>路径参数</h4>
+                <div class="param-item">
+                    <span class="param-name">storyId</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(必填)</span>
+                    <span class="param-desc">故事ID</span>
+                </div>
+            </div>
+            
+            <div class="request-body">
+                <h4>请求体参数</h4>
+                <div class="field-item">
+                    <span class="field-name">order</span>
+                    <span class="field-type">[number]</span>
+                    <span class="field-required">(必填)</span>
+                    <span class="field-desc">章节顺序，必须是正整数</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">type</span>
+                    <span class="field-type">[string]</span>
+                    <span class="field-required">(必填)</span>
+                    <span class="field-desc">章节类型，可选值：text（文本型）、choice（选择型）</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">text</span>
+                    <span class="field-type">[string]</span>
+                    <span class="field-required">(必填)</span>
+                    <span class="field-desc">章节文本，最大长度2000个字符</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">choices</span>
+                    <span class="field-type">[array]</span>
+                    <span class="field-required">(可选)</span>
+                    <span class="field-desc">选择项，仅当type为choice时必填，至少包含一个选项</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">isEnd</span>
+                    <span class="field-type">[boolean]</span>
+                    <span class="field-required">(可选)</span>
+                    <span class="field-desc">是否为结束章节，默认为false</span>
+                </div>
+            </div>
+            
+            <div class="response">
+                <h4>响应示例</h4>
+                <div class="code">
+{
+  "success": true,
+  "message": "章节创建成功",
+  "data": {
+    "id": "60d5f7e5a5b2c34567890789",
+    "order": 1,
+    "type": "text"
+  }
+}
+                </div>
+            </div>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method put">PUT</span> 更新章节</h3>
+            <p class="url">/api/v1/sections/:storyId/:sectionId</p>
+            <p class="description">更新指定故事的特定章节，需要用户登录且必须是故事作者。</p>
+            
+            <div class="note">
+                <strong>注意：</strong>需要在请求头中添加 Authorization 令牌
+            </div>
+            
+            <div class="params">
+                <h4>路径参数</h4>
+                <div class="param-item">
+                    <span class="param-name">storyId</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(必填)</span>
+                    <span class="param-desc">故事ID</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-name">sectionId</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(必填)</span>
+                    <span class="param-desc">章节ID</span>
+                </div>
+            </div>
+            
+            <div class="request-body">
+                <h4>请求体参数（所有参数都是可选的）</h4>
+                <div class="field-item">
+                    <span class="field-name">order</span>
+                    <span class="field-type">[number]</span>
+                    <span class="field-desc">章节顺序</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">type</span>
+                    <span class="field-type">[string]</span>
+                    <span class="field-desc">章节类型</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">text</span>
+                    <span class="field-type">[string]</span>
+                    <span class="field-desc">章节文本</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">choices</span>
+                    <span class="field-type">[array]</span>
+                    <span class="field-desc">选择项</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">isEnd</span>
+                    <span class="field-type">[boolean]</span>
+                    <span class="field-desc">是否为结束章节</span>
+                </div>
+            </div>
+            
+            <div class="response">
+                <h4>响应示例</h4>
+                <div class="code">
+{
+  "success": true,
+  "message": "章节更新成功",
+  "data": {
+    "id": "60d5f7e5a5b2c34567890789",
+    "order": 1,
+    "type": "text"
+  }
+}
+                </div>
+            </div>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method delete">DELETE</span> 删除章节</h3>
+            <p class="url">/api/v1/sections/:storyId/:sectionId</p>
+            <p class="description">删除指定故事的特定章节，需要用户登录且必须是故事作者。</p>
+            
+            <div class="note">
+                <strong>注意：</strong>需要在请求头中添加 Authorization 令牌
+            </div>
+            
+            <div class="params">
+                <h4>路径参数</h4>
+                <div class="param-item">
+                    <span class="param-name">storyId</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(必填)</span>
+                    <span class="param-desc">故事ID</span>
+                </div>
+                <div class="param-item">
+                    <span class="param-name">sectionId</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(必填)</span>
+                    <span class="param-desc">章节ID</span>
+                </div>
+            </div>
+            
+            <div class="params">
+                <h4>查询参数</h4>
+                <div class="param-item">
+                    <span class="param-name">adjustOrder</span>
+                    <span class="param-type">[boolean]</span>
+                    <span class="param-required">(可选)</span>
+                    <span class="param-desc">是否调整后续章节顺序，默认为true</span>
+                </div>
+            </div>
+            
+            <div class="response">
+                <h4>响应示例</h4>
+                <div class="code">
+{
+  "success": true,
+  "message": "章节已删除，后续章节顺序已重新调整"
+}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="api-section">
+        <h2>4. 分类管理API</h2>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span> 获取分类列表</h3>
+            <p class="url">/api/v1/categories</p>
+            <p class="description">获取所有故事分类。</p>
+            
+            <div class="params">
+                <h4>查询参数</h4>
+                <div class="param-item">
+                    <span class="param-name">sort</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(可选)</span>
+                    <span class="param-desc">排序方式，可选值：storyCount（按故事数量降序，默认）、createdAt（按创建时间降序）</span>
+                </div>
+            </div>
+            
+            <div class="response">
+                <h4>响应示例</h4>
+                <div class="code">
+{
+  "success": true,
+  "count": 5,
+  "data": [
+    {
+      "_id": "60d5f7e5a5b2c34567890456",
+      "name": "冒险",
+      "description": "充满刺激和挑战的故事",
+      "storyCount": 120,
+      "createdAt": "2023-06-15T10:20:30.405Z",
+      "updatedAt": "2023-06-15T10:20:30.405Z"
+    },
+    {
+      "_id": "60d5f7e5a5b2c34567892222",
+      "name": "科幻",
+      "description": "未来科技和想象世界的故事",
+      "storyCount": 85,
+      "createdAt": "2023-06-15T10:20:30.405Z",
+      "updatedAt": "2023-06-15T10:20:30.405Z"
+    }
+  ]
+}
+                </div>
+            </div>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method get">GET</span> 获取分类详情</h3>
+            <p class="url">/api/v1/categories/:id</p>
+            <p class="description">获取指定分类的详细信息。</p>
+            
+            <div class="params">
+                <h4>路径参数</h4>
+                <div class="param-item">
+                    <span class="param-name">id</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(必填)</span>
+                    <span class="param-desc">分类ID</span>
+                </div>
+            </div>
+            
+            <div class="response">
+                <h4>响应示例</h4>
+                <div class="code">
+{
+  "success": true,
+  "data": {
+    "_id": "60d5f7e5a5b2c34567890456",
+    "name": "冒险",
+    "description": "充满刺激和挑战的故事",
+    "storyCount": 120,
+    "createdAt": "2023-06-15T10:20:30.405Z",
+    "updatedAt": "2023-06-15T10:20:30.405Z"
+  }
+}
+                </div>
+            </div>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method post">POST</span> 创建分类</h3>
+            <p class="url">/api/v1/categories</p>
+            <p class="description">创建新的分类，需要用户登录（应具有管理员权限）。</p>
+            
+            <div class="note">
+                <strong>注意：</strong>需要在请求头中添加 Authorization 令牌
+            </div>
+            
+            <div class="request-body">
+                <h4>请求体参数</h4>
+                <div class="field-item">
+                    <span class="field-name">name</span>
+                    <span class="field-type">[string]</span>
+                    <span class="field-required">(必填)</span>
+                    <span class="field-desc">分类名称，最大长度50个字符，不能重复</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">description</span>
+                    <span class="field-type">[string]</span>
+                    <span class="field-required">(可选)</span>
+                    <span class="field-desc">分类描述，最大长度200个字符</span>
+                </div>
+            </div>
+            
+            <div class="response">
+                <h4>响应示例</h4>
+                <div class="code">
+{
+  "success": true,
+  "message": "分类创建成功",
+  "data": {
+    "_id": "60d5f7e5a5b2c34567890456",
+    "name": "冒险",
+    "description": "充满刺激和挑战的故事",
+    "storyCount": 0,
+    "createdAt": "2023-06-20T12:34:56.789Z",
+    "updatedAt": "2023-06-20T12:34:56.789Z"
+  }
+}
+                </div>
+            </div>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method put">PUT</span> 更新分类</h3>
+            <p class="url">/api/v1/categories/:id</p>
+            <p class="description">更新指定的分类信息，需要用户登录（应具有管理员权限）。</p>
+            
+            <div class="note">
+                <strong>注意：</strong>需要在请求头中添加 Authorization 令牌
+            </div>
+            
+            <div class="params">
+                <h4>路径参数</h4>
+                <div class="param-item">
+                    <span class="param-name">id</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(必填)</span>
+                    <span class="param-desc">分类ID</span>
+                </div>
+            </div>
+            
+            <div class="request-body">
+                <h4>请求体参数（所有参数都是可选的）</h4>
+                <div class="field-item">
+                    <span class="field-name">name</span>
+                    <span class="field-type">[string]</span>
+                    <span class="field-desc">分类名称，不能重复</span>
+                </div>
+                <div class="field-item">
+                    <span class="field-name">description</span>
+                    <span class="field-type">[string]</span>
+                    <span class="field-desc">分类描述</span>
+                </div>
+            </div>
+            
+            <div class="response">
+                <h4>响应示例</h4>
+                <div class="code">
+{
+  "success": true,
+  "message": "分类更新成功",
+  "data": {
+    "_id": "60d5f7e5a5b2c34567890456",
+    "name": "冒险故事",
+    "description": "充满刺激和挑战的精彩故事",
+    "storyCount": 120,
+    "createdAt": "2023-06-15T10:20:30.405Z",
+    "updatedAt": "2023-06-20T12:34:56.789Z"
+  }
+}
+                </div>
+            </div>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method delete">DELETE</span> 删除分类</h3>
+            <p class="url">/api/v1/categories/:id</p>
+            <p class="description">删除指定的分类，需要用户登录（应具有管理员权限）。注意：如果该分类下有故事，则无法删除。</p>
+            
+            <div class="note">
+                <strong>注意：</strong>需要在请求头中添加 Authorization 令牌
+            </div>
+            
+            <div class="params">
+                <h4>路径参数</h4>
+                <div class="param-item">
+                    <span class="param-name">id</span>
+                    <span class="param-type">[string]</span>
+                    <span class="param-required">(必填)</span>
+                    <span class="param-desc">分类ID</span>
+                </div>
+            </div>
+            
+            <div class="response">
+                <h4>成功响应示例</h4>
+                <div class="code">
+{
+  "success": true,
+  "message": "分类删除成功"
+}
+                </div>
+                
+                <h4>失败响应示例（分类下有故事）</h4>
+                <div class="code">
+{
+  "success": false,
+  "message": "无法删除分类，该分类下还有120个故事",
+  "errorCode": 10033
+}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="api-section">
+        <h2>5. 错误码说明</h2>
+        <table>
+            <tr>
+                <th>错误码</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>10001</td>
+                <td>请求数据无效，参数验证失败</td>
+            </tr>
+            <tr>
+                <td>10010</td>
+                <td>故事不存在或ID无效</td>
+            </tr>
+            <tr>
+                <td>10011</td>
+                <td>章节不存在或不属于该故事，或ID无效</td>
+            </tr>
+            <tr>
+                <td>10012</td>
+                <td>分类不存在</td>
+            </tr>
+            <tr>
+                <td>10020</td>
+                <td>没有权限修改此故事章节</td>
+            </tr>
+            <tr>
+                <td>10030</td>
+                <td>无效的分类ID</td>
+            </tr>
+            <tr>
+                <td>10031</td>
+                <td>分类不存在</td>
+            </tr>
+            <tr>
+                <td>10032</td>
+                <td>分类名称已存在</td>
+            </tr>
+            <tr>
+                <td>10033</td>
+                <td>无法删除分类，该分类下还有故事</td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

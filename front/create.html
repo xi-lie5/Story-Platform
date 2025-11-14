@@ -123,8 +123,8 @@
             <button type="button" id="cancel-btn" class="flex-1 px-6 py-3 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
               取消
             </button>
-            <button type="submit" class="flex-1 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
-              创建故事框架 <i class="fa fa-arrow-right ml-2"></i>
+            <button type="submit" id="create-story-btn" class="flex-1 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+              创建故事 <i class="fa fa-arrow-right ml-2"></i>
             </button>
           </div>
         </form>
@@ -144,19 +144,152 @@
 
     AuthUI.init();
 
+    // 显示登录提示模态框
+    function showLoginPrompt() {
+      // 创建模态框元素
+      const modalHtml = `
+        <div id="login-prompt-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
+          <div class="bg-white rounded-lg p-6 max-w-md mx-4 transform transition-transform">
+            <div class="text-center">
+              <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-primary/20 mb-4">
+                <i class="fa fa-lock text-primary text-xl"></i>
+              </div>
+              <h3 class="text-lg font-medium text-gray-900 mb-2">需要登录</h3>
+              <p class="text-sm text-gray-500 mb-6">请先登录后再创建故事，登录后即可使用完整的创作功能。</p>
+              <div class="flex space-x-3">
+                <button onclick="closeLoginPrompt()" class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                  返回首页
+                </button>
+                <button onclick="goToLogin()" class="flex-1 px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary/90">
+                  去登录
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // 将模态框添加到页面
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+      
+      // 显示模态框
+      const modal = document.getElementById('login-prompt-modal');
+      modal.style.display = 'flex';
+      
+      // 3秒后自动跳转到登录页面
+      window.loginRedirectTimer = setTimeout(() => {
+        goToLogin();
+      }, 3000);
+    }
+
+    // 关闭登录提示模态框
+    function closeLoginPrompt() {
+      const modal = document.getElementById('login-prompt-modal');
+      if (modal) {
+        // 清除自动跳转的定时器
+        if (window.loginRedirectTimer) {
+          clearTimeout(window.loginRedirectTimer);
+          window.loginRedirectTimer = null;
+        }
+        modal.remove();
+      }
+    }
+
+    // 跳转到登录页面
+    function goToLogin() {
+      window.location.href = 'login.html';
+    }
+
+    // 页面加载时检查登录状态
+    document.addEventListener('DOMContentLoaded', function() {
+      const authState = AuthUI.getAuthState();
+      
+      if (!authState) {
+        // 用户未登录，显示登录提示
+        showLoginPrompt();
+        return;
+      }
+    });
+
     // 表单提交
-    document.getElementById('story-form').addEventListener('submit', function(e) {
+    document.getElementById('story-form').addEventListener('submit', async function(e) {
       e.preventDefault();
-      const title = document.getElementById('story-title').value;
+      const submitBtn = document.getElementById('create-story-btn');
+      const originalText = submitBtn.innerHTML;
+      
+      // 禁用按钮防止重复提交
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 创建中...';
+      
+      // 获取表单数据
+      const title = document.getElementById('story-title').value.trim();
+      const storyType = document.getElementById('story-type').value;
+      const storyStyle = document.getElementById('story-style').value;
+      const description = document.getElementById('story-desc').value.trim();
       
       // 显示创建中提示
       showNotification(`正在创建故事「${title}」...`, 'info');
       
-      // 模拟创建过程
-      setTimeout(() => {
-        // 跳转到故事框架页
-        window.location.href = 'story_framework.html';
-      }, 1500);
+      try {
+        // 尝试向后端API提交创建故事
+        let storyId = null;
+        
+        try {
+          // 调用后端创建故事API
+          const response = await fetch('http://localhost:5000/api/v1/stories', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+            },
+            body: JSON.stringify({
+              title: title,
+              description: description,
+              categoryId: storyType // 简化处理，实际应该映射到category ID
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            storyId = data.data.id;
+          }
+        } catch (error) {
+          console.error('创建故事失败:', error);
+          // 后端API失败时使用本地生成的ID
+        }
+        
+        // 如果没有得到后端ID，生成本地ID
+        if (!storyId) {
+          storyId = 'local_' + Date.now().toString();
+        }
+        
+        // 创建初始图谱数据
+        const initialGraphData = {
+          nodes: {},
+          connections: []
+        };
+        
+        // 保存到本地存储
+        localStorage.setItem('storyGraphData', JSON.stringify(initialGraphData));
+        
+        // 延迟一下确保用户看到创建成功的提示
+        setTimeout(() => {
+          showNotification(`故事「${title}」创建成功！`, 'success');
+          // 延迟一小段时间再跳转
+          setTimeout(() => {
+            // 跳转到故事节点图谱页面
+            window.location.href = `story_tree.html?story=${storyId}`;
+          }, 500);
+        }, 800);
+      } catch (error) {
+        console.error('创建故事过程中发生错误:', error);
+        showNotification('创建故事失败，请重试', 'error');
+        
+        // 恢复按钮状态
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
     });
 
     // 取消按钮
@@ -174,6 +307,9 @@
       if (type === 'success') {
         notification.classList.add('bg-green-50', 'border', 'border-green-200', 'text-green-700');
         notification.innerHTML = `<i class="fa fa-check-circle mr-2"></i>${message}`;
+      } else if (type === 'error') {
+        notification.classList.add('bg-red-50', 'border', 'border-red-200', 'text-red-700');
+        notification.innerHTML = `<i class="fa fa-exclamation-circle mr-2"></i>${message}`;
       } else {
         notification.classList.add('bg-blue-50', 'border', 'border-blue-200', 'text-blue-700');
         notification.innerHTML = `<i class="fa fa-info-circle mr-2"></i>${message}`;
