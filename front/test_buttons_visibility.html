@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>按钮可见性测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">按钮可见性测试</h1>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">当前URL参数</h2>
+            <div id="url-info" class="text-sm font-mono bg-gray-100 p-3 rounded"></div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">按钮状态</h2>
+            <div id="button-check" class="space-y-2"></div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">控制台输出</h2>
+            <div id="console-output" class="text-sm font-mono bg-gray-100 p-3 rounded h-32 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <script>
+        // 捕获console.log输出
+        const originalLog = console.log;
+        const consoleOutput = document.getElementById('console-output');
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+            ).join(' ');
+            consoleOutput.innerHTML += `<div>${message}</div>`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        };
+        
+        function testButtons() {
+            // 模拟story_tree.html的逻辑
+            const url = window.location.href;
+            const params = new URLSearchParams(window.location.search);
+            
+            const currentStoryId = params.get('story') || params.get('id') || 'default';
+            const isViewMode = params.get('view') === 'true' || params.get('mode') === 'read';
+            
+            console.log('URL:', url);
+            console.log('currentStoryId:', currentStoryId);
+            console.log('isViewMode:', isViewMode);
+            
+            // 显示URL信息
+            document.getElementById('url-info').innerHTML = `
+                <div><strong>完整URL:</strong> ${url}</div>
+                <div><strong>story参数:</strong> ${currentStoryId}</div>
+                <div><strong>view参数:</strong> ${params.get('view')}</div>
+                <div><strong>mode参数:</strong> ${params.get('mode')}</div>
+                <div><strong>isViewMode:</strong> ${isViewMode}</div>
+            `;
+            
+            // 检查按钮
+            const buttons = [
+                { id: 'new-node', name: '添加新节点' },
+                { id: 'save-graph', name: '保存图谱' },
+                { id: 'toggle-complete', name: '标记完成' },
+                { id: 'export-story', name: '导出故事' },
+                { id: 'auto-arrange', name: '自动排列' }
+            ];
+            
+            let buttonHTML = '';
+            
+            buttons.forEach(btn => {
+                const element = document.getElementById(btn.id);
+                if (element) {
+                    const computedStyle = window.getComputedStyle(element);
+                    const display = computedStyle.display;
+                    const visibility = computedStyle.visibility;
+                    const opacity = computedStyle.opacity;
+                    
+                    const isVisible = display !== 'none' && visibility !== 'hidden' && opacity > 0;
+                    
+                    buttonHTML += `
+                        <div class="flex justify-between items-center p-2 border rounded">
+                            <span>${btn.name} (${btn.id})</span>
+                            <span class="${isVisible ? 'text-green-600' : 'text-red-600'}">
+                                ${isVisible ? '✅ 可见' : '❌ 隐藏'}
+                            </span>
+                            <small class="text-gray-500">
+                                display: ${display}, visibility: ${visibility}, opacity: ${opacity}
+                            </small>
+                        </div>
+                    `;
+                    
+                    console.log(`${btn.id}: display=${display}, visibility=${visibility}, opacity=${opacity}, visible=${isVisible}`);
+                } else {
+                    buttonHTML += `
+                        <div class="flex justify-between items-center p-2 border rounded">
+                            <span>${btn.name} (${btn.id})</span>
+                            <span class="text-red-600">❌ 元素未找到</span>
+                        </div>
+                    `;
+                    console.log(`${btn.id}: 元素未找到`);
+                }
+            });
+            
+            document.getElementById('button-check').innerHTML = buttonHTML;
+        }
+        
+        // 创建测试按钮
+        function createTestButtons() {
+            const container = document.createElement('div');
+            container.className = 'mb-6';
+            container.innerHTML = `
+                <h2 class="text-xl font-semibold mb-4">测试按钮</h2>
+                <div class="flex gap-3">
+                    <button id="new-node" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center">
+                        <i class="fa fa-plus mr-2"></i> 添加新节点
+                    </button>
+                    <button id="save-graph" class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center">
+                        <i class="fa fa-save mr-2"></i> 保存图谱
+                    </button>
+                    <button id="toggle-complete" class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center">
+                        <i class="fa fa-check mr-2"></i> <span id="complete-text">标记完成</span>
+                    </button>
+                    <button id="export-story" class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center">
+                        <i class="fa fa-download mr-2"></i> 导出故事
+                    </button>
+                    <button id="auto-arrange" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center">
+                        <i class="fa fa-th-large"></i> 自动排列
+                    </button>
+                </div>
+            `;
+            document.body.insertBefore(container, document.body.firstChild);
+        }
+        
+        window.addEventListener('load', function() {
+            createTestButtons();
+            setTimeout(testButtons, 100);
+        });
+    </script>
+</body>
+</html>

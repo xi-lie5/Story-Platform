@@ -38,6 +38,50 @@ const storySchema = new mongoose.Schema({
     type: Number,
     default: 0,
     min: 0
+  },
+  favoriteCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  ratingCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  isPublic: {
+    type: Boolean,
+    default: true,
+    index: true
+  },
+  tags: [{
+    type: String,
+    trim: true,
+    maxlength: [20, '标签不能超过20个字符']
+  }],
+  status: {
+    type: String,
+    enum: ['draft', 'pending', 'published', 'archived', 'rejected'],
+    default: 'draft',
+    index: true
+  },
+  isCompleted: {
+    type: Boolean,
+    default: false
+  },
+  submittedAt: {
+    type: Date
+  },
+  reviewedAt: {
+    type: Date
+  },
+  reviewedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  reviewComment: {
+    type: String,
+    maxlength: [500, '审核意见不能超过500个字符']
   }
 }, {
   timestamps: true,

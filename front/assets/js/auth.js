@@ -26,7 +26,7 @@
         const userInfo = JSON.parse(userInfoRaw);
         if (!userInfo?.username) continue;
 
-        return { storage, userInfo };
+        return { storage, userInfo, token };
       } catch (error) {
         console.warn('读取登录状态失败', error);
       }
@@ -137,7 +137,8 @@
         if (mobileMenu) {
           mobileMenu.classList.add('hidden');
         }
-        renderAreas(context);
+        // 跳转到首页
+        window.location.href = 'index.html';
       });
     });
   }

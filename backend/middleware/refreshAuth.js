@@ -35,7 +35,17 @@ module.exports = async (req, res, next) => {
                 404,
                 '用户不存在',
                 [],
-                10013 // 对应 API 文档的“用户不存在”错误码
+                10013 // 对应 API 文档的"用户不存在"错误码
+            ));
+        }
+
+        // 4.5. 检查用户账户是否被禁用
+        if (!user.isActive) {
+            return next(errorFormat(
+                403,
+                '账户已被禁用，请联系管理员',
+                [],
+                10020
             ));
         }
 

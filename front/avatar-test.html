@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>头像显示测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="assets/js/auth.js"></script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">头像显示完整测试</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">步骤1: 清除现有登录状态</h2>
+            <button onclick="clearLoginState()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                清除登录状态
+            </button>
+            <div id="clear-status" class="mt-2 text-sm"></div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">步骤2: 执行登录</h2>
+            <button onclick="performLogin()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                执行登录 (admin@example.com)
+            </button>
+            <div id="login-status" class="mt-2 text-sm"></div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">步骤3: 检查存储状态</h2>
+            <button onclick="checkStorage()" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+                检查存储状态
+            </button>
+            <div id="storage-status" class="mt-2 text-sm"></div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">步骤4: 测试AuthUI渲染</h2>
+            <button onclick="testAuthUI()" class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600">
+                测试AuthUI渲染
+            </button>
+            <div id="authui-status" class="mt-2 text-sm"></div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">步骤5: 头像URL解析测试</h2>
+            <button onclick="testAvatarUrl()" class="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600">
+                测试头像URL解析
+            </button>
+            <div id="avatar-status" class="mt-2 text-sm"></div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">步骤6: AuthUI实时预览</h2>
+            <div class="border rounded p-4">
+                <p class="text-sm text-gray-600 mb-2">桌面版Auth区域：</p>
+                <div id="auth-area-desktop" class="mb-4"></div>
+                <p class="text-sm text-gray-600 mb-2">移动版Auth区域：</p>
+                <div id="auth-area-mobile"></div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">步骤7: 跳转到首页验证</h2>
+            <button onclick="goToIndex()" class="px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600">
+                跳转到首页验证头像显示
+            </button>
+            <div id="redirect-status" class="mt-2 text-sm"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const colorClass = type === 'error' ? 'text-red-600' : type === 'success' ? 'text-green-600' : 'text-blue-600';
+            element.innerHTML = `<div class="${colorClass} text-sm">[${timestamp}] ${message}</div>`;
+        }
+
+        function clearLoginState() {
+            try {
+                window.AuthUI.clearAuthStorage();
+                log('clear-status', '登录状态已清除', 'success');
+                checkStorage();
+            } catch (error) {
+                log('clear-status', `清除失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function performLogin() {
+            log('login-status', '正在执行登录...', 'info');
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        email: 'admin@example.com', 
+                        password: 'admin123' 
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || '登录失败');
+                }
+
+                // 存储登录信息到localStorage
+                localStorage.setItem('token', result.data.token);
+                localStorage.setItem('refreshToken', result.data.refreshToken);
+                localStorage.setItem('userInfo', JSON.stringify({
+                    userId: result.data.userId,
+                    username: result.data.username,
+                    email: result.data.email,
+                    avatar: result.data.avatar
+                }));
+                localStorage.setItem('username', result.data.username);
+
+                log('login-status', `登录成功！用户: ${result.data.username}`, 'success');
+                log('login-status', `头像: ${result.data.avatar}`, 'info');
+                
+                checkStorage();
+            } catch (error) {
+                log('login-status', `登录失败: ${error.message}`, 'error');
+            }
+        }
+
+        function checkStorage() {
+            const token = localStorage.getItem('token');
+            const userInfo = localStorage.getItem('userInfo');
+            const username = localStorage.getItem('username');
+            
+            let status = '存储状态检查:\n';
+            status += `- Token: ${token ? '存在' : '不存在'}\n`;
+            status += `- UserInfo: ${userInfo ? '存在' : '不存在'}\n`;
+            status += `- Username: ${username ? '存在' : '不存在'}`;
+            
+            log('storage-status', status, 'info');
+            
+            if (userInfo) {
+                try {
+                    const parsed = JSON.parse(userInfo);
+                    log('storage-status', `用户信息: ${JSON.stringify(parsed, null, 2)}`, 'info');
+                } catch (e) {
+                    log('storage-status', '用户信息解析失败', 'error');
+                }
+            }
+        }
+
+        function testAuthUI() {
+            try {
+                const authState = window.AuthUI.getAuthState();
+                
+                if (authState) {
+                    log('authui-status', `AuthUI检测到登录状态: ${authState.userInfo.username}`, 'success');
+                    
+                    // 重新初始化AuthUI
+                    if (window.authUIInstance) {
+                        window.authUIInstance.render();
+                    } else {
+                        window.authUIInstance = window.AuthUI.init();
+                    }
+                    
+                    log('authui-status', 'AuthUI已重新渲染', 'success');
+                } else {
+                    log('authui-status', 'AuthUI未检测到登录状态', 'error');
+                }
+            } catch (error) {
+                log('authui-status', `AuthUI测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        function testAvatarUrl() {
+            try {
+                const authState = window.AuthUI.getAuthState();
+                
+                if (authState && authState.userInfo) {
+                    const avatarUrl = window.AuthUI.resolveAvatarUrl(authState.userInfo.avatar, authState.userInfo.username);
+                    log('avatar-status', `解析后的头像URL: ${avatarUrl}`, 'info');
+                    
+                    // 测试图片是否可以加载
+                    const img = new Image();
+                    img.onload = () => {
+                        log('avatar-status', '头像图片加载成功！', 'success');
+                    };
+                    img.onerror = () => {
+                        log('avatar-status', '头像图片加载失败', 'error');
+                    };
+                    img.src = avatarUrl;
+                } else {
+                    log('avatar-status', '没有用户信息，无法测试头像URL', 'error');
+                }
+            } catch (error) {
+                log('avatar-status', `头像URL测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        function goToIndex() {
+            const authState = window.AuthUI.getAuthState();
+            
+            if (authState) {
+                log('redirect-status', '有登录状态，正在跳转到首页...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+            } else {
+                log('redirect-status', '没有登录状态，请先登录', 'error');
+            }
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化AuthUI
+            window.authUIInstance = window.AuthUI.init();
+            
+            // 检查当前状态
+            checkStorage();
+            testAuthUI();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自动登录测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">自动登录测试</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">测试步骤</h2>
+            <div class="space-y-4">
+                <button onclick="performAutoLogin()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                    1. 执行自动登录
+                </button>
+                <button onclick="checkAuthState()" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+                    2. 检查认证状态
+                </button>
+                <button onclick="redirectToIndex()" class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600">
+                    3. 跳转到首页测试头像显示
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">测试结果</h2>
+            <div id="test-results"></div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">AuthUI 渲染预览</h2>
+            <div class="border rounded p-4">
+                <p class="text-sm text-gray-600 mb-2">桌面版：</p>
+                <div id="auth-area-desktop" class="mb-4"></div>
+                <p class="text-sm text-gray-600 mb-2">移动版：</p>
+                <div id="auth-area-mobile"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/auth.js"></script>
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('test-results');
+            const timestamp = new Date().toLocaleTimeString();
+            const colorClass = type === 'error' ? 'text-red-600' : type === 'success' ? 'text-green-600' : 'text-blue-600';
+            results.innerHTML += `<div class="${colorClass} text-sm">[${timestamp}] ${message}</div>`;
+            results.scrollTop = results.scrollHeight;
+        }
+
+        async function performAutoLogin() {
+            log('开始执行自动登录...', 'info');
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        email: 'admin@example.com', 
+                        password: 'admin123' 
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || '登录失败');
+                }
+
+                // 存储登录信息到localStorage
+                localStorage.setItem('token', result.data.token);
+                localStorage.setItem('refreshToken', result.data.refreshToken);
+                localStorage.setItem('userInfo', JSON.stringify({
+                    userId: result.data.userId,
+                    username: result.data.username,
+                    email: result.data.email,
+                    avatar: result.data.avatar
+                }));
+                localStorage.setItem('username', result.data.username);
+
+                log(`登录成功！用户: ${result.data.username}, 邮箱: ${result.data.email}`, 'success');
+                log(`头像路径: ${result.data.avatar}`, 'info');
+                
+                // 重新初始化AuthUI
+                if (window.authUIInstance) {
+                    window.authUIInstance.render();
+                } else {
+                    window.authUIInstance = window.AuthUI.init();
+                }
+                
+                checkAuthState();
+            } catch (error) {
+                log(`登录失败: ${error.message}`, 'error');
+            }
+        }
+
+        function checkAuthState() {
+            log('检查认证状态...', 'info');
+            
+            const authState = window.AuthUI.getAuthState();
+            
+            if (authState) {
+                log(`检测到登录状态: ${authState.userInfo.username}`, 'success');
+                log(`存储类型: ${authState.storage === window.localStorage ? 'localStorage' : 'sessionStorage'}`, 'info');
+                log(`用户信息: ${JSON.stringify(authState.userInfo)}`, 'info');
+            } else {
+                log('未检测到登录状态', 'error');
+            }
+        }
+
+        function redirectToIndex() {
+            log('准备跳转到首页测试头像显示...', 'info');
+            
+            // 检查是否有登录状态
+            const authState = window.AuthUI.getAuthState();
+            if (authState) {
+                log('有登录状态，正在跳转...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+            } else {
+                log('没有登录状态，请先执行登录', 'error');
+            }
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            log('页面加载完成，初始化AuthUI...', 'info');
+            window.authUIInstance = window.AuthUI.init();
+            
+            // 检查当前状态
+            const currentState = window.AuthUI.getAuthState();
+            if (currentState) {
+                log(`当前已有登录状态: ${currentState.userInfo.username}`, 'success');
+            } else {
+                log('当前无登录状态', 'info');
+            }
+        });
+    </script>
+</body>
+</html>

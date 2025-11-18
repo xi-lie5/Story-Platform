@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Story Tree 调试</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6366f1',
+            secondary: '#ec4899',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* 防止拖动时文本选择 */
+    .node-grid, .node {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+    
+    .node {
+      cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 10;
+    }
+    .node:hover {
+      transform: scale(1.05);
+      box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.3);
+    }
+    .node.dragging {
+      transform: scale(1.05);
+      box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.5);
+      z-index: 100 !important;
+    }
+    .connection-line {
+      position: absolute;
+      background-color: #d1d5db;
+      z-index: 0;
+    }
+    .node-grid {
+      position: relative;
+      min-height: 500px;
+      background-color: #f9fafb;
+      background-image: radial-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+      background-size: 20px 20px;
+      overflow: auto;
+      cursor: grab;
+    }
+    .node-grid:active {
+      cursor: grabbing;
+    }
+    .node-type-normal {
+      border-color: #6366f1;
+      background-color: white;
+    }
+    .node-type-choice {
+      border-color: #f59e0b;
+      background-color: #fffbeb;
+    }
+    .node-type-climax {
+      border-color: #ec4899;
+      background-color: #fdf2f8;
+    }
+    .node-type-ending {
+      border-color: #10b981;
+      background-color: #f0fdf4;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+  <!-- 导航栏 -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur shadow-sm">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <i class="fa fa-book text-primary text-2xl"></i>
+        <h1 class="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">StoryForge</h1>
+      </div>
+
+      <nav class="hidden md:flex items-center space-x-8">
+        <a href="index.html" class="font-medium hover:text-primary transition-colors">首页</a>
+        <a href="explore.html" class="font-medium hover:text-primary transition-colors">探索故事</a>
+        <a href="create.html" class="font-medium hover:text-primary transition-colors">创建故事</a>
+        <a href="my_stories.html" class="font-medium hover:text-primary transition-colors">我的作品</a>
+        <a href="profile.html" class="font-medium hover:text-primary transition-colors">个人中心</a>
+        <a href="about.html" class="font-medium hover:text-primary transition-colors">关于</a>
+      </nav>
+
+      <div class="flex items-center space-x-4" id="auth-area-desktop"></div>
+      <div class="flex items-center space-x-4 md:hidden">
+        <button class="text-xl" id="mobile-menu-button">
+          <i class="fa fa-bars"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- 移动端菜单 -->
+    <div class="md:hidden hidden bg-white shadow-lg absolute w-full" id="mobile-menu">
+      <div class="container mx-auto px-4 py-3 flex flex-col space-y-4">
+        <a href="index.html" class="font-medium py-2 hover:text-primary transition-colors">首页</a>
+        <a href="explore.html" class="font-medium py-2 hover:text-primary transition-colors">探索故事</a>
+        <a href="create.html" class="font-medium py-2 hover:text-primary transition-colors">创建故事</a>
+        <a href="my_stories.html" class="font-medium py-2 hover:text-primary transition-colors">我的作品</a>
+        <a href="profile.html" class="font-medium py-2 hover:text-primary transition-colors">个人中心</a>
+        <a href="about.html" class="font-medium py-2 hover:text-primary transition-colors">关于</a>
+        <div id="auth-area-mobile" class="pt-2 space-y-3"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主要内容区 -->
+  <section class="pb-20 px-4">
+    <div class="container mx-auto max-w-6xl">
+      <!-- 标题与操作区 -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+          <h2 class="text-2xl font-bold mb-1">故事节点图谱</h2>
+          <p class="text-slate-500" id="current-story-title">故事节点图谱</p>
+        </div>
+        <div class="flex gap-3 w-full md:w-auto">
+          <button id="new-node" class="flex-1 md:flex-none px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center">
+            <i class="fa fa-plus mr-2"></i> 添加新节点
+          </button>
+          <button id="save-graph" class="flex-1 md:flex-none px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center">
+            <i class="fa fa-save mr-2"></i> 保存图谱
+          </button>
+          <button id="toggle-complete" class="flex-1 md:flex-none px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center">
+            <i class="fa fa-check mr-2"></i> <span id="complete-text">标记完成</span>
+          </button>
+          <button id="submit-review" class="flex-1 md:flex-none px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center hidden">
+            <i class="fa fa-paper-plane mr-2"></i> 提交审核
+          </button>
+          <button id="export-story" class="flex-1 md:flex-none px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center">
+            <i class="fa fa-download mr-2"></i> 导出故事
+          </button>
+        </div>
+      </div>
+      
+      <!-- 调试信息 -->
+      <div class="bg-white rounded-2xl shadow-xl p-4 mb-6">
+        <h3 class="text-lg font-bold mb-2">调试信息</h3>
+        <div id="debug-info" class="space-y-2 font-mono text-sm"></div>
+      </div>
+      
+      <!-- 操作面板 -->
+      <div class="bg-white rounded-2xl shadow-xl p-4 mb-6 flex flex-wrap gap-3 justify-between items-center">
+        <div class="flex flex-wrap gap-2">
+          <button id="zoom-in" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center">
+            <i class="fa fa-search-plus"></i>
+          </button>
+          <button id="zoom-out" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center">
+            <i class="fa fa-search-minus"></i>
+          </button>
+          <button id="reset-view" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center">
+            <i class="fa fa-refresh"></i>
+          </button>
+          <button id="auto-arrange" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center">
+            <i class="fa fa-th-large"></i> 自动排列
+          </button>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="text-sm text-slate-500">
+            节点数量：<span id="nodes-count">0</span>
+          </div>
+          <div class="relative">
+            <select id="node-type-filter" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+              <option value="all">所有节点类型</option>
+              <option value="normal">普通节点</option>
+              <option value="choice">选择节点</option>
+              <option value="climax">高潮节点</option>
+              <option value="ending">结局节点</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 节点图谱区域 -->
+      <div class="relative bg-white rounded-2xl shadow-xl p-4">
+        <div id="node-grid" class="node-grid rounded-xl p-4 relative overflow-auto">
+          <!-- 节点和连接线将动态生成 -->
+          <div id="connection-layer" class="absolute top-4 left-4 w-[calc(100%-2rem)] h-[calc(100%-2rem)]"></div>
+          <div id="nodes-layer" class="absolute top-4 left-4 w-[calc(100%-2rem)] h-[calc(100%-2rem)]"></div>
+          
+          <!-- 中心提示 -->
+          <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center">
+            <i class="fa fa-sitemap text-6xl text-slate-300 mb-4"></i>
+            <h3 class="text-xl font-medium text-slate-500 mb-2">暂无节点</h3>
+            <p class="text-slate-400 mb-6">点击"添加新节点"开始创建故事图谱</p>
+            <button id="start-now" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center">
+              <i class="fa fa-plus mr-2"></i> 添加第一个节点
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="assets/js/auth.js"></script>
+  <script>
+    // 全局变量
+    let graphData = { nodes: {}, connections: [] };
+    let currentStoryId = null;
+    let viewMode = false;
+    let scale = 1;
+    let offset = { x: 0, y: 0 };
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+    let selectedNode = null;
+    let isConnecting = false;
+    let connectionStart = null;
+    let tempConnection = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // 获取URL参数
+      const params = new URLSearchParams(window.location.search);
+      currentStoryId = params.get('story');
+      const isViewMode = params.get('view') === 'true';
+      const returnedFromEditor = params.get('returned') === 'true';
+      
+      console.log('=== 页面加载调试 ===');
+      console.log('URL:', window.location.href);
+      console.log('currentStoryId:', currentStoryId);
+      console.log('isViewMode:', isViewMode);
+      console.log('所有URL参数:', Object.fromEntries(params.entries()));
+      
+      // 检查所有按钮的初始状态
+      const allButtons = ['new-node', 'save-graph', 'toggle-complete', 'export-story', 'auto-arrange', 'submit-review'];
+      const debugInfo = document.getElementById('debug-info');
+      
+      console.log('=== 按钮初始状态 ===');
+      allButtons.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+          const computedStyle = window.getComputedStyle(btn);
+          const rect = btn.getBoundingClientRect();
+          const info = {
+            id: id,
+            display: computedStyle.display,
+            visibility: computedStyle.visibility,
+            opacity: computedStyle.opacity,
+            backgroundColor: computedStyle.backgroundColor,
+            color: computedStyle.color,
+            width: computedStyle.width,
+            height: computedStyle.height,
+            zIndex: computedStyle.zIndex,
+            position: computedStyle.position,
+            offsetWidth: btn.offsetWidth,
+            offsetHeight: btn.offsetHeight,
+            rect: {
+              top: rect.top,
+              left: rect.left,
+              width: rect.width,
+              height: rect.height
+            },
+            classes: btn.className,
+            hidden: btn.hidden,
+            disabled: btn.disabled
+          };
+          
+          console.log(`${id} - 存在: ✅, display: ${computedStyle.display}, visibility: ${computedStyle.visibility}, opacity: ${computedStyle.opacity}`);
+          
+          // 添加到调试信息
+          const div = document.createElement('div');
+          div.className = 'p-2 border rounded mb-2 text-xs';
+          div.innerHTML = `
+            <strong>${id}:</strong><br>
+            display: ${info.display}<br>
+            visibility: ${info.visibility}<br>
+            opacity: ${info.opacity}<br>
+            backgroundColor: ${info.backgroundColor}<br>
+            color: ${info.color}<br>
+            width: ${info.width}<br>
+            height: ${info.height}<br>
+            rect: top=${info.rect.top}, left=${info.rect.left}, width=${info.rect.width}, height=${info.rect.height}<br>
+            classes: ${info.classes}<br>
+            hidden: ${info.hidden}<br>
+            disabled: ${info.disabled}
+          `;
+          debugInfo.appendChild(div);
+        } else {
+          console.log(`${id} - 存在: ❌, 元素未找到`);
+          
+          const div = document.createElement('div');
+          div.className = 'p-2 border rounded mb-2 bg-red-50 text-xs';
+          div.innerHTML = `<strong>${id}:</strong> 未找到`;
+          debugInfo.appendChild(div);
+        }
+      });
+      
+      // 如果没有故事ID，可以使用默认值或创建新故事
+      if (!currentStoryId) {
+        currentStoryId = 'default';
+        // 在默认模式下禁用查看模式
+        viewMode = false;
+      }
+      
+      // 设置查看模式
+      viewMode = isViewMode;
+      
+      console.log('最终viewMode:', viewMode);
+      
+      // 如果是查看模式，禁用编辑功能
+      if (viewMode) {
+        console.log('进入查看模式，隐藏编辑按钮');
+        // 隐藏编辑相关按钮
+        const editButtons = ['new-node', 'save-graph', 'export-story', 'auto-arrange'];
+        editButtons.forEach(id => {
+          const btn = document.getElementById(id);
+          if (btn) {
+            btn.style.display = 'none';
+            console.log(`隐藏按钮: ${id}`);
+          } else {
+            console.log(`按钮未找到: ${id}`);
+          }
+        });
+        
+        // 隐藏或禁用筛选功能
+        const filter = document.getElementById('node-type-filter');
+        if (filter) {
+          filter.style.display = 'none';
+          console.log('隐藏筛选功能');
+        }
+        
+        // 更新标题显示为查看模式
+        const titleElement = document.querySelector('h2.text-2xl.font-bold');
+        if (titleElement) titleElement.textContent = '故事节点图谱 - 查看模式';
+      } else {
+        console.log('进入编辑模式，显示编辑按钮');
+        // 确保编辑按钮可见（修复潜在的显示问题）
+        const editButtons = ['new-node', 'save-graph', 'export-story', 'auto-arrange'];
+        editButtons.forEach(id => {
+          const btn = document.getElementById(id);
+          if (btn) {
+            btn.style.display = '';
+            btn.classList.remove('hidden');
+            console.log(`显示按钮: ${id}`);
+          } else {
+            console.log(`按钮未找到: ${id}`);
+          }
+        });
+        
+        // 确保筛选功能可见
+        const filter = document.getElementById('node-type-filter');
+        if (filter) {
+          filter.style.display = '';
+          filter.classList.remove('hidden');
+          console.log('显示筛选功能');
+        }
+      }
+      
+      // 更新节点计数
+      document.getElementById('nodes-count').textContent = Object.keys(graphData.nodes).length;
+    });
+  </script>
+</body>
+</html>

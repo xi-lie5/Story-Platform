@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>提交审核功能测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .status-badge {
+            @apply inline-block px-3 py-1 rounded-full text-sm font-medium;
+        }
+        .status-draft { @apply bg-gray-100 text-gray-700; }
+        .status-pending { @apply bg-blue-100 text-blue-700; }
+        .status-approved { @apply bg-green-100 text-green-700; }
+        .status-rejected { @apply bg-red-100 text-red-700; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8">
+            <i class="fa fa-paper-plane mr-3"></i>提交审核功能测试
+        </h1>
+        
+        <!-- 故事选择 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">故事选择</h2>
+            <div class="flex gap-4 items-center">
+                <input type="text" id="storyId" placeholder="输入故事ID" 
+                       class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="loadStory()" 
+                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fa fa-search mr-2"></i>加载故事
+                </button>
+            </div>
+        </div>
+        
+        <!-- 故事信息显示 -->
+        <div id="storyInfo" class="bg-white rounded-lg shadow-md p-6 mb-6 hidden">
+            <h2 class="text-xl font-semibold mb-4">故事信息</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <span class="text-gray-600">标题：</span>
+                    <span id="storyTitle" class="font-medium"></span>
+                </div>
+                <div>
+                    <span class="text-gray-600">状态：</span>
+                    <span id="storyStatus" class="status-badge"></span>
+                </div>
+                <div>
+                    <span class="text-gray-600">完成状态：</span>
+                    <span id="completedStatus" class="font-medium"></span>
+                </div>
+                <div>
+                    <span class="text-gray-600">故事ID：</span>
+                    <span id="displayStoryId" class="font-mono text-sm"></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 操作按钮 -->
+        <div id="actions" class="bg-white rounded-lg shadow-md p-6 mb-6 hidden">
+            <h2 class="text-xl font-semibold mb-4">操作</h2>
+            <div class="flex gap-4 flex-wrap">
+                <button id="submitReviewBtn" onclick="submitForReview()" 
+                        class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors hidden">
+                    <i class="fa fa-paper-plane mr-2"></i>提交审核
+                </button>
+                <button onclick="refreshStatus()" 
+                        class="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                    <i class="fa fa-refresh mr-2"></i>刷新状态
+                </button>
+                <button onclick="testStatusChange()" 
+                        class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                    <i class="fa fa-test-tube mr-2"></i>测试状态切换
+                </button>
+            </div>
+        </div>
+        
+        <!-- 操作日志 -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">操作日志</h2>
+            <div id="logContainer" class="space-y-2 max-h-96 overflow-y-auto">
+                <div class="text-gray-500 text-sm">暂无操作记录</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStoryId = null;
+        let currentStoryData = null;
+        
+        // 添加日志
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `p-3 rounded-lg text-sm ${getLogStyle(type)}`;
+            logEntry.innerHTML = `
+                <span class="font-medium">[${timestamp}]</span> ${message}
+            `;
+            
+            // 如果是第一条日志，清空默认提示
+            if (logContainer.children.length === 1 && logContainer.children[0].textContent.includes('暂无操作记录')) {
+                logContainer.innerHTML = '';
+            }
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        function getLogStyle(type) {
+            const styles = {
+                'info': 'bg-blue-50 text-blue-700',
+                'success': 'bg-green-50 text-green-700',
+                'warning': 'bg-yellow-50 text-yellow-700',
+                'error': 'bg-red-50 text-red-700'
+            };
+            return styles[type] || styles['info'];
+        }
+        
+        // 加载故事
+        async function loadStory() {
+            const storyId = document.getElementById('storyId').value.trim();
+            if (!storyId) {
+                addLog('请输入故事ID', 'warning');
+                return;
+            }
+            
+            currentStoryId = storyId;
+            addLog(`正在加载故事 ${storyId}...`, 'info');
+            
+            try {
+                const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                const response = await fetch(`http://localhost:5000/api/v1/stories/${storyId}?t=${Date.now()}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        currentStoryData = result.data;
+                        displayStoryInfo(result.data);
+                        addLog(`成功加载故事：${result.data.title}`, 'success');
+                    } else {
+                        addLog(`加载失败：${result.message}`, 'error');
+                    }
+                } else {
+                    addLog(`请求失败：${response.status}`, 'error');
+                }
+            } catch (error) {
+                addLog(`网络错误：${error.message}`, 'error');
+            }
+        }
+        
+        // 显示故事信息
+        function displayStoryInfo(story) {
+            document.getElementById('storyInfo').classList.remove('hidden');
+            document.getElementById('actions').classList.remove('hidden');
+            
+            document.getElementById('storyTitle').textContent = story.title || '未命名故事';
+            document.getElementById('displayStoryId').textContent = story._id;
+            document.getElementById('completedStatus').textContent = story.isCompleted ? '已完成' : '未完成';
+            
+            // 设置状态标签
+            const statusElement = document.getElementById('storyStatus');
+            statusElement.textContent = getStatusText(story.status);
+            statusElement.className = `status-badge ${getStatusClass(story.status)}`;
+            
+            // 控制提交审核按钮显示
+            updateSubmitButton(story.status);
+        }
+        
+        // 获取状态文本
+        function getStatusText(status) {
+            const statusMap = {
+                'draft': '草稿',
+                'pending': '待审核',
+                'approved': '已通过',
+                'rejected': '被拒绝'
+            };
+            return statusMap[status] || '未知';
+        }
+        
+        // 获取状态样式
+        function getStatusClass(status) {
+            const classMap = {
+                'draft': 'status-draft',
+                'pending': 'status-pending',
+                'approved': 'status-approved',
+                'rejected': 'status-rejected'
+            };
+            return classMap[status] || 'status-draft';
+        }
+        
+        // 更新提交按钮显示
+        function updateSubmitButton(status) {
+            const submitBtn = document.getElementById('submitReviewBtn');
+            if (status === 'draft' || status === 'rejected') {
+                submitBtn.classList.remove('hidden');
+                addLog(`提交审核按钮已显示（当前状态：${getStatusText(status)}）`, 'info');
+            } else {
+                submitBtn.classList.add('hidden');
+                addLog(`提交审核按钮已隐藏（当前状态：${getStatusText(status)}）`, 'info');
+            }
+        }
+        
+        // 提交审核
+        async function submitForReview() {
+            if (!currentStoryId) {
+                addLog('没有选择故事', 'warning');
+                return;
+            }
+            
+            addLog(`正在提交故事审核...`, 'info');
+            
+            try {
+                const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                const response = await fetch(`http://localhost:5000/api/v1/stories/${currentStoryId}/submit`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    addLog(`✅ 提交审核成功！${result.message || ''}`, 'success');
+                    
+                    // 刷新状态
+                    setTimeout(() => {
+                        refreshStatus();
+                    }, 1000);
+                } else {
+                    const error = await response.json();
+                    addLog(`提交失败：${error.message || '未知错误'}`, 'error');
+                }
+            } catch (error) {
+                addLog(`网络错误：${error.message}`, 'error');
+            }
+        }
+        
+        // 刷新状态
+        async function refreshStatus() {
+            if (!currentStoryId) {
+                addLog('没有选择故事', 'warning');
+                return;
+            }
+            
+            addLog('正在刷新状态...', 'info');
+            await loadStory();
+        }
+        
+        // 测试状态切换（模拟不同状态）
+        function testStatusChange() {
+            if (!currentStoryData) {
+                addLog('请先加载故事', 'warning');
+                return;
+            }
+            
+            const statuses = ['draft', 'pending', 'approved', 'rejected'];
+            const currentIndex = statuses.indexOf(currentStoryData.status);
+            const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+            
+            addLog(`模拟状态切换：${getStatusText(currentStoryData.status)} → ${getStatusText(nextStatus)}`, 'info');
+            
+            // 模拟更新状态
+            currentStoryData.status = nextStatus;
+            displayStoryInfo(currentStoryData);
+        }
+        
+        // 页面加载时检查登录状态
+        window.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            if (!token) {
+                addLog('⚠️ 未检测到登录状态，请先登录', 'warning');
+            } else {
+                addLog('✅ 已检测到登录状态', 'success');
+            }
+            
+            // 如果URL中有story参数，自动加载
+            const urlParams = new URLSearchParams(window.location.search);
+            const storyId = urlParams.get('story');
+            if (storyId) {
+                document.getElementById('storyId').value = storyId;
+                loadStory();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -31,6 +31,32 @@
       .animate-float { animation: float 6s ease-in-out infinite; }
       .animate-pulse-slow { animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
       .backdrop-blur { backdrop-filter: blur(8px); }
+      .navbar-modern {
+        background: rgba(255,255,255,0.98);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(0,0,0,0.08);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      }
+      .navbar-link {
+        transition: color 0.2s ease;
+      }
+      .btn-primary-modern {
+        background: #6366f1;
+        transition: background-color 0.2s ease;
+      }
+      .btn-primary-modern:hover {
+        background: #5558e3;
+      }
+      .btn-secondary-modern {
+        background: transparent;
+        border: 1px solid #e5e7eb;
+        color: #6b7280;
+        transition: all 0.2s ease;
+      }
+      .btn-secondary-modern:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+      }
     }
     @keyframes float {
       0% { transform: translateY(0px); }
@@ -40,44 +66,84 @@
   </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen text-slate-800 font-sans">
-  <!-- 导航栏（与首页一致） -->
-  <header class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" id="navbar">
-    <div class="container mx-auto px-4 py-3 flex items-center justify-between backdrop-blur bg-white/80 shadow-sm">
+  <!-- 导航栏 -->
+  <nav class="navbar-modern" id="navbar">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center space-x-2">
-        <i class="fa fa-book text-primary text-2xl"></i>
-        <h1 class="text-xl md:text-2xl font-display font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">StoryForge</h1>
+        <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+          <i class="fa fa-book text-white text-lg"></i>
+        </div>
+        <h1 class="text-xl md:text-2xl font-display font-bold text-gray-900">StoryForge</h1>
       </div>
+      
       <nav class="hidden md:flex items-center space-x-8">
-        <a href="index.html" class="font-medium hover:text-primary transition-colors">首页</a>
-        <a href="explore.html" class="font-medium hover:text-primary transition-colors">探索故事</a>
-        <a href="create.html" class="font-medium hover:text-primary transition-colors">创建故事</a>
-        <a href="my_stories.html" class="font-medium hover:text-primary transition-colors">我的故事</a>
-        <a href="profile.html" class="font-medium hover:text-primary transition-colors">个人中心</a>
-        <a href="about.html" class="font-medium text-primary transition-colors">关于</a>
+        <a href="index.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">首页</a>
+        <a href="explore.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">探索故事</a>
+        <a href="create.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">创建故事</a>
+        <a href="my_stories.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">我的作品</a>
+        <a href="favorites.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">我的收藏</a>
+        <a href="profile.html" id="nav-profile-link" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">个人中心</a>
+        <a href="about.html" class="navbar-link font-medium text-primary transition-colors">关于</a>
       </nav>
-      <div class="flex items-center space-x-4" id="auth-area-desktop"></div>
+      
+      <div class="flex items-center space-x-4" id="auth-area-desktop">
+        <!-- 已登录状态 (将由JS控制显示) -->
+        <div id="user-logged-in" class="hidden flex items-center space-x-4">
+          <div class="relative group">
+            <button class="flex items-center space-x-2 px-3 py-1 rounded-full btn-secondary-modern">
+              <img src="https://picsum.photos/32/32" alt="用户头像" class="w-8 h-8 rounded-full object-cover">
+              <span class="font-medium text-gray-700">用户名</span>
+              <i class="fa fa-caret-down text-xs text-gray-500"></i>
+            </button>
+            <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 hidden group-hover:block transition-all">
+              <a href="profile.html" class="block px-4 py-2 text-sm hover:bg-slate-100 transition-colors">
+                <i class="fa fa-user mr-2"></i> 个人设置
+              </a>
+              <a href="my_stories.html" class="block px-4 py-2 text-sm hover:bg-slate-100 transition-colors">
+                <i class="fa fa-book mr-2"></i> 我的作品
+              </a>
+              <div class="border-t border-slate-200 my-1"></div>
+              <button onclick="AuthUI.clearAuthStorage(); window.location.href = 'index.html';" class="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-slate-100 transition-colors" id="logout-btn">
+                <i class="fa fa-sign-out mr-2"></i> 退出登录
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 未登录状态 (默认显示) -->
+        <div id="user-not-logged-in">
+          <button class="hidden md:block btn-secondary-modern px-5 py-2 rounded-full text-gray-700 font-medium">
+            <a href="login.html" class="block w-full h-full">登录</a>
+          </button>
+          <button class="btn-primary-modern px-5 py-2 rounded-full text-white font-medium">
+            <a href="register.html" class="block w-full h-full">注册</a>
+          </button>
+        </div>
+      </div>
       <div class="flex items-center space-x-4 md:hidden">
-        <button class="text-xl" id="mobile-menu-button">
-          <i class="fa fa-bars"></i>
-        </button>
-      </div>
+          <button id="mobile-menu-button" class="text-xl text-gray-700">
+            <i class="fa fa-bars"></i>
+          </button>
+        </div>
     </div>
+    
     <!-- 移动端菜单 -->
-    <div class="md:hidden hidden bg-white shadow-lg absolute w-full" id="mobile-menu">
-      <div class="container mx-auto px-4 py-3 flex flex-col space-y-4">
-        <a href="index.html" class="font-medium py-2 hover:text-primary transition-colors">首页</a>
-        <a href="explore.html" class="font-medium py-2 hover:text-primary transition-colors">探索故事</a>
-        <a href="create.html" class="font-medium py-2 hover:text-primary transition-colors">创建故事</a>
-        <a href="my_stories.html" class="font-medium py-2 hover:text-primary transition-colors">我的故事</a>
-        <a href="profile.html" class="font-medium py-2 hover:text-primary transition-colors">个人中心</a>
-        <a href="about.html" class="font-medium py-2 text-primary transition-colors">关于</a>
-        <div id="auth-area-mobile" class="pt-2 space-y-3"></div>
-      </div>
+    <div class="md:hidden hidden bg-white/95 backdrop-blur absolute w-full border-t border-gray-200" id="mobile-menu">
+        <div class="p-4 space-y-3">
+          <a href="index.html" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors">首页</a>
+          <a href="explore.html" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors">探索故事</a>
+          <a href="create.html" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors">创建故事</a>
+          <a href="my_stories.html" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors">我的作品</a>
+          <a href="favorites.html" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors">我的收藏</a>
+          <a href="profile.html" id="mobile-nav-profile-link" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors">个人中心</a>
+          <a href="about.html" class="navbar-link block font-medium py-2 text-primary transition-colors">关于</a>
+          <div id="auth-area-mobile" class="pt-3 border-t border-gray-200 space-y-3"></div>
+        </div>
     </div>
-  </header>
+  </nav>
 
   <!-- 关于我们内容区域 -->
-  <section class="pt-32 pb-20 px-4">
+  <section class="pb-20 px-4">
     <div class="container mx-auto max-w-6xl">
       <!-- 页面标题 -->
       <div class="text-center max-w-3xl mx-auto mb-16">

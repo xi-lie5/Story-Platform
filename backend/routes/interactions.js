@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const { body, validationResult, param } = require('express-validator');
-const protect = require('../middleware/auth');
+const authGuard = require('../middleware/auth');
 const Story = require('../models/Story');
 const UserStoryFavorite = require('../models/UserStoryFavorite');
 const UserStoryRating = require('../models/UserStoryRating');
@@ -14,9 +14,9 @@ const router = express.Router();
  * @desc 添加/取消收藏故事
  * @access Private
  */
-router.post('/stories/:storyId/favorite', protect, [
+router.post('/stories/:storyId/favorite', authGuard, [
   param('storyId').custom(value => {
-    if (!mongoose.Types.ObjectId.isValid(value)) {
+    if (!mongoose.Types.ObjectId.isValid(value) && !value.startsWith('local_')) {
       throw new Error('无效的故事ID');
     }
     return true;
@@ -30,6 +30,16 @@ router.post('/stories/:storyId/favorite', protect, [
   try {
     const { storyId } = req.params;
     const userId = req.user.id;
+
+    // 对于临时故事，返回模拟响应
+    if (storyId.startsWith('local_')) {
+      return res.status(200).json({
+        success: true,
+        message: '临时故事不支持收藏操作',
+        isFavorite: false,
+        isTemporary: true
+      });
+    }
 
     // 检查故事是否存在
     const story = await Story.findById(storyId);
@@ -50,7 +60,8 @@ router.post('/stories/:storyId/favorite', protect, [
       return res.status(200).json({
         success: true,
         message: '取消收藏成功',
-        isFavorite: false
+        isFavorite: false,
+        isTemporary: false
       });
     } else {
       // 添加收藏
@@ -62,7 +73,8 @@ router.post('/stories/:storyId/favorite', protect, [
       return res.status(200).json({
         success: true,
         message: '收藏成功',
-        isFavorite: true
+        isFavorite: true,
+        isTemporary: false
       });
     }
   } catch (error) {
@@ -78,9 +90,9 @@ router.post('/stories/:storyId/favorite', protect, [
  * @desc 获取用户对故事的收藏状态
  * @access Private
  */
-router.get('/stories/:storyId/favorite/status', protect, [
+router.get('/stories/:storyId/favorite/status', authGuard, [
   param('storyId').custom(value => {
-    if (!mongoose.Types.ObjectId.isValid(value)) {
+    if (!mongoose.Types.ObjectId.isValid(value) && !value.startsWith('local_')) {
       throw new Error('无效的故事ID');
     }
     return true;
@@ -95,6 +107,18 @@ router.get('/stories/:storyId/favorite/status', protect, [
     const { storyId } = req.params;
     const userId = req.user.id;
 
+    // 对于临时故事，返回默认状态
+    if (storyId.startsWith('local_')) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          isFavorited: false,
+          favoriteCount: 0,
+          isTemporary: true
+        }
+      });
+    }
+
     // 检查故事是否存在
     const story = await Story.findById(storyId);
     if (!story) {
@@ -107,11 +131,13 @@ router.get('/stories/:storyId/favorite/status', protect, [
     return res.status(200).json({
       success: true,
       data: {
-        isFavorite: Boolean(isFavorite),
-        favoriteCount: story.favoriteCount || 0
+        isFavorited: Boolean(isFavorite),
+        favoriteCount: story.favoriteCount || 0,
+        isTemporary: false
       }
     });
   } catch (error) {
+    console.error('评分详情接口错误:', error);
     next(error);
   }
 });
@@ -121,7 +147,7 @@ router.get('/stories/:storyId/favorite/status', protect, [
  * @desc 获取用户的收藏列表
  * @access Private
  */
-router.get('/user/favorites', protect, async (req, res, next) => {
+router.get('/user/favorites', authGuard, async (req, res, next) => {
   try {
     const userId = req.user.id;
     const page = parseInt(req.query.page, 10) || 1;
@@ -133,20 +159,32 @@ router.get('/user/favorites', protect, async (req, res, next) => {
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 })
-      .populate('story', 'title description author coverImage rating createdAt updatedAt favoriteCount viewCount');
+      .populate('story', 'title description author coverImage rating createdAt updatedAt favoriteCount viewCount')
+      .populate('story.author', 'username avatar')
+      .populate('story.category', 'name');
 
     const total = await UserStoryFavorite.countDocuments({ userId });
     
+    // 格式化返回数据，包含收藏时间和故事信息
+    const formattedFavorites = favorites.map(fav => ({
+      story: fav.story,
+      collectedAt: fav.createdAt
+    }));
+    
     return res.status(200).json({
       success: true,
-      data: favorites.map(fav => fav.story),
-      pagination: {
-        total,
-        page,
-        pages: Math.ceil(total / limit)
+      data: {
+        favorites: formattedFavorites,
+        pagination: {
+          total,
+          page,
+          pages: Math.ceil(total / limit)
+        }
       }
     });
   } catch (error) {
+    console.error('获取收藏列表错误:', error);
+    console.error('错误堆栈:', error.stack);
     next(error);
   }
 });
@@ -156,9 +194,9 @@ router.get('/user/favorites', protect, async (req, res, next) => {
  * @desc 对故事进行评分
  * @access Private
  */
-router.post('/stories/:storyId/rate', protect, [
+router.post('/stories/:storyId/rate', authGuard, [
   param('storyId').custom(value => {
-    if (!mongoose.Types.ObjectId.isValid(value)) {
+    if (!mongoose.Types.ObjectId.isValid(value) && !value.startsWith('local_')) {
       throw new Error('无效的故事ID');
     }
     return true;
@@ -175,6 +213,20 @@ router.post('/stories/:storyId/rate', protect, [
     const { storyId } = req.params;
     const { rating, comment } = req.body;
     const userId = req.user.id;
+
+    // 对于临时故事，返回模拟响应
+    if (storyId.startsWith('local_')) {
+      return res.status(200).json({
+        success: true,
+        message: '临时故事不支持评分操作',
+        data: {
+          rating,
+          comment,
+          updatedAt: new Date(),
+          isTemporary: true
+        }
+      });
+    }
 
     // 检查故事是否存在
     const story = await Story.findById(storyId);
@@ -205,7 +257,8 @@ router.post('/stories/:storyId/rate', protect, [
       data: {
         rating: ratingRecord.rating,
         comment: ratingRecord.comment,
-        updatedAt: ratingRecord.updatedAt
+        updatedAt: ratingRecord.updatedAt,
+        isTemporary: false
       }
     });
   } catch (error) {
@@ -220,12 +273,22 @@ router.post('/stories/:storyId/rate', protect, [
  */
 router.get('/stories/:storyId/rating', [
   param('storyId').custom(value => {
-    if (!mongoose.Types.ObjectId.isValid(value)) {
+    if (!mongoose.Types.ObjectId.isValid(value) && !value.startsWith('local_')) {
       throw new Error('无效的故事ID');
     }
     return true;
   })
 ], async (req, res, next) => {
+  console.log('评分详情接口被调用，storyId:', req.params.storyId);
+  console.log('请求URL:', req.originalUrl);
+  console.log('请求方法:', req.method);
+  
+  // 强制输出错误信息
+  console.error('强制错误输出：路由被调用');
+  
+  // 添加测试错误
+  throw new Error('测试错误 - 路由被调用了');
+  
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(errorFormat(400, '参数验证失败', errors.array().map((err) => ({ field: err.param, message: err.msg })), 10001));
@@ -233,6 +296,21 @@ router.get('/stories/:storyId/rating', [
 
   try {
     const { storyId } = req.params;
+
+    // 对于临时故事，返回默认评分信息
+    if (storyId.startsWith('local_')) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          averageRating: 0,
+          ratingCount: 0,
+          ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+          userRating: null,
+          recentRatings: [],
+          isTemporary: true
+        }
+      });
+    }
 
     // 检查故事是否存在
     const story = await Story.findById(storyId);
@@ -244,7 +322,11 @@ router.get('/stories/:storyId/rating', [
     const ratings = await UserStoryRating.find({ storyId })
       .sort({ updatedAt: -1 })
       .limit(50) // 限制返回最近50条评分记录
-      .populate('user', 'username avatar');
+      .populate('userId', 'username avatar')
+      .catch(error => {
+        console.error('获取评分数据时出错:', error);
+        throw error;
+      });
 
     // 计算评分分布
     const ratingDistribution = {
@@ -260,8 +342,12 @@ router.get('/stories/:storyId/rating', [
 
     // 如果用户已登录，获取用户的评分
     let userRating = null;
-    if (req.user) {
+    console.log('检查用户登录状态:', req.user);
+    if (req.user && req.user.id) {
+      console.log('用户已登录，查找用户评分');
       userRating = await UserStoryRating.findOne({ userId: req.user.id, storyId });
+    } else {
+      console.log('用户未登录');
     }
 
     return res.status(200).json({
@@ -278,10 +364,11 @@ router.get('/stories/:storyId/rating', [
         recentRatings: ratings.map(r => ({
           rating: r.rating,
           comment: r.comment,
-          username: r.user.username,
-          avatar: r.user.avatar,
+          username: r.userId.username,
+          avatar: r.userId.avatar,
           updatedAt: r.updatedAt
-        }))
+        })),
+        isTemporary: false
       }
     });
   } catch (error) {
@@ -294,9 +381,9 @@ router.get('/stories/:storyId/rating', [
  * @desc 删除用户对故事的评分
  * @access Private
  */
-router.delete('/stories/:storyId/rate', protect, [
+router.delete('/stories/:storyId/rate', authGuard, [
   param('storyId').custom(value => {
-    if (!mongoose.Types.ObjectId.isValid(value)) {
+    if (!mongoose.Types.ObjectId.isValid(value) && !value.startsWith('local_')) {
       throw new Error('无效的故事ID');
     }
     return true;
@@ -310,6 +397,17 @@ router.delete('/stories/:storyId/rate', protect, [
   try {
     const { storyId } = req.params;
     const userId = req.user.id;
+
+    // 对于临时故事，返回模拟响应
+    if (storyId.startsWith('local_')) {
+      return res.status(200).json({
+        success: true,
+        message: '临时故事不支持删除评分操作',
+        data: {
+          isTemporary: true
+        }
+      });
+    }
 
     // 检查故事是否存在
     const story = await Story.findById(storyId);
@@ -340,7 +438,10 @@ router.delete('/stories/:storyId/rate', protect, [
 
     return res.status(200).json({
       success: true,
-      message: '评分删除成功'
+      message: '评分删除成功',
+      data: {
+        isTemporary: false
+      }
     });
   } catch (error) {
     next(error);

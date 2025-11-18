@@ -3,6 +3,11 @@ const User = require('../models/User');
 const { errorFormat } = require('../utils/errorFormat');
 
 module.exports = async function authGuard(req, res, next) {
+  console.log('=== AuthGuard middleware hit ==='); // 调试日志
+  console.log('Path:', req.path);
+  console.log('Method:', req.method);
+  console.log('Auth header:', req.headers.authorization ? 'Present' : 'Missing');
+  
   // 安全日志记录（不记录敏感信息）
   const clientInfo = {
     ip: req.ip || req.connection.remoteAddress,

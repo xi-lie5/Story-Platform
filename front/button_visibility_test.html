@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>按钮可见性测试</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6366f1',
+            secondary: '#ec4899',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen p-8">
+  <div class="container mx-auto max-w-6xl">
+    <h1 class="text-3xl font-bold mb-8">按钮可见性测试</h1>
+    
+    <div class="bg-white rounded-2xl shadow-xl p-6 mb-6">
+      <h2 class="text-xl font-bold mb-4">测试按钮</h2>
+      <div class="flex gap-3 flex-wrap">
+        <button id="new-node" class="flex-1 md:flex-none px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center">
+          <i class="fa fa-plus mr-2"></i> 添加新节点
+        </button>
+        <button id="save-graph" class="flex-1 md:flex-none px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center">
+          <i class="fa fa-save mr-2"></i> 保存图谱
+        </button>
+        <button id="toggle-complete" class="flex-1 md:flex-none px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center">
+          <i class="fa fa-check mr-2"></i> <span id="complete-text">标记完成</span>
+        </button>
+        <button id="submit-review" class="flex-1 md:flex-none px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center hidden">
+          <i class="fa fa-paper-plane mr-2"></i> 提交审核
+        </button>
+        <button id="export-story" class="flex-1 md:flex-none px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center">
+          <i class="fa fa-download mr-2"></i> 导出故事
+        </button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-xl p-6">
+      <h2 class="text-xl font-bold mb-4">调试信息</h2>
+      <div id="debug-info" class="space-y-2 font-mono text-sm"></div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('=== 按钮可见性测试页面 ===');
+      
+      const buttons = ['new-node', 'save-graph', 'toggle-complete', 'submit-review', 'export-story'];
+      const debugInfo = document.getElementById('debug-info');
+      
+      buttons.forEach(buttonId => {
+        const btn = document.getElementById(buttonId);
+        if (btn) {
+          const computedStyle = window.getComputedStyle(btn);
+          const rect = btn.getBoundingClientRect();
+          
+          const info = {
+            id: buttonId,
+            exists: true,
+            display: computedStyle.display,
+            visibility: computedStyle.visibility,
+            opacity: computedStyle.opacity,
+            backgroundColor: computedStyle.backgroundColor,
+            color: computedStyle.color,
+            width: computedStyle.width,
+            height: computedStyle.height,
+            zIndex: computedStyle.zIndex,
+            position: computedStyle.position,
+            offsetWidth: btn.offsetWidth,
+            offsetHeight: btn.offsetHeight,
+            clientWidth: btn.clientWidth,
+            clientHeight: btn.clientHeight,
+            rect: {
+              top: rect.top,
+              left: rect.left,
+              width: rect.width,
+              height: rect.height
+            },
+            classes: btn.className,
+            hidden: btn.hidden,
+            disabled: btn.disabled
+          };
+          
+          console.log(`按钮 ${buttonId} 信息:`, info);
+          
+          const div = document.createElement('div');
+          div.className = 'p-3 border rounded mb-2';
+          div.innerHTML = `
+            <strong>${buttonId}:</strong><br>
+            存在: ${info.exists}<br>
+            display: ${info.display}<br>
+            visibility: ${info.visibility}<br>
+            opacity: ${info.opacity}<br>
+            backgroundColor: ${info.backgroundColor}<br>
+            color: ${info.color}<br>
+            width: ${info.width} (offsetWidth: ${info.offsetWidth})<br>
+            height: ${info.height} (offsetHeight: ${info.offsetHeight})<br>
+            zIndex: ${info.zIndex}<br>
+            position: ${info.position}<br>
+            rect: top=${info.rect.top}, left=${info.rect.left}, width=${info.rect.width}, height=${info.rect.height}<br>
+            classes: ${info.classes}<br>
+            hidden: ${info.hidden}<br>
+            disabled: ${info.disabled}
+          `;
+          debugInfo.appendChild(div);
+        } else {
+          console.log(`按钮 ${buttonId} 未找到`);
+          
+          const div = document.createElement('div');
+          div.className = 'p-3 border rounded mb-2 bg-red-50';
+          div.innerHTML = `<strong>${buttonId}:</strong> 未找到`;
+          debugInfo.appendChild(div);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

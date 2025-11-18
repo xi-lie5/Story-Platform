@@ -29,6 +29,31 @@
       .animate-float { animation: float 6s ease-in-out infinite; }
       .animate-pulse-slow { animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
       .backdrop-blur { backdrop-filter: blur(8px); }
+      .navbar-modern {
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+      .navbar-link {
+        transition: color 0.2s ease;
+      }
+      .btn-primary-modern {
+        background: #6366f1;
+        transition: background-color 0.2s ease;
+      }
+      .btn-primary-modern:hover {
+        background: #5558e3;
+      }
+      .btn-secondary-modern {
+        background: transparent;
+        border: 1px solid #e5e7eb;
+        transition: all 0.2s ease;
+      }
+      .btn-secondary-modern:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+      }
     }
     @keyframes float {
       0% { transform: translateY(0px); }
@@ -62,55 +87,54 @@
 </head>
 <body class="gradient-bg text-slate-800 font-sans">
   <!-- 导航栏 -->
-  <nav class="glass-effect sticky top-0 z-50">
-    <div class="container mx-auto px-4">
-      <div class="flex justify-between items-center h-16">
-        <!-- Logo -->
-        <div class="flex items-center space-x-2">
-          <i class="fa fa-book text-white text-2xl"></i>
-          <span class="text-white text-xl font-display font-bold">StoryForge</span>
+  <nav class="navbar-modern">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+          <i class="fa fa-book text-white text-lg"></i>
         </div>
-        
-        <!-- 桌面端导航 -->
-        <nav class="hidden md:flex items-center space-x-8">
-          <a href="index.html" class="font-medium text-white/80 hover:text-white transition-colors">首页</a>
-          <a href="explore.html" class="font-medium text-white/80 hover:text-white transition-colors">探索故事</a>
-          <a href="create.html" class="font-medium text-white/80 hover:text-white transition-colors">创建故事</a>
-          <a href="my_stories.html" class="font-medium text-white/80 hover:text-white transition-colors">我的故事</a>
-          <a href="profile.html" class="font-medium text-white/80 hover:text-white transition-colors">个人中心</a>
-          <a href="about.html" class="font-medium text-white/80 hover:text-white transition-colors">关于</a>
-        </nav>
-        
-        <!-- 桌面端认证区域 -->
-        <div class="hidden md:flex items-center space-x-4">
-          <a href="register.html" class="px-4 py-2 text-white/80 hover:text-white transition-colors">注册</a>
-        </div>
-        
-        <!-- 移动端菜单按钮 -->
-        <div class="md:hidden">
-          <button id="mobile-menu-button" class="text-white/80 hover:text-white">
-            <i class="fa fa-bars text-xl"></i>
+        <h1 class="text-xl md:text-2xl font-display font-bold text-gray-900">StoryForge</h1>
+      </div>
+      
+      <div class="hidden md:flex items-center space-x-8">
+        <a href="index.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">首页</a>
+        <a href="explore.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">探索故事</a>
+        <a href="create.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">创建故事</a>
+        <a href="my_stories.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">我的作品</a>
+        <a href="about.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">关于</a>
+      </div>
+      
+      <div class="flex items-center space-x-4">
+        <button class="btn-secondary-modern px-5 py-2 rounded-full text-primary font-medium">
+          <a href="register.html" class="block w-full h-full">注册</a>
+        </button>
+        <div class="flex items-center space-x-4 md:hidden">
+          <button id="mobile-menu-button" class="text-xl text-gray-700">
+            <i class="fa fa-bars"></i>
           </button>
         </div>
       </div>
-      
-      <!-- 移动端菜单 -->
-      <div id="mobile-menu" class="md:hidden hidden pb-4">
-        <div class="space-y-2">
-          <a href="index.html" class="block py-2 text-white/80 hover:text-white transition-colors">首页</a>
-          <a href="explore.html" class="block py-2 text-white/80 hover:text-white transition-colors">探索故事</a>
-          <a href="create.html" class="block py-2 text-white/80 hover:text-white transition-colors">创建故事</a>
-          <a href="my_stories.html" class="block py-2 text-white/80 hover:text-white transition-colors">我的故事</a>
-          <a href="profile.html" class="block py-2 text-white/80 hover:text-white transition-colors">个人中心</a>
-          <a href="about.html" class="block py-2 text-white/80 hover:text-white transition-colors">关于</a>
-          <a href="register.html" class="block py-2 text-white/80 hover:text-white transition-colors">注册</a>
+    </div>
+    
+    <!-- 移动端菜单 -->
+    <div class="md:hidden hidden bg-white/95 backdrop-blur border-t border-gray-200 absolute w-full" id="mobile-menu">
+        <div class="container mx-auto px-4 py-3 flex flex-col space-y-4">
+          <a href="index.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">首页</a>
+          <a href="explore.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">探索故事</a>
+          <a href="create.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">创建故事</a>
+          <a href="my_stories.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">我的作品</a>
+          <a href="about.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">关于</a>
+          <div class="pt-2 space-y-3">
+            <button class="w-full btn-secondary-modern px-5 py-2 rounded-full text-primary font-medium">
+              <a href="register.html" class="block w-full h-full">注册</a>
+            </button>
+          </div>
         </div>
-      </div>
     </div>
   </nav>
 
   <!-- 登录内容区域 -->
-  <section class="py-32 px-4" style="padding-top: 6rem; margin-bottom: 4rem;">
+  <section class="pb-20 px-4">
     <div class="w-full max-w-md mx-auto">
       <!-- 登录卡片 -->
       <div class="glass-effect rounded-2xl p-8 shadow-2xl">
@@ -144,7 +168,10 @@
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <i class="fa fa-lock text-white/60"></i>
               </div>
-              <input type="password" id="login-password" class="w-full pl-10 pr-3 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all" placeholder="请输入你的密码" required>
+              <input type="password" id="login-password" class="w-full pl-10 pr-12 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all" placeholder="请输入你的密码" required>
+              <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 pr-3 flex items-center text-white/60 hover:text-white transition-colors">
+                <i class="fa fa-eye" id="password-icon"></i>
+              </button>
             </div>
           </div>
           
@@ -261,6 +288,29 @@
       const mobileMenu = document.getElementById('mobile-menu');
       mobileMenu.classList.toggle('hidden');
     });
+
+    // 密码显示/隐藏功能
+    (function() {
+      const togglePassword = document.getElementById('toggle-password');
+      const passwordInput = document.getElementById('login-password');
+      const passwordIcon = document.getElementById('password-icon');
+      
+      if (togglePassword && passwordInput && passwordIcon) {
+        togglePassword.addEventListener('click', function() {
+          const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+          passwordInput.setAttribute('type', type);
+          
+          // 切换图标
+          if (type === 'text') {
+            passwordIcon.classList.remove('fa-eye');
+            passwordIcon.classList.add('fa-eye-slash');
+          } else {
+            passwordIcon.classList.remove('fa-eye-slash');
+            passwordIcon.classList.add('fa-eye');
+          }
+        });
+      }
+    })();
 
     // 登录功能
     (function () {

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>收藏API测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        button { padding: 10px 15px; margin: 5px; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+    </style>
+</head>
+<body>
+    <h1>收藏API测试</h1>
+    
+    <div class="test-section">
+        <h3>1. 登录测试用户</h3>
+        <button onclick="login()">登录 test849@example.com</button>
+        <div id="login-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. 获取收藏列表</h3>
+        <button onclick="getFavorites()">获取收藏列表</button>
+        <div id="favorites-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. 切换收藏状态</h3>
+        <input type="text" id="storyId" placeholder="输入故事ID" value="691ae0687f43fdb32526f8f1" style="width: 300px; padding: 5px;">
+        <button onclick="toggleFavorite()">切换收藏</button>
+        <div id="toggle-result" class="result"></div>
+    </div>
+
+    <script>
+        let authToken = '';
+        
+        async function login() {
+            try {
+                const response = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'test849@example.com',
+                        password: 'password123'
+                    })
+                });
+                
+                const data = await response.json();
+                const resultDiv = document.getElementById('login-result');
+                
+                if (response.ok && data.success) {
+                    authToken = data.data.token;
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>登录成功!</strong><br>
+                        Token: ${authToken.substring(0, 50)}...<br>
+                        用户: ${data.data.user.username}
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `<strong>登录失败:</strong> ${data.message || '未知错误'}`;
+                }
+            } catch (error) {
+                document.getElementById('login-result').className = 'result error';
+                document.getElementById('login-result').innerHTML = `<strong>网络错误:</strong> ${error.message}`;
+            }
+        }
+        
+        async function getFavorites() {
+            if (!authToken) {
+                document.getElementById('favorites-result').className = 'result error';
+                document.getElementById('favorites-result').innerHTML = '<strong>请先登录</strong>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/v1/interactions/user/favorites', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                const resultDiv = document.getElementById('favorites-result');
+                
+                if (response.ok && data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>获取收藏列表成功!</strong><br>
+                        收藏数量: ${data.data.favorites.length}<br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `<strong>获取失败:</strong> ${data.message || '未知错误'}`;
+                }
+            } catch (error) {
+                document.getElementById('favorites-result').className = 'result error';
+                document.getElementById('favorites-result').innerHTML = `<strong>网络错误:</strong> ${error.message}`;
+            }
+        }
+        
+        async function toggleFavorite() {
+            if (!authToken) {
+                document.getElementById('toggle-result').className = 'result error';
+                document.getElementById('toggle-result').innerHTML = '<strong>请先登录</strong>';
+                return;
+            }
+            
+            const storyId = document.getElementById('storyId').value;
+            if (!storyId) {
+                document.getElementById('toggle-result').className = 'result error';
+                document.getElementById('toggle-result').innerHTML = '<strong>请输入故事ID</strong>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/v1/interactions/stories/${storyId}/favorite`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                const resultDiv = document.getElementById('toggle-result');
+                
+                if (response.ok && data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>操作成功!</strong><br>
+                        消息: ${data.message}<br>
+                        收藏状态: ${data.isFavorite ? '已收藏' : '未收藏'}<br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `<strong>操作失败:</strong> ${data.message || '未知错误'}`;
+                }
+            } catch (error) {
+                document.getElementById('toggle-result').className = 'result error';
+                document.getElementById('toggle-result').innerHTML = `<strong>网络错误:</strong> ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

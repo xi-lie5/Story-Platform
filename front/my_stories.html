@@ -20,51 +20,119 @@
             }
         }
     </script>
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+          .backdrop-blur {
+            backdrop-filter: blur(8px);
+          }
+          .navbar-modern {
+            background: rgba(255,255,255,0.98);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+          }
+          .navbar-link {
+            transition: color 0.2s ease;
+          }
+          .btn-primary-modern {
+            background: #6366f1;
+            transition: background-color 0.2s ease;
+          }
+          .btn-primary-modern:hover {
+            background: #5558e3;
+          }
+          .btn-secondary-modern {
+            background: transparent;
+            border: 1px solid #e5e7eb;
+            color: #6b7280;
+            transition: all 0.2s ease;
+          }
+          .btn-secondary-modern:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+          }
+        }
+      </style>
 </head>
 
 <body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
     <!-- 导航栏 -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur shadow-sm">
-        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <i class="fa fa-book text-primary text-2xl"></i>
-                <h1 class="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                    StoryForge</h1>
-            </div>
-
-            <nav class="hidden md:flex items-center space-x-8">
-                <a href="index.html" class="font-medium hover:text-primary transition-colors">首页</a>
-                <a href="explore.html" class="font-medium hover:text-primary transition-colors">探索故事</a>
-                <a href="create.html" class="font-medium hover:text-primary transition-colors">创建故事</a>
-                <a href="my_stories.html" class="font-medium text-primary transition-colors">我的作品</a>
-                <a href="profile.html" class="font-medium hover:text-primary transition-colors">个人中心</a>
-                <a href="about.html" class="font-medium hover:text-primary transition-colors">关于</a>
-            </nav>
-
-            <div class="flex items-center space-x-4" id="auth-area-desktop"></div>
-            <div class="flex items-center space-x-4 md:hidden">
-                <button class="text-xl" id="mobile-menu-button">
-                    <i class="fa fa-bars"></i>
-                </button>
+    <nav class="navbar-modern">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+                        <i class="fa fa-book text-white text-lg"></i>
+                    </div>
+                    <h1 class="text-xl md:text-2xl font-display font-bold text-gray-900">StoryForge</h1>
+                </div>
+                
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="index.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">首页</a>
+                    <a href="explore.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">探索故事</a>
+                    <a href="create.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">创建故事</a>
+                    <a href="my_stories.html" class="navbar-link active font-medium text-primary">我的作品</a>
+                    <a href="favorites.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">我的收藏</a>
+                    <a href="profile.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">个人中心</a>
+                    <a href="about.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">关于</a>
+                </div>
+                
+                <div class="flex items-center space-x-4" id="auth-buttons">
+                    <button class="btn-secondary-modern px-4 py-2 rounded-full text-primary font-medium">
+                        <a href="login.html" class="block w-full h-full">登录</a>
+                    </button>
+                    <button class="btn-primary-modern px-4 py-2 rounded-full text-white font-medium">
+                        <a href="register.html" class="block w-full h-full">注册</a>
+                    </button>
+                    <div class="flex items-center space-x-4 md:hidden">
+                        <button id="mobile-menu-button" class="text-xl">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 用户信息区域（默认隐藏） -->
+                <div class="flex items-center space-x-4 hidden" id="user-info">
+                    <div class="flex items-center space-x-3">
+                        <img id="user-avatar" src="" alt="用户头像" class="w-8 h-8 rounded-full">
+                        <div class="hidden md:block">
+                            <p id="user-name" class="text-sm font-medium text-gray-900"></p>
+                            <p id="user-email" class="text-xs text-gray-500"></p>
+                        </div>
+                    </div>
+                    <button id="logout-btn" class="btn-secondary-modern px-4 py-2 rounded-full text-primary font-medium">
+                        退出
+                    </button>
+                    <div class="flex items-center space-x-4 md:hidden">
+                        <button id="mobile-menu-button" class="text-xl">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
-
+        
         <!-- 移动端菜单 -->
-        <div class="md:hidden hidden bg-white shadow-lg absolute w-full" id="mobile-menu">
-            <div class="container mx-auto px-4 py-3 flex flex-col space-y-4">
-                <a href="index.html" class="font-medium py-2 hover:text-primary transition-colors">首页</a>
-                <a href="explore.html" class="font-medium py-2 hover:text-primary transition-colors">探索故事</a>
-                <a href="create.html" class="font-medium py-2 hover:text-primary transition-colors">创建故事</a>
-                <a href="my_stories.html" class="font-medium py-2 text-primary transition-colors">我的作品</a>
-                <a href="profile.html" class="font-medium py-2 hover:text-primary transition-colors">个人中心</a>
-                <a href="about.html" class="font-medium py-2 hover:text-primary transition-colors">关于</a>
-                <div id="auth-area-mobile" class="pt-2 space-y-3"></div>
+        <div class="md:hidden hidden bg-white/95 backdrop-blur border-t border-gray-200" id="mobile-menu">
+            <div class="container mx-auto px-4 py-3 space-y-2">
+                <a href="index.html" class="navbar-link block py-2 text-gray-600 hover:text-primary transition-colors">首页</a>
+                <a href="explore.html" class="navbar-link block py-2 text-gray-600 hover:text-primary transition-colors">探索故事</a>
+                <a href="create.html" class="navbar-link block py-2 text-gray-600 hover:text-primary transition-colors">创建故事</a>
+                <a href="my_stories.html" class="navbar-link active block py-2 text-primary">我的作品</a>
+                <a href="favorites.html" class="navbar-link block py-2 text-gray-600 hover:text-primary transition-colors">我的收藏</a>
+                <a href="profile.html" class="navbar-link block py-2 text-gray-600 hover:text-primary transition-colors">个人中心</a>
+                <a href="about.html" class="navbar-link block py-2 text-gray-600 hover:text-primary transition-colors">关于</a>
+                <div class="flex flex-col space-y-2 pt-2 border-t border-gray-200">
+                    <a href="login.html" class="block py-2 hover:text-primary transition-colors">登录</a>
+                    <a href="register.html" class="block py-2 hover:text-primary transition-colors">注册</a>
+                </div>
             </div>
         </div>
-    </header>
+    </nav>
 
     <!-- 主要内容区 -->
-    <section class="pt-24 pb-20 px-4">
+    <section class="pb-20 px-4">
         <div class="container mx-auto max-w-6xl">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <h2 class="text-2xl md:text-3xl font-bold">我的作品库</h2>
@@ -76,15 +144,19 @@
 
             <!-- 作品筛选 -->
             <div class="bg-white rounded-2xl shadow-xl p-4 md:p-6 mb-8">
-                <div class="flex flex-wrap gap-3">
-                    <button class="px-4 py-2 bg-primary text-white rounded-lg text-sm">全部作品</button>
-                    <button
-                        class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition-colors">未完成</button>
-                    <button
-                        class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition-colors">已完成</button>
-                    <button
-                        class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition-colors">草稿</button>
+                <div class="flex flex-wrap gap-3 mb-4">
+                    <button onclick="filterStories('all')" class="filter-btn px-4 py-2 bg-primary text-white rounded-lg text-sm">全部作品</button>
+                    <button onclick="filterStories('draft')" class="filter-btn px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition-colors">草稿</button>
+                    <button onclick="filterStories('pending')" class="filter-btn px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition-colors">待审核</button>
+                    <button onclick="filterStories('published')" class="filter-btn px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition-colors">已发布</button>
+                    <button onclick="filterStories('rejected')" class="filter-btn px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition-colors">已拒绝</button>
+                    <button onclick="filterStories('unpublished')" class="filter-btn px-4 py-2 bg-orange-100 text-orange-700 border border-orange-200 rounded-lg text-sm hover:bg-orange-200 transition-colors">
+                        <i class="fa fa-arrow-down mr-1"></i> 下架作品
+                    </button>
+                    <button onclick="filterStories('archived')" class="filter-btn px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition-colors">已归档</button>
                 </div>
+                
+
             </div>
 
             <!-- 作品列表容器 -->
@@ -166,10 +238,17 @@
             // 初始化认证UI
             AuthUI.init();
             
+            // 更新认证UI显示
+            const authState = AuthUI.getAuthState();
+            updateAuthUI(authState);
+            
             // 监听认证状态变化
             document.addEventListener('authStateChanged', function(event) {
                 const { isLoggedIn, userInfo } = event.detail;
                 console.log('认证状态变化:', { isLoggedIn, userInfo });
+                
+                // 更新UI显示
+                updateAuthUI({ isLoggedIn, userInfo });
                 
                 // 重新加载故事数据
                 loadUserStories();
@@ -178,6 +257,66 @@
             // 初始加载用户故事数据
             await loadUserStories();
         });
+
+        // 更新认证UI显示
+        function updateAuthUI(authState) {
+            const authButtons = document.getElementById('auth-buttons');
+            const userInfo = document.getElementById('user-info');
+            const userName = document.getElementById('user-name');
+            const userEmail = document.getElementById('user-email');
+            const userAvatar = document.getElementById('user-avatar');
+            const logoutBtn = document.getElementById('logout-btn');
+            
+            if (authState && authState.userInfo) {
+                // 显示用户信息
+                authButtons.classList.add('hidden');
+                userInfo.classList.remove('hidden');
+                
+                userName.textContent = authState.userInfo.username || '用户';
+                userEmail.textContent = authState.userInfo.email || '';
+                
+                // 设置头像（优先使用默认头像）
+                const defaultAvatar = 'assets/img/default-avatar.png';
+                const useCustomAvatar = localStorage.getItem('useCustomAvatar') === 'true';
+                
+                if (authState.userInfo.avatar && useCustomAvatar) {
+                    userAvatar.src = authState.userInfo.avatar;
+                } else {
+                    userAvatar.src = defaultAvatar;
+                }
+                
+                // 添加头像点击切换功能
+                userAvatar.style.cursor = 'pointer';
+                userAvatar.title = '点击切换头像';
+                userAvatar.onclick = function() {
+                    const currentSrc = userAvatar.src;
+                    if (currentSrc.includes('default-avatar.png')) {
+                        // 切换到自定义头像或生成头像
+                        if (authState.userInfo.avatar) {
+                            userAvatar.src = authState.userInfo.avatar;
+                            localStorage.setItem('useCustomAvatar', 'true');
+                        } else {
+                            userAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(authState.userInfo.username || 'User')}&background=6366f1&color=fff`;
+                            localStorage.setItem('useCustomAvatar', 'true');
+                        }
+                    } else {
+                        // 切换回默认头像
+                        userAvatar.src = defaultAvatar;
+                        localStorage.setItem('useCustomAvatar', 'false');
+                    }
+                };
+                
+                // 添加退出登录事件
+                logoutBtn.onclick = function() {
+                    AuthUI.clearAuthStorage();
+                    window.location.href = 'index.html';
+                };
+            } else {
+                // 显示登录按钮
+                authButtons.classList.remove('hidden');
+                userInfo.classList.add('hidden');
+            }
+        }
 
         // 通用功能：按钮点击反馈
         document.querySelectorAll('button, a[href]').forEach(el => {
@@ -284,7 +423,7 @@
                         // 从URL获取storyId
                         const params = new URLSearchParams(window.location.search);
                         const storyId = params.get('story') || '1';
-                        window.location.href = `story_tree.html?story=${storyId}`;
+                        window.location.href = `story_tree_new.html?story=${storyId}`;
                     }, 500);
                 }
             });
@@ -296,12 +435,151 @@
                 showNotification('检测到未完成作品，正在跳转...', 'info');
                 // 延迟一小段时间再跳转
                 setTimeout(() => {
-                    window.location.href = 'story_tree.html?story=1';
+                    window.location.href = 'story_tree_new.html?story=1';
                 }, 1000);
             }
         });
         
-        // 从后端加载用户故事数据
+        // 全局变量存储故事数据和当前筛选状态
+        let allStories = [];
+        let currentFilter = 'all';
+
+
+
+
+
+        // 筛选故事功能
+        function filterStories(status) {
+            currentFilter = status;
+            
+            // 更新按钮样式
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('bg-primary', 'text-white');
+                btn.classList.add('bg-white', 'border', 'border-slate-200');
+            });
+            
+            // 高亮当前选中的按钮
+            const activeBtn = document.querySelector(`[onclick="filterStories('${status}')"]`);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-white', 'border', 'border-slate-200');
+                activeBtn.classList.add('bg-primary', 'text-white');
+            }
+            
+            // 筛选并显示故事
+            displayFilteredStories();
+        }
+
+        // 显示筛选后的故事
+        function displayFilteredStories() {
+            const dynamicContent = document.getElementById('dynamic-content');
+            const incompleteSection = document.getElementById('incomplete-stories-section');
+            const completedSection = document.getElementById('completed-stories-section');
+            const incompleteGrid = document.getElementById('incomplete-stories-grid');
+            const completedGrid = document.getElementById('completed-stories-grid');
+            const emptyState = document.getElementById('empty-state');
+            
+            let filteredStories = [...allStories];
+            
+            // 首先隐藏空状态，准备显示内容
+            emptyState.classList.add('hidden');
+            
+            // 根据筛选类型过滤故事
+            switch (currentFilter) {
+                case 'published':
+                    filteredStories = allStories.filter(story => story.status === 'published');
+                    break;
+                case 'draft':
+                    filteredStories = allStories.filter(story => story.status === 'draft');
+                    break;
+                case 'pending':
+                    filteredStories = allStories.filter(story => story.status === 'pending');
+                    break;
+                case 'rejected':
+                    filteredStories = allStories.filter(story => story.status === 'rejected');
+                    break;
+                case 'unpublished':
+                    // 下架作品：曾经发布过但现在状态为draft，并且有isCompleted标记为false的作品
+                    filteredStories = allStories.filter(story => 
+                        story.status === 'draft' && 
+                        story.wasPublished === true
+                    );
+                    break;
+                case 'archived':
+                    filteredStories = allStories.filter(story => story.status === 'archived');
+                    break;
+                case 'completed':
+                    filteredStories = allStories.filter(story => story.isCompleted);
+                    break;
+                case 'incomplete':
+                    filteredStories = allStories.filter(story => !story.isCompleted);
+                    break;
+                case 'all':
+                default:
+                    // 显示所有故事
+                    break;
+            }
+            
+            if (filteredStories.length === 0) {
+                // 显示空状态，隐藏所有内容区域
+                dynamicContent.classList.add('hidden');
+                incompleteSection.classList.add('hidden');
+                completedSection.classList.add('hidden');
+                
+                // 根据筛选类型显示不同的空状态信息
+                let emptyMessage = '还没有作品';
+                let emptyDescription = '开始创建您的第一个互动故事吧！';
+                
+                if (currentFilter === 'unpublished') {
+                    emptyMessage = '没有下架作品';
+                    emptyDescription = '您目前没有下架的作品，已发布的作品会在这里显示';
+                } else if (currentFilter === 'published') {
+                    emptyMessage = '没有已发布作品';
+                    emptyDescription = '提交审核通过的作品会在这里显示';
+                } else if (currentFilter === 'pending') {
+                    emptyMessage = '没有待审核作品';
+                    emptyDescription = '提交审核但未处理的作品会在这里显示';
+                } else if (currentFilter === 'rejected') {
+                    emptyMessage = '没有已拒绝作品';
+                    emptyDescription = '审核未通过的作品会在这里显示，您可以修改后重新提交';
+                }
+                
+                document.getElementById('empty-state').innerHTML = `
+                    <i class="fa fa-book text-6xl text-slate-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-slate-700 mb-2">${emptyMessage}</h3>
+                    <p class="text-slate-500 mb-6">${emptyDescription}</p>
+                    ${currentFilter === 'all' ? `
+                        <a href="create.html" class="inline-flex items-center px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                            <i class="fa fa-plus mr-2"></i> 创建第一个故事
+                        </a>
+                    ` : ''}
+                `;
+                document.getElementById('empty-state').classList.remove('hidden');
+                return;
+            }
+            
+            // 分类筛选后的故事：已完成和未完成
+            const incompleteStories = filteredStories.filter(story => !story.isCompleted);
+            const completedStories = filteredStories.filter(story => story.isCompleted);
+
+            // 显示动态内容区域
+            dynamicContent.classList.remove('hidden');
+            
+            // 渲染未完成作品
+            if (incompleteStories.length > 0) {
+                incompleteSection.classList.remove('hidden');
+                incompleteGrid.innerHTML = incompleteStories.map(story => createStoryCard(story, false)).join('');
+            } else {
+                incompleteSection.classList.add('hidden');
+            }
+
+            // 渲染已完成作品
+            if (completedStories.length > 0) {
+                completedSection.classList.remove('hidden');
+                completedGrid.innerHTML = completedStories.map(story => createStoryCard(story, true)).join('');
+            } else {
+                completedSection.classList.add('hidden');
+            }
+        }
         async function loadUserStories() {
             const loadingState = document.getElementById('loading-state');
             const emptyState = document.getElementById('empty-state');
@@ -323,8 +601,11 @@
             try {
                 // 检查用户是否已登录
                 const authState = AuthUI.getAuthState();
+                console.log('认证状态:', authState);
+                
                 if (!authState) {
                     // 用户未登录
+                    console.log('用户未登录，显示登录提示');
                     loadingState.classList.add('hidden');
                     notLoggedInState.classList.remove('hidden');
                     return;
@@ -332,18 +613,78 @@
 
                 // 获取当前用户信息
                 const userInfo = authState.userInfo;
-                const userId = userInfo._id || userInfo.id;
+                console.log('用户信息详情:', userInfo);
+                console.log('用户信息字段:', Object.keys(userInfo));
+                
+                const userId = userInfo._id || userInfo.id || userInfo.userId;
+                const token = authState.token;
+                
+                console.log('用户ID:', userId);
+                console.log('Token值:', token);
+                console.log('Token长度:', token ? token.length : 'null');
 
                 if (!userId) {
-                    throw new Error('无法获取用户ID');
+                    console.error('无法获取用户ID，用户信息:', userInfo);
+                    // 显示更详细的错误信息
+                    loadingState.classList.add('hidden');
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'text-center py-12';
+                    errorDiv.innerHTML = `
+                        <i class="fa fa-exclamation-triangle text-6xl text-yellow-500 mb-4"></i>
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">用户信息不完整</h3>
+                        <p class="text-slate-500 mb-4">您的登录信息可能已过期，请重新登录</p>
+                        <div class="flex justify-center gap-4">
+                            <a href="login.html" class="inline-flex items-center px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                                重新登录
+                            </a>
+                            <button onclick="AuthUI.clearAuthStorage(); location.reload();" class="inline-flex items-center px-6 py-3 bg-white text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                                清除缓存
+                            </button>
+                        </div>
+                    `;
+                    document.getElementById('stories-container').appendChild(errorDiv);
+                    return;
                 }
 
-                // 调用正确的API：获取用户的故事列表
-                const response = await fetch(`${AuthUI.BACKEND_BASE_URL}/api/v1/users/${userId}/stories`, {
+                if (!token) {
+                    console.error('无法获取认证token');
+                    // 清除可能损坏的认证状态
+                    AuthUI.clearAuthStorage();
+                    loadingState.classList.add('hidden');
+                    notLoggedInState.classList.remove('hidden');
+                    return;
+                }
+
+                // 确保 token 不包含 Bearer 前缀（因为我们在 headers 中会添加它）
+                let cleanToken = token;
+                if (token.startsWith('Bearer ')) {
+                    cleanToken = token.substring(7);
+                    console.log('移除了Bearer前缀，原始长度:', token.length, '清理后长度:', cleanToken.length);
+                }
+                
+                console.log('最终使用的token长度:', cleanToken.length);
+                console.log('Token格式检查:', cleanToken.split('.').length, '个部分');
+                
+                // 检查JWT格式
+                if (cleanToken.split('.').length !== 3) {
+                    console.error('Token格式无效，不是有效的JWT');
+                    AuthUI.clearAuthStorage();
+                    loadingState.classList.add('hidden');
+                    notLoggedInState.classList.remove('hidden');
+                    return;
+                }
+
+                // 调用正确的API：获取用户的故事列表，添加时间戳防止缓存
+                const timestamp = Date.now();
+                console.log('发起请求到:', `${AuthUI.BACKEND_BASE_URL}/api/v1/users/${userId}/stories?t=${timestamp}`);
+                
+                const response = await fetch(`${AuthUI.BACKEND_BASE_URL}/api/v1/users/${userId}/stories?t=${timestamp}`, {
                     method: 'GET',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-                        'Content-Type': 'application/json'
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
                     }
                 });
                 
@@ -359,40 +700,14 @@
                 }
 
                 const result = await response.json();
-                const stories = result.data || [];
-
+                console.log('故事数据加载成功:', result);
+                allStories = result.data || []; // 存储到全局变量
+                
                 // 隐藏加载状态
                 loadingState.classList.add('hidden');
-
-                if (stories.length === 0) {
-                    // 没有作品
-                    emptyState.classList.remove('hidden');
-                } else {
-                    // 有作品，显示动态内容
-                    dynamicContent.classList.remove('hidden');
-                    
-                    // 分类故事：已完成和未完成
-                    const incompleteStories = stories.filter(story => !story.isCompleted);
-                    const completedStories = stories.filter(story => story.isCompleted);
-
-                    // 渲染未完成作品
-                    if (incompleteStories.length > 0) {
-                        incompleteSection.classList.remove('hidden');
-                        incompleteGrid.innerHTML = incompleteStories.map(story => createStoryCard(story, false)).join('');
-                    }
-
-                    // 渲染已完成作品
-                    if (completedStories.length > 0) {
-                        completedSection.classList.remove('hidden');
-                        completedGrid.innerHTML = completedStories.map(story => createStoryCard(story, true)).join('');
-                    }
-
-                    // 如果没有任何作品显示（虽然总数大于0，但可能都是某种状态）
-                    if (incompleteStories.length === 0 && completedStories.length === 0) {
-                        emptyState.classList.remove('hidden');
-                        dynamicContent.classList.add('hidden');
-                    }
-                }
+                
+                // 使用筛选显示逻辑
+                displayFilteredStories();
 
             } catch (error) {
                 console.error('加载故事失败:', error);
@@ -411,67 +726,171 @@
             const storyId = story._id || story.id;
             const title = story.title || '未命名故事';
             const description = story.description || '暂无描述';
-            const category = story.category || '未分类';
+            const category = story.category?.name || story.category || '未分类';
             const updatedAt = new Date(story.updatedAt).toLocaleDateString('zh-CN');
             const progress = story.progress || 0;
+            const status = story.status || 'draft';
+            
+            // 检查是否为下架作品
+            const isUnpublished = story.status === 'draft' && story.wasPublished === true;
 
             if (isCompleted) {
                 return `
-                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow ${isUnpublished ? 'border-l-4 border-orange-500' : ''}">
                         <div class="p-6">
                             <div class="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 class="font-bold text-lg mb-1">${title}</h3>
                                     <p class="text-sm text-slate-500">完成于：${updatedAt} · ${category}</p>
                                 </div>
-                                <span class="px-2 py-1 bg-progress/10 text-progress text-xs rounded-full">已完成</span>
+                                <div class="flex items-center gap-2">
+                                    ${isUnpublished ? 
+                                        `<span class="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">
+                                            <i class="fa fa-arrow-down mr-1"></i>已下架
+                                        </span>` :
+                                        status === 'published' ? 
+                                        `<span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                                            <i class="fa fa-check-circle mr-1"></i>已发布
+                                        </span>` :
+                                        status === 'pending' ?
+                                        `<span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                                            <i class="fa fa-clock-o mr-1"></i>待审核
+                                        </span>` :
+                                        status === 'rejected' ?
+                                        `<span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                                            <i class="fa fa-times-circle mr-1"></i>已拒绝
+                                        </span>` :
+                                        status === 'archived' ?
+                                        `<span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
+                                            <i class="fa fa-archive mr-1"></i>已归档
+                                        </span>` :
+                                        `<span class="px-2 py-1 bg-progress/10 text-progress text-xs rounded-full">草稿</span>`
+                                    }
+                                </div>
                             </div>
-                            <p class="text-slate-600 text-sm mb-4 line-clamp-2">${description}</p>
-                            <div class="flex gap-3">
-                                <a href="story_tree.html?story=${storyId}&view=true"
-                                    class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center text-sm">
-                                    <i class="fa fa-eye mr-2"></i> 查看完整故事
+                            <p class="text-slate-600 text-sm mb-4 line-clamp-2">简介：${description}</p>
+                            <div class="flex gap-2 mb-4">
+                                <a href="story_tree_new.html?story=${storyId}&view=true"
+                                    class="flex-1 px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center text-sm">
+                                    <i class="fa fa-eye mr-2"></i> 查看
                                 </a>
+                                ${isUnpublished ? 
+                                    `<button onclick="submitStory('${storyId}', '${title}')" 
+                                        class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center text-sm">
+                                        <i class="fa fa-paper-plane mr-2"></i> 重新提交
+                                    </button>` :
+                                    status === 'published' ? 
+                                    `<button onclick="unpublishStory('${storyId}', '${title}')" 
+                                        class="px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center text-sm">
+                                        <i class="fa fa-eye-slash mr-2"></i> 取消发布
+                                    </button>` :
+                                    status === 'pending' ?
+                                    `<button disabled 
+                                        class="px-3 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed flex items-center justify-center text-sm">
+                                        <i class="fa fa-clock-o mr-2"></i> 审核中
+                                    </button>` :
+                                    status === 'rejected' ?
+                                    `<button onclick="submitStory('${storyId}', '${title}')" 
+                                        class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center text-sm">
+                                        <i class="fa fa-paper-plane mr-2"></i> 重新提交
+                                    </button>` :
+                                    status === 'archived' ?
+                                    `<button onclick="submitStory('${storyId}', '${title}')" 
+                                        class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center text-sm">
+                                        <i class="fa fa-paper-plane mr-2"></i> 重新提交
+                                    </button>` :
+                                    `<button onclick="submitStory('${storyId}', '${title}')" 
+                                        class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center text-sm">
+                                        <i class="fa fa-paper-plane mr-2"></i> 提交审核
+                                    </button>`
+                                }
                                 <a href="#"
-                                    class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center text-sm"
+                                    class="px-3 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center text-sm"
                                     onclick="shareStory('${storyId}', '${title}'); return false;">
                                     <i class="fa fa-share-alt mr-2"></i> 分享
                                 </a>
+                                <a href="#"
+                                    class="px-3 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center text-sm"
+                                    onclick="showStoryStats('${storyId}', '${title}'); return false;">
+                                    <i class="fa fa-bar-chart mr-2"></i> 统计
+                                </a>
                             </div>
+                            ${isUnpublished ? 
+                                `<div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                                    <div class="flex items-center text-sm text-orange-700">
+                                        <i class="fa fa-arrow-down mr-2"></i>
+                                        <span>作品已被管理员下架，您可以修改后重新提交审核</span>
+                                    </div>
+                                </div>` :
+                                status === 'published' ? 
+                                `<div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                                    <div class="flex items-center text-sm text-green-700">
+                                        <i class="fa fa-info-circle mr-2"></i>
+                                        <span>故事已发布，其他用户可以在探索页面找到并体验您的作品</span>
+                                    </div>
+                                </div>` : 
+                                status === 'pending' ?
+                                `<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                    <div class="flex items-center text-sm text-yellow-700">
+                                        <i class="fa fa-clock-o mr-2"></i>
+                                        <span>故事正在审核中，请耐心等待管理员审核</span>
+                                    </div>
+                                </div>` :
+                                status === 'rejected' ?
+                                `<div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                                    <div class="flex items-center text-sm text-red-700">
+                                        <i class="fa fa-times-circle mr-2"></i>
+                                        <span>故事审核未通过，请修改后重新提交${story.reviewComment ? '：' + story.reviewComment : ''}</span>
+                                    </div>
+                                </div>` :
+                                `<div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                                    <div class="flex items-center text-sm text-slate-600">
+                                        <i class="fa fa-lightbulb-o mr-2"></i>
+                                        <span>发布后，其他用户就可以在探索页面体验您的互动故事了</span>
+                                    </div>
+                                </div>`
+                            }
                         </div>
                     </div>
                 `;
             } else {
                 return `
-                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border-l-4 border-secondary">
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow ${isUnpublished ? 'border-l-4 border-orange-500' : 'border-l-4 border-secondary'}">
                         <div class="p-6">
                             <div class="flex justify-between items-start mb-4">
                                 <div>
                                     <h3 class="font-bold text-lg mb-1">${title}</h3>
                                     <p class="text-sm text-slate-500">上次编辑：${updatedAt} · ${category}</p>
                                 </div>
-                                <span class="px-2 py-1 bg-secondary/10 text-secondary text-xs rounded-full">未完成</span>
-                            </div>
-                            <p class="text-slate-600 text-sm mb-4 line-clamp-2">${description}</p>
-                            <div class="mb-4">
-                                <div class="flex justify-between text-xs text-slate-500 mb-1">
-                                    <span>完成进度</span>
-                                    <span>${progress}%</span>
-                                </div>
-                                <div class="w-full bg-slate-100 rounded-full h-2">
-                                    <div class="bg-progress h-2 rounded-full" style="width: ${progress}%"></div>
+                                <div class="flex items-center gap-2">
+                                    ${isUnpublished ? 
+                                        `<span class="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">
+                                            <i class="fa fa-arrow-down mr-1"></i>已下架
+                                        </span>` :
+                                        `<span class="px-2 py-1 bg-secondary/10 text-secondary text-xs rounded-full">未完成</span>`
+                                    }
                                 </div>
                             </div>
+                            <p class="text-slate-600 text-sm mb-4 line-clamp-2">简介：${description}</p>
+
                             <div class="flex gap-3">
-                                <a href="story_tree.html?story=${storyId}"
-                                    class="flex-1 px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors flex items-center justify-center text-sm">
-                                    <i class="fa fa-edit mr-2"></i> 继续编辑
+                                <a href="story_tree_new.html?story=${storyId}"
+                                    class="flex-1 px-4 py-2 ${isUnpublished ? 'bg-orange-500 hover:bg-orange-600' : 'bg-secondary hover:bg-secondary/90'} text-white rounded-lg transition-colors flex items-center justify-center text-sm">
+                                    <i class="fa fa-edit mr-2"></i> ${isUnpublished ? '修改后重新提交' : '继续编辑'}
                                 </a>
-                                <a href="story_tree.html?story=${storyId}"
+                                <a href="story_tree_new.html?story=${storyId}"
                                     class="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center text-sm">
                                     <i class="fa fa-sitemap mr-2"></i> 查看故事节点
                                 </a>
                             </div>
+                            ${isUnpublished ? 
+                                `<div class="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-4">
+                                    <div class="flex items-center text-sm text-orange-700">
+                                        <i class="fa fa-arrow-down mr-2"></i>
+                                        <span>作品已被管理员下架，您可以修改后重新提交审核</span>
+                                    </div>
+                                </div>` : ''
+                            }
                         </div>
                     </div>
                 `;
@@ -480,7 +899,7 @@
 
         // 分享故事功能
         function shareStory(storyId, title) {
-            const shareUrl = `${window.location.origin}/story_tree.html?story=${storyId}&view=true`;
+            const shareUrl = `${window.location.origin}/story_tree_new.html?story=${storyId}&view=true`;
             
             if (navigator.share) {
                 navigator.share({
@@ -497,7 +916,173 @@
                 });
             }
         }
-        
+
+        // 提交故事审核
+        async function submitStory(storyId, title) {
+            if (!confirm(`确定要提交故事《${title}》进行审核吗？\n\n提交后管理员将审核您的作品，审核通过后其他用户才能在探索页面找到此作品。`)) {
+                return;
+            }
+
+            try {
+                const authState = AuthUI.getAuthState();
+                if (!authState || !authState.token) {
+                    showNotification('请先登录', 'error');
+                    return;
+                }
+
+                // 确保 token 不包含 Bearer 前缀
+                let cleanToken = authState.token;
+                if (cleanToken.startsWith('Bearer ')) {
+                    cleanToken = cleanToken.substring(7);
+                }
+
+                showNotification('正在提交审核...', 'info');
+
+                const response = await fetch(`${AuthUI.BACKEND_BASE_URL}/api/v1/stories/${storyId}/submit`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        AuthUI.clearAuthStorage();
+                        showNotification('登录已过期，请重新登录', 'error');
+                        setTimeout(() => {
+                            window.location.href = 'login.html';
+                        }, 2000);
+                        return;
+                    }
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `提交审核失败 (${response.status})`);
+                }
+
+                const result = await response.json();
+                showNotification(`故事《${title}》已提交审核！`, 'success');
+                
+                // 重新加载故事列表以更新状态
+                await loadUserStories();
+
+            } catch (error) {
+                console.error('提交审核失败:', error);
+                showNotification(`提交审核失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 取消发布故事功能
+        async function unpublishStory(storyId, title) {
+            if (!confirm(`确定要取消发布故事《${title}》吗？\n\n取消发布后，其他用户将无法在探索页面找到您的作品。`)) {
+                return;
+            }
+
+            try {
+                const authState = AuthUI.getAuthState();
+                if (!authState || !authState.token) {
+                    showNotification('请先登录', 'error');
+                    return;
+                }
+
+                // 确保 token 不包含 Bearer 前缀
+                let cleanToken = authState.token;
+                if (cleanToken.startsWith('Bearer ')) {
+                    cleanToken = cleanToken.substring(7);
+                }
+
+                showNotification('正在取消发布...', 'info');
+
+                const response = await fetch(`${AuthUI.BACKEND_BASE_URL}/api/v1/stories/${storyId}/unpublish`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        AuthUI.clearAuthStorage();
+                        showNotification('登录已过期，请重新登录', 'error');
+                        setTimeout(() => {
+                            window.location.href = 'login.html';
+                        }, 2000);
+                        return;
+                    }
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `取消发布失败 (${response.status})`);
+                }
+
+                const result = await response.json();
+                showNotification(`故事《${title}》已取消发布`, 'success');
+                
+                // 重新加载故事列表以更新状态
+            await loadUserStories();
+
+            } catch (error) {
+                console.error('取消发布失败:', error);
+                showNotification(`取消发布失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 显示故事统计功能
+        function showStoryStats(storyId, title) {
+            // 创建统计弹窗
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-y-auto">
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold">故事统计</h3>
+                            <button onclick="this.closest('.fixed').remove()" class="text-slate-400 hover:text-slate-600">
+                                <i class="fa fa-times text-xl"></i>
+                            </button>
+                        </div>
+                        <div class="mb-4">
+                            <h4 class="font-semibold text-lg mb-2">${title}</h4>
+                            <div class="bg-slate-50 rounded-lg p-4 space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-600">浏览次数</span>
+                                    <span class="font-semibold text-primary">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-600">完成次数</span>
+                                    <span class="font-semibold text-progress">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-600">平均完成时间</span>
+                                    <span class="font-semibold text-secondary">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-600">收藏次数</span>
+                                    <span class="font-semibold text-orange-500">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-600">评分</span>
+                                    <span class="font-semibold text-yellow-500">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div class="flex items-center text-sm text-blue-700">
+                                <i class="fa fa-info-circle mr-2"></i>
+                                <span>详细统计数据功能正在开发中，敬请期待！</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // 点击背景关闭弹窗
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
 
     </script>
 </body>

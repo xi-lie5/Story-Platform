@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>按钮状态检查</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">按钮状态检查</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">从 story_tree.html 复制的按钮</h2>
+            
+            <!-- 复制原始按钮HTML -->
+            <div class="flex flex-wrap gap-4 mb-6">
+                <button id="new-node" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
+                    新建节点
+                </button>
+                <button id="save-graph" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors">
+                    保存图谱
+                </button>
+                <button id="toggle-complete" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 transition-colors">
+                    切换完成状态
+                </button>
+                <button id="export-story" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 transition-colors">
+                    导出故事
+                </button>
+                <button id="auto-arrange" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 transition-colors">
+                    自动排列
+                </button>
+                <button id="submit-review" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors">
+                    提交审核
+                </button>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">按钮状态检查结果</h2>
+            <div id="results" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <script>
+        // 检查按钮状态
+        function checkButtonStatus() {
+            const buttons = ['new-node', 'save-graph', 'toggle-complete', 'export-story', 'auto-arrange', 'submit-review'];
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+            
+            buttons.forEach(id => {
+                const btn = document.getElementById(id);
+                const result = document.createElement('div');
+                result.className = 'p-3 border rounded';
+                
+                if (btn) {
+                    const computedStyle = window.getComputedStyle(btn);
+                    const isVisible = computedStyle.display !== 'none' && 
+                                    computedStyle.visibility !== 'hidden' && 
+                                    computedStyle.opacity > 0;
+                    
+                    result.innerHTML = `
+                        <div class="font-semibold">${id}</div>
+                        <div class="text-sm">存在: ✅</div>
+                        <div class="text-sm">可见: ${isVisible ? '✅' : '❌'}</div>
+                        <div class="text-xs text-gray-600">display: ${computedStyle.display}</div>
+                        <div class="text-xs text-gray-600">visibility: ${computedStyle.visibility}</div>
+                        <div class="text-xs text-gray-600">opacity: ${computedStyle.opacity}</div>
+                        <div class="text-xs text-gray-600">classes: ${btn.className}</div>
+                    `;
+                    
+                    result.className += isVisible ? ' border-green-300 bg-green-50' : ' border-red-300 bg-red-50';
+                } else {
+                    result.innerHTML = `
+                        <div class="font-semibold">${id}</div>
+                        <div class="text-sm">存在: ❌</div>
+                        <div class="text-xs text-gray-600">元素未找到</div>
+                    `;
+                    result.className += ' border-red-300 bg-red-50';
+                }
+                
+                results.appendChild(result);
+            });
+        }
+        
+        // 页面加载后检查
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== 按钮状态检查 ===');
+            checkButtonStatus();
+            
+            // 3秒后再检查一次
+            setTimeout(checkButtonStatus, 3000);
+        });
+    </script>
+</body>
+</html>

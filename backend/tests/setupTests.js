@@ -11,6 +11,11 @@ let mongoServer;
 
 // 测试前设置
 beforeAll(async () => {
+  // 确保先断开现有连接
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect();
+  }
+  
   // 创建内存MongoDB实例
   mongoServer = await MongoMemoryServer.create();
   const uri = mongoServer.getUri();

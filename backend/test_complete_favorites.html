@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>完整收藏功能测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        input { padding: 8px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>完整收藏功能测试</h1>
+    
+    <div class="section">
+        <h2>1. 用户登录</h2>
+        <input type="email" id="email" value="test849@example.com" placeholder="邮箱">
+        <input type="password" id="password" value="password123" placeholder="密码">
+        <button onclick="login()">登录</button>
+        <div id="loginResult" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. 获取收藏列表</h2>
+        <button onclick="getFavorites()">获取收藏列表</button>
+        <div id="favoritesResult" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. 切换收藏状态</h2>
+        <input type="text" id="storyId" value="691ae0687f43fdb32526f8f1" placeholder="故事ID">
+        <button onclick="toggleFavorite()">切换收藏</button>
+        <div id="toggleResult" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h2>4. 测试favorites.html页面</h2>
+        <button onclick="testFavoritesPage()">打开favorites.html</button>
+        <div id="pageResult" class="result"></div>
+    </div>
+
+    <script>
+        let authToken = '';
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('loginResult');
+
+            try {
+                const response = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    authToken = data.data.token;
+                    resultDiv.innerHTML = `<div class="success">登录成功！Token: ${authToken.substring(0, 20)}...</div>`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.innerHTML = `<div class="error">登录失败: ${data.message}</div>`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">请求错误: ${error.message}</div>`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function getFavorites() {
+            const resultDiv = document.getElementById('favoritesResult');
+
+            if (!authToken) {
+                resultDiv.innerHTML = `<div class="error">请先登录</div>`;
+                resultDiv.className = 'result error';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/interactions/user/favorites', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    const favorites = data.data.favorites || [];
+                    resultDiv.innerHTML = `<div class="success">获取收藏列表成功！共 ${favorites.length} 个收藏</div>`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.innerHTML = `<div class="error">获取收藏列表失败: ${data.message}</div>`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">请求错误: ${error.message}</div>`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function toggleFavorite() {
+            const storyId = document.getElementById('storyId').value;
+            const resultDiv = document.getElementById('toggleResult');
+
+            if (!authToken) {
+                resultDiv.innerHTML = `<div class="error">请先登录</div>`;
+                resultDiv.className = 'result error';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/interactions/stories/${storyId}/favorite`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    const action = data.data.isFavorited ? '收藏' : '取消收藏';
+                    resultDiv.innerHTML = `<div class="success">${action}成功！</div>`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.innerHTML = `<div class="error">操作失败: ${data.message}</div>`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">请求错误: ${error.message}</div>`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        function testFavoritesPage() {
+            const resultDiv = document.getElementById('pageResult');
+            
+            if (!authToken) {
+                resultDiv.innerHTML = `<div class="error">请先登录</div>`;
+                resultDiv.className = 'result error';
+                return;
+            }
+
+            // 在新窗口打开favorites.html页面
+            const newWindow = window.open('/front/favorites.html', '_blank');
+            
+            if (newWindow) {
+                resultDiv.innerHTML = `<div class="success">已在新窗口打开favorites.html页面</div>`;
+                resultDiv.className = 'result success';
+            } else {
+                resultDiv.innerHTML = `<div class="error">无法打开新窗口，请检查浏览器设置</div>`;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        // 页面加载时自动登录
+        window.onload = function() {
+            setTimeout(() => {
+                login();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

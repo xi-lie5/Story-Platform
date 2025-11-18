@@ -4,11 +4,28 @@ const { body, validationResult } = require('express-validator');
 const Story = require('../models/Story');
 const Category = require('../models/Category');
 const StorySection = require('../models/StorySection');
-const protect = require('../middleware/auth');
+const authGuard = require('../middleware/auth');
 const { errorFormat } = require('../utils/errorFormat');
 const { cacheMiddleware, clearStoryCache } = require('../middleware/cache');
 
 const router = express.Router();
+
+// Stories 路由全局中间件 - 记录所有请求
+router.use((req, res, next) => {
+  console.log(`📚 STORIES ROUTE: ${req.method} ${req.originalUrl}`);
+  console.log('📚 Base URL:', req.baseUrl);
+  console.log('📚 Path:', req.path);
+  console.log('📚 Params:', req.params);
+  next();
+});
+
+console.log('=== Stories router loaded ===');
+
+// 测试路由
+router.get('/test', (req, res) => {
+  console.log('=== /test route matched ===');
+  res.json({ message: 'Test route works!' });
+});
 
 function buildSortOption(sort = 'latest') {
   switch (sort) {
@@ -80,10 +97,95 @@ router.get('/', cacheMiddleware(300), async (req, res, next) => {
   }
 });
 
+// 使用缓存中间件，缓存公共故事列表，TTL设为5分钟
+router.get('/public', async (req, res, next) => {
+  console.log('=== /public route matched WITHOUT cache ===');
+  try {
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 9, 1), 50);
+    const skip = (page - 1) * limit;
+
+    const filter = { 
+      isPublic: true, 
+      status: 'published' 
+    };
+    
+    if (req.query.category) {
+      const category = await Category.findOne({ name: req.query.category });
+      if (!category) {
+        return next(errorFormat(404, '分类不存在', [], 10012));
+      }
+      filter.category = category.id;
+    }
+
+    if (req.query.search) {
+      filter.$text = { $search: req.query.search.trim() };
+    }
+
+    const [stories, total] = await Promise.all([
+      Story.find(filter)
+        .sort(buildSortOption(req.query.sort))
+        .skip(skip)
+        .limit(limit)
+        .populate('author', 'username avatar')
+        .populate('category', 'name'),
+      Story.countDocuments(filter)
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: '获取公共故事列表成功',
+      data: {
+        stories: stories.map((story) => ({
+          id: story.id,
+          title: story.title,
+          description: story.description,
+          category: story.category,
+          author: story.author,
+          coverImage: story.coverImage,
+          view: story.view,
+          rating: story.rating,
+          createdAt: story.createdAt
+        })),
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // 使用缓存中间件，缓存故事详情，TTL设为3分钟
 router.get('/:storyId', cacheMiddleware(180), async (req, res, next) => {
   try {
     const { storyId } = req.params;
+
+    // 对于临时故事，返回基本信息
+    if (storyId.startsWith('local_')) {
+      return res.status(200).json({
+        success: true,
+        message: '获取临时故事详情成功',
+        data: {
+          id: storyId,
+          title: '临时故事',
+          author: { username: '临时用户', avatar: '' },
+          category: { name: '未分类' },
+          coverImage: '',
+          description: '这是一个临时创建的故事，尚未保存到服务器',
+          sections: [],
+          view: 0,
+          rating: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isTemporary: true
+        }
+      });
+    }
 
     if (!mongoose.Types.ObjectId.isValid(storyId)) {
       return next(errorFormat(400, '无效的故事ID', [], 10010));
@@ -124,7 +226,10 @@ router.get('/:storyId', cacheMiddleware(180), async (req, res, next) => {
         view: story.view + 1,
         rating: story.rating,
         createdAt: story.createdAt,
-        updatedAt: story.updatedAt
+        updatedAt: story.updatedAt,
+        isCompleted: story.isCompleted,
+        status: story.status,
+        isTemporary: false
       }
     });
   } catch (error) {
@@ -132,7 +237,7 @@ router.get('/:storyId', cacheMiddleware(180), async (req, res, next) => {
   }
 });
 
-router.post('/', protect, [
+router.post('/', authGuard, [
   body('title').trim().notEmpty().withMessage('故事标题必填').isLength({ max: 100 }).withMessage('标题不能超过100个字符'),
   body('categoryId').notEmpty().withMessage('分类ID必填'),
   body('description').trim().notEmpty().withMessage('故事简介必填').isLength({ max: 500 }).withMessage('简介不能超过500个字符'),
@@ -174,7 +279,8 @@ router.post('/', protect, [
       message: '创建故事成功',
       data: {
         id: story[0].id,
-        title: story[0].title
+        title: story[0].title,
+        isTemporary: false
       }
     });
   } catch (error) {
@@ -185,7 +291,7 @@ router.post('/', protect, [
   }
 });
 
-router.put('/:storyId', protect, [
+router.put('/:storyId', authGuard, [
   body('title').optional().trim().notEmpty().withMessage('故事标题不能为空'),
   body('description').optional().trim().notEmpty().withMessage('故事简介不能为空'),
   body('categoryId').optional().notEmpty().withMessage('分类ID不能为空'),
@@ -247,7 +353,7 @@ router.put('/:storyId', protect, [
   }
 });
 
-router.delete('/:storyId', protect, async (req, res, next) => {
+router.delete('/:storyId', authGuard, async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -287,6 +393,27 @@ router.delete('/:storyId', protect, async (req, res, next) => {
 router.get('/:storyId/graph', cacheMiddleware(120), async (req, res, next) => {
   try {
     const { storyId } = req.params;
+
+    // 对于临时故事，返回空的图谱结构
+    if (storyId.startsWith('local_')) {
+      return res.status(200).json({
+        success: true,
+        message: '获取临时故事图谱成功',
+        data: {
+          story: {
+            id: storyId,
+            title: '临时故事',
+            author: { username: '临时用户', avatar: '' },
+            category: { name: '未分类' },
+            coverImage: '',
+            description: '这是一个临时创建的故事，尚未保存到服务器'
+          },
+          nodes: [],
+          connections: [],
+          isTemporary: true
+        }
+      });
+    }
 
     if (!mongoose.Types.ObjectId.isValid(storyId)) {
       return next(errorFormat(400, '无效的故事ID', [], 10010));
@@ -349,7 +476,8 @@ router.get('/:storyId/graph', cacheMiddleware(120), async (req, res, next) => {
           description: story.description
         },
         nodes,
-        connections
+        connections,
+        isTemporary: false
       }
     });
   } catch (error) {
@@ -358,7 +486,7 @@ router.get('/:storyId/graph', cacheMiddleware(120), async (req, res, next) => {
 });
 
 // 批量保存故事图谱数据
-router.put('/:storyId/graph', protect, async (req, res, next) => {
+router.put('/:storyId/graph', authGuard, async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -541,6 +669,151 @@ router.put('/:storyId/graph', protect, async (req, res, next) => {
     next(error);
   } finally {
     session.endSession();
+  }
+});
+
+// 提交故事审核
+router.patch('/:storyId/submit', authGuard, async (req, res, next) => {
+  try {
+    const { storyId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+      return next(errorFormat(400, '无效的故事ID', [], 10010));
+    }
+
+    const story = await Story.findById(storyId);
+
+    if (!story) {
+      return next(errorFormat(404, '故事不存在', [], 10010));
+    }
+
+    if (story.author.toString() !== req.user.id) {
+      return next(errorFormat(403, '没有权限提交此故事', [], 10011));
+    }
+
+    if (story.status !== 'draft' && story.status !== 'rejected') {
+      return next(errorFormat(400, '只有草稿或被拒绝的故事才能提交审核', [], 10015));
+    }
+
+    // 更新故事状态为待审核
+    story.status = 'pending';
+    story.submittedAt = new Date();
+    await story.save();
+
+    // 清除相关缓存
+    clearStoryCache(storyId);
+
+    res.status(200).json({
+      success: true,
+      message: '故事提交审核成功',
+      data: {
+        id: story.id,
+        title: story.title,
+        status: story.status,
+        submittedAt: story.submittedAt
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 标记故事为完成/未完成
+router.patch('/:storyId/complete', authGuard, async (req, res, next) => {
+  console.log('=== COMPLETE ROUTE HIT ===');
+  console.log('Story ID:', req.params.storyId);
+  console.log('Request body:', req.body);
+  console.log('User:', req.user);
+  
+  try {
+    const { storyId } = req.params;
+    const { isCompleted } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+      return next(errorFormat(400, '无效的故事ID', [], 10010));
+    }
+
+    if (typeof isCompleted !== 'boolean') {
+      return next(errorFormat(400, 'isCompleted必须为布尔值', [], 10017));
+    }
+
+    const story = await Story.findById(storyId);
+
+    if (!story) {
+      return next(errorFormat(404, '故事不存在', [], 10010));
+    }
+
+    if (story.author.toString() !== req.user.id) {
+      return next(errorFormat(403, '没有权限修改此故事', [], 10011));
+    }
+
+    // 更新故事的完成状态
+    story.isCompleted = isCompleted;
+    await story.save();
+
+    // 清除相关缓存
+    clearStoryCache(storyId);
+
+    const message = isCompleted ? '故事已标记为完成' : '故事已标记为未完成';
+
+    res.status(200).json({
+      success: true,
+      message,
+      data: {
+        id: story.id,
+        title: story.title,
+        isCompleted: story.isCompleted,
+        status: story.status
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 取消发布故事
+router.patch('/:storyId/unpublish', authGuard, async (req, res, next) => {
+  try {
+    const { storyId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+      return next(errorFormat(400, '无效的故事ID', [], 10010));
+    }
+
+    const story = await Story.findById(storyId);
+
+    if (!story) {
+      return next(errorFormat(404, '故事不存在', [], 10010));
+    }
+
+    if (story.author.toString() !== req.user.id) {
+      return next(errorFormat(403, '没有权限取消发布此故事', [], 10011));
+    }
+
+    if (story.status !== 'published') {
+      return next(errorFormat(400, '故事未发布', [], 10016));
+    }
+
+    // 更新故事状态为草稿，并自动取消标记完成
+    story.status = 'draft';
+    story.isCompleted = false; // 自动取消标记完成
+    await story.save();
+
+    // 清除相关缓存
+    clearStoryCache(storyId);
+
+    res.status(200).json({
+      success: true,
+      message: '故事取消发布成功',
+      data: {
+        id: story.id,
+        title: story.title,
+        status: story.status,
+        isCompleted: story.isCompleted
+      }
+    });
+  } catch (error) {
+    next(error);
   }
 });
 

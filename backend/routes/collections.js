@@ -64,9 +64,24 @@ router.post('/users/collections',
 
       const { storyId } = req.body;
 
-      // 验证故事ID格式
-      if (!mongoose.Types.ObjectId.isValid(storyId)) {
+      // 验证故事ID格式，允许临时ID
+      if (!mongoose.Types.ObjectId.isValid(storyId) && !storyId.startsWith('local_')) {
         return next(errorFormat(400, '无效的故事ID', [], 10020));
+      }
+
+      // 对于临时故事，返回模拟响应
+      if (storyId.startsWith('local_')) {
+        return res.status(201).json({
+          success: true,
+          message: '临时故事不支持收藏操作',
+          data: {
+            _id: 'temp_collection_id',
+            user: req.user.id,
+            story: storyId,
+            collectedAt: new Date(),
+            isTemporary: true
+          }
+        });
       }
 
       // 检查故事是否存在
@@ -94,7 +109,10 @@ router.post('/users/collections',
       res.status(201).json({
         success: true,
         message: '收藏成功',
-        data: collection
+        data: {
+          ...collection.toObject(),
+          isTemporary: false
+        }
       });
     } catch (err) {
       next(err);
@@ -110,9 +128,20 @@ router.delete('/users/collections/:storyId', protect, async (req, res, next) => 
   try {
     const { storyId } = req.params;
 
-    // 验证故事ID格式
-    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+    // 验证故事ID格式，允许临时ID
+    if (!mongoose.Types.ObjectId.isValid(storyId) && !storyId.startsWith('local_')) {
       return next(errorFormat(400, '无效的故事ID', [], 10020));
+    }
+
+    // 对于临时故事，返回模拟响应
+    if (storyId.startsWith('local_')) {
+      return res.status(200).json({
+        success: true,
+        message: '临时故事不支持取消收藏操作',
+        data: {
+          isTemporary: true
+        }
+      });
     }
 
     // 删除收藏
@@ -127,7 +156,10 @@ router.delete('/users/collections/:storyId', protect, async (req, res, next) => 
 
     res.status(200).json({
       success: true,
-      message: '取消收藏成功'
+      message: '取消收藏成功',
+      data: {
+        isTemporary: false
+      }
     });
   } catch (err) {
     next(err);

@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人中心 - StoryForge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6366f1',
+            secondary: '#ec4899',
+            accent: '#10b981'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['Playfair Display', 'serif']
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-white to-slate-100 min-h-screen text-slate-800 font-sans">
+  <nav class="glass-effect sticky top-0 z-50" id="navbar">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <i class="fa fa-book text-white text-2xl"></i>
+        <h1 class="text-xl md:text-2xl font-display font-bold text-white">StoryForge</h1>
+      </div>
+
+      <nav class="hidden md:flex items-center space-x-8">
+        <a href="index.html" class="font-medium text-white/90 hover:text-white transition-colors">首页</a>
+        <a href="explore.html" class="font-medium text-white/90 hover:text-white transition-colors">探索故事</a>
+        <a href="create.html" class="font-medium text-white/90 hover:text-white transition-colors">创建故事</a>
+        <a href="my_stories.html" class="font-medium text-white/90 hover:text-white transition-colors">我的作品</a>
+        <a href="profile.html" class="font-medium text-white transition-colors">个人中心</a>
+        <a href="about.html" class="font-medium text-white/90 hover:text-white transition-colors">关于</a>
+      </nav>
+
+      <div class="flex items-center space-x-4" id="auth-area-desktop"></div>
+      <div class="flex items-center space-x-4 md:hidden">
+        <button id="mobile-menu-button" class="text-xl text-white">
+          <i class="fa fa-bars"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="md:hidden hidden bg-white/10 backdrop-blur absolute w-full" id="mobile-menu">
+      <div class="p-4 space-y-3">
+        <a href="index.html" class="block font-medium py-2 text-white/90 hover:text-white transition-colors">首页</a>
+        <a href="explore.html" class="block font-medium py-2 text-white/90 hover:text-white transition-colors">探索故事</a>
+        <a href="create.html" class="block font-medium py-2 text-white/90 hover:text-white transition-colors">创建故事</a>
+        <a href="my_stories.html" class="block font-medium py-2 text-white/90 hover:text-white transition-colors">我的作品</a>
+        <a href="profile.html" class="block font-medium py-2 text-white transition-colors">个人中心</a>
+        <a href="about.html" class="block font-medium py-2 text-white/90 hover:text-white transition-colors">关于</a>
+        <div id="auth-area-mobile" class="pt-2 space-y-3"></div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="pb-20 px-4">
+    <div class="container mx-auto max-w-6xl">
+      <!-- 标签页导航 -->
+      <div class="bg-white rounded-t-2xl shadow-lg p-1 mb-0">
+        <div class="flex flex-wrap gap-1">
+          <button onclick="showTab('profile')" class="tab-btn flex-1 min-w-[120px] px-4 py-2 rounded-xl font-medium transition-all active" data-tab="profile">
+            <i class="fa fa-user mr-2"></i>个人资料
+          </button>
+          <button onclick="showTab('stats')" class="tab-btn flex-1 min-w-[120px] px-4 py-2 rounded-xl font-medium transition-all" data-tab="stats">
+            <i class="fa fa-bar-chart mr-2"></i>创作统计
+          </button>
+          <button onclick="showTab('admin')" id="admin-tab-btn" class="hidden tab-btn flex-1 min-w-[120px] px-4 py-2 rounded-xl font-medium transition-all" data-tab="admin">
+            <i class="fa fa-cogs mr-2"></i>管理中心
+          </button>
+        </div>
+      </div>
+
+      <!-- 标签页内容 -->
+      <div class="bg-white rounded-b-2xl shadow-xl p-6 md:p-8">
+        <!-- 个人资料标签页 -->
+        <div id="profile-tab" class="tab-content active">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <section class="lg:col-span-1">
+              <div class="text-center">
+                <div class="relative w-32 h-32 mx-auto mb-4">
+                  <img id="profile-avatar" src="" alt="用户头像" class="w-32 h-32 rounded-full border-4 border-primary/20 object-cover shadow-inner">
+                  <span class="absolute bottom-0 right-0 block p-2 rounded-full bg-primary text-white shadow-md">
+                    <i class="fa fa-camera"></i>
+                  </span>
+                </div>
+                <h2 id="profile-name" class="text-2xl font-bold mb-1">--</h2>
+                <p id="profile-email" class="text-sm text-slate-500 mb-6">--</p>
+                <div class="space-y-3">
+                  <a href="create.html" class="block w-full py-2 rounded-full bg-primary text-white hover:bg-primary/90 transition-colors">
+                    开始新的故事
+                  </a>
+                  <button id="profile-logout" class="block w-full py-2 rounded-full bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors">
+                    退出登录
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section class="lg:col-span-2">
+              <div class="space-y-6">
+                <div class="bg-slate-50 rounded-xl p-6">
+                  <h3 class="text-lg font-bold mb-4 flex items-center">
+                    <i class="fa fa-id-card mr-2 text-primary"></i> 账号信息
+                  </h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 class="text-sm font-medium text-slate-500 mb-1">昵称</h4>
+                      <p id="profile-username" class="text-lg font-semibold text-slate-800">--</p>
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-medium text-slate-500 mb-1">邮箱</h4>
+                      <p id="profile-email-detail" class="text-lg text-slate-700">--</p>
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-medium text-slate-500 mb-1">用户ID</h4>
+                      <p id="profile-id" class="text-lg text-slate-700">--</p>
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-medium text-slate-500 mb-1">登录状态</h4>
+                      <p id="profile-session" class="text-lg text-slate-700">--</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- 创作统计标签页 -->
+        <div id="stats-tab" class="tab-content">
+          <div class="space-y-6">
+            <h3 class="text-xl font-bold flex items-center">
+              <i class="fa fa-bar-chart mr-2 text-secondary"></i> 创作概览
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div class="p-6 rounded-xl bg-primary/5 border border-primary/10 text-center">
+                <div class="text-sm text-slate-500 mb-2">已发布故事</div>
+                <div class="text-4xl font-bold text-primary" id="stories-count">0</div>
+              </div>
+              <div class="p-6 rounded-xl bg-secondary/5 border border-secondary/10 text-center">
+                <div class="text-sm text-slate-500 mb-2">创作中</div>
+                <div class="text-4xl font-bold text-secondary" id="profile-drafts">0</div>
+              </div>
+              <div class="p-6 rounded-xl bg-red-50 border border-red-100 text-center">
+                <div class="text-sm text-slate-500 mb-2">收藏故事</div>
+                <div class="text-4xl font-bold text-red-500" id="collections-count">0</div>
+              </div>
+            </div>
+            <p class="text-sm text-slate-500 text-center">* 数据统计功能尚在开发中，敬请期待。</p>
+          </div>
+        </div>
+
+        <!-- 管理中心标签页 -->
+        <div id="admin-tab" class="tab-content">
+          <div id="admin-loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
+            <p class="mt-4 text-slate-600">正在加载管理员面板...</p>
+          </div>
+          
+          <div id="admin-content" class="hidden space-y-6">
+            <!-- 管理员统计 -->
+            <div class="bg-gradient-to-r from-red-500 to-red-600 rounded-xl p-6 text-white">
+              <h3 class="text-xl font-bold mb-4">
+                <i class="fa fa-tachometer-alt mr-2"></i>系统概览
+              </h3>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="text-center">
+                  <div class="text-3xl font-bold" id="admin-total-stories">0</div>
+                  <div class="text-sm opacity-90">总作品数</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-3xl font-bold" id="admin-pending-stories">0</div>
+                  <div class="text-sm opacity-90">待审核</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-3xl font-bold" id="admin-total-users">0</div>
+                  <div class="text-sm opacity-90">用户总数</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-3xl font-bold" id="admin-total-categories">0</div>
+                  <div class="text-sm opacity-90">分类总数</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 快速操作 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="bg-white border border-slate-200 rounded-xl p-6">
+                <h4 class="font-bold mb-4 flex items-center">
+                  <i class="fa fa-book mr-2 text-primary"></i>作品管理
+                </h4>
+                <div class="space-y-3">
+                  <button onclick="loadAdminStories('pending')" class="w-full text-left px-4 py-2 rounded-lg bg-yellow-50 hover:bg-yellow-100 transition-colors">
+                    <i class="fa fa-clock text-yellow-600 mr-2"></i>查看待审核作品
+                  </button>
+                  <button onclick="loadAdminStories('published')" class="w-full text-left px-4 py-2 rounded-lg bg-green-50 hover:bg-green-100 transition-colors">
+                    <i class="fa fa-check text-green-600 mr-2"></i>查看已发布作品
+                  </button>
+                  <button onclick="loadAdminStories('all')" class="w-full text-left px-4 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors">
+                    <i class="fa fa-list text-blue-600 mr-2"></i>查看所有作品
+                  </button>
+                </div>
+              </div>
+
+              <div class="bg-white border border-slate-200 rounded-xl p-6">
+                <h4 class="font-bold mb-4 flex items-center">
+                  <i class="fa fa-users mr-2 text-secondary"></i>用户管理
+                </h4>
+                <div class="space-y-3">
+                  <button onclick="loadAdminUsers()" class="w-full text-left px-4 py-2 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors">
+                    <i class="fa fa-users text-purple-600 mr-2"></i>查看所有用户
+                  </button>
+                  <button onclick="loadAdminCategories()" class="w-full text-left px-4 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                    <i class="fa fa-tags text-indigo-600 mr-2"></i>管理分类
+                  </button>
+                  <button onclick="window.open('admin-easy.html', '_blank')" class="w-full text-left px-4 py-2 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
+                    <i class="fa fa-external-link text-red-600 mr-2"></i>打开完整管理面板
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 数据显示区域 -->
+            <div id="admin-data-area" class="hidden">
+              <div class="bg-slate-50 rounded-xl p-6">
+                <div class="flex justify-between items-center mb-4">
+                  <h4 id="admin-data-title" class="font-bold"></h4>
+                  <button onclick="closeAdminData()" class="text-slate-500 hover:text-slate-700">
+                    <i class="fa fa-times"></i>
+                  </button>
+                </div>
+                <div id="admin-data-content"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-slate-900 text-white py-10 px-4">
+    <div class="container mx-auto max-w-6xl flex flex-col md:flex-row justify-between items-start gap-6">
+      <div>
+        <h4 class="text-lg font-semibold mb-2">StoryForge</h4>
+        <p class="text-sm text-slate-300">与AI一起探索故事创作的无限可能。</p>
+      </div>
+      <div class="text-sm text-slate-400">
+        <p>© <span id="footer-year"></span> StoryForge. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/js/auth.js"></script>
+  <script>
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (mobileMenuButton && mobileMenu) {
+      mobileMenuButton.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+      });
+    }
+
+    AuthUI.init();
+
+    // 标签页切换功能
+    function showTab(tabName) {
+      // 隐藏所有标签页内容
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      
+      // 移除所有按钮的激活状态
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-primary', 'text-white');
+        btn.classList.add('text-slate-600', 'hover:text-slate-800');
+      });
+      
+      // 显示选中的标签页
+      document.getElementById(`${tabName}-tab`).classList.add('active');
+      
+      // 激活对应的按钮
+      const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
+      activeBtn.classList.add('active', 'bg-primary', 'text-white');
+      activeBtn.classList.remove('text-slate-600', 'hover:text-slate-800');
+      
+      // 如果切换到管理员标签页，加载管理员数据
+      if (tabName === 'admin') {
+        loadAdminPanel();
+      }
+    }
+
+    // 加载管理员面板
+    async function loadAdminPanel() {
+      const authState = AuthUI.getAuthState();
+      if (!authState || authState.userInfo.email !== 'admin@example.com') {
+        document.getElementById('admin-loading').innerHTML = `
+          <div class="text-center py-12">
+            <i class="fa fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i>
+            <p class="text-slate-600">您没有管理员权限</p>
+          </div>
+        `;
+        return;
+      }
+
+      try {
+        // 自动登录获取管理员token
+        const loginResponse = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: 'admin@example.com',
+            password: 'admin123'
+          })
+        });
+        
+        const loginData = await loginResponse.json();
+        if (loginData.success) {
+          // 使用管理员token加载数据
+          const statsResponse = await fetch('/api/v1/admin/stats', {
+            headers: {
+              'Authorization': `Bearer ${loginData.data.token}`
+            }
+          });
+          
+          if (statsResponse.ok) {
+            const statsData = await statsResponse.json();
+            const stats = statsData.data;
+            
+            document.getElementById('admin-total-stories').textContent = stats.stories.total;
+            document.getElementById('admin-pending-stories').textContent = stats.stories.pending;
+            document.getElementById('admin-total-users').textContent = stats.users.total;
+            document.getElementById('admin-total-categories').textContent = stats.categories.total;
+            
+            // 显示管理员内容，隐藏加载状态
+            document.getElementById('admin-loading').classList.add('hidden');
+            document.getElementById('admin-content').classList.remove('hidden');
+          }
+        }
+      } catch (error) {
+        console.error('加载管理员面板失败:', error);
+        document.getElementById('admin-loading').innerHTML = `
+          <div class="text-center py-12">
+            <i class="fa fa-exclamation-circle text-4xl text-red-500 mb-4"></i>
+            <p class="text-slate-600">加载管理员面板失败</p>
+          </div>
+        `;
+      }
+    }
+
+    // 管理员功能函数
+    async function loadAdminStories(status = 'pending') {
+      try {
+        const loginResponse = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: 'admin@example.com',
+            password: 'admin123'
+          })
+        });
+        
+        const loginData = await loginResponse.json();
+        if (loginData.success) {
+          const storiesResponse = await fetch(`/api/v1/admin/stories?status=${status === 'all' ? '' : status}`, {
+            headers: {
+              'Authorization': `Bearer ${loginData.data.token}`
+            }
+          });
+          
+          const storiesData = await storiesResponse.json();
+          const stories = storiesData.data.stories || [];
+          
+          const statusText = {
+            'pending': '待审核',
+            'published': '已发布',
+            'draft': '草稿'
+          };
+          
+          let html = `
+            <div class="space-y-3">
+              <h5 class="font-medium">${statusText[status] || '全部'}作品 (${stories.length})</h5>
+              <div class="space-y-2 max-h-64 overflow-y-auto">
+          `;
+          
+          if (stories.length === 0) {
+            html += '<p class="text-slate-500 text-center py-4">暂无作品</p>';
+          } else {
+            stories.forEach(story => {
+              html += `
+                <div class="bg-white p-3 rounded-lg border border-slate-200">
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <h6 class="font-medium">${story.title}</h6>
+                      <p class="text-sm text-slate-500">作者: ${story.author?.username || '未知'}</p>
+                    </div>
+                    <span class="px-2 py-1 text-xs rounded-full ${
+                      story.status === 'published' ? 'bg-green-100 text-green-800' :
+                      story.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }">${statusText[story.status] || story.status}</span>
+                  </div>
+                </div>
+              `;
+            });
+          }
+          
+          html += '</div></div>';
+          
+          document.getElementById('admin-data-title').textContent = '作品列表';
+          document.getElementById('admin-data-content').innerHTML = html;
+          document.getElementById('admin-data-area').classList.remove('hidden');
+        }
+      } catch (error) {
+        console.error('加载作品列表失败:', error);
+      }
+    }
+
+    async function loadAdminUsers() {
+      document.getElementById('admin-data-title').textContent = '用户列表';
+      document.getElementById('admin-data-content').innerHTML = '<p class="text-slate-500">用户管理功能开发中...</p>';
+      document.getElementById('admin-data-area').classList.remove('hidden');
+    }
+
+    async function loadAdminCategories() {
+      document.getElementById('admin-data-title').textContent = '分类管理';
+      document.getElementById('admin-data-content').innerHTML = '<p class="text-slate-500">分类管理功能开发中...</p>';
+      document.getElementById('admin-data-area').classList.remove('hidden');
+    }
+
+    function closeAdminData() {
+      document.getElementById('admin-data-area').classList.add('hidden');
+    }
+
+    async function renderProfile() {
+      const authState = AuthUI.getAuthState();
+      if (!authState) {
+        alert('请先登录后再访问个人中心');
+        window.location.href = 'login.html';
+        return;
+      }
+
+      const { storage, userInfo } = authState;
+      const avatarUrl = AuthUI.resolveAvatarUrl(userInfo.avatar, userInfo.username);
+      const storageType = storage === localStorage ? '已记住登录（本地存储）' : '当前会话登录（会话存储）';
+
+      document.getElementById('profile-avatar').src = avatarUrl;
+      document.getElementById('profile-name').textContent = userInfo.username || '--';
+      document.getElementById('profile-email').textContent = userInfo.email || '--';
+      document.getElementById('profile-username').textContent = userInfo.username || '--';
+      document.getElementById('profile-email-detail').textContent = userInfo.email || '--';
+      document.getElementById('profile-id').textContent = userInfo.userId || '--';
+      document.getElementById('profile-session').textContent = storageType;
+
+      // 检查是否为管理员用户
+      if (userInfo.email === 'admin@example.com') {
+        const adminTabBtn = document.getElementById('admin-tab-btn');
+        if (adminTabBtn) {
+          adminTabBtn.classList.remove('hidden');
+        }
+      }
+
+      const logoutButton = document.getElementById('profile-logout');
+      if (logoutButton) {
+        logoutButton.addEventListener('click', () => {
+          AuthUI.clearAuthStorage();
+          window.location.href = 'login.html';
+        });
+      }
+
+      document.getElementById('footer-year').textContent = new Date().getFullYear();
+    }
+
+    renderProfile();
+    loadUserStats();
+
+    window.addEventListener('storage', (event) => {
+      if (!event.key || AuthUI.AUTH_STORAGE_KEYS.includes(event.key)) {
+        renderProfile();
+        loadUserStats();
+      }
+    });
+
+    // 加载用户统计信息
+    async function loadUserStats() {
+      const authState = AuthUI.getAuthState();
+      if (!authState) return;
+
+      try {
+        // 加载收藏数
+        const collectionsResponse = await fetch('/api/v1/users/collections', {
+          headers: {
+            'Authorization': 'Bearer ' + authState.token
+          }
+        });
+
+        if (collectionsResponse.ok) {
+          const data = await collectionsResponse.json();
+          document.getElementById('collections-count').textContent = data.pagination.total || 0;
+        }
+
+        // 加载故事数
+        const userId = authState.userInfo.userId;
+        const storiesResponse = await fetch(`/api/v1/users/${userId}/stories`);
+        if (storiesResponse.ok) {
+          const storiesData = await storiesResponse.json();
+          document.getElementById('stories-count').textContent = storiesData.total || 0;
+        }
+      } catch (error) {
+        console.error('加载用户统计信息失败:', error);
+      }
+    }
+  </script>
+
+  <style>
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .tab-btn.active {
+      background-color: #6366f1;
+      color: white;
+    }
+  </style>
+</body>
+</html>

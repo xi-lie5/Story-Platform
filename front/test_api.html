@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>API Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testAPI() {
+            const results = document.getElementById('results');
+            
+            // 测试获取故事列表
+            try {
+                const response = await fetch('http://localhost:5000/api/v1/stories');
+                const data = await response.json();
+                results.innerHTML += '<h2>Stories API:</h2><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+                if (data.success && data.data.length > 0) {
+                    const storyId = data.data[0]._id;
+                    
+                    // 测试获取节点
+                    try {
+                        const nodesResponse = await fetch(`http://localhost:5000/api/v1/storyNodes/stories/${storyId}/nodes`);
+                        const nodesData = await nodesResponse.json();
+                        results.innerHTML += '<h2>Nodes API:</h2><pre>' + JSON.stringify(nodesData, null, 2) + '</pre>';
+                    } catch (error) {
+                        results.innerHTML += '<h2>Nodes API Error:</h2><pre>' + error.message + '</pre>';
+                    }
+                }
+            } catch (error) {
+                results.innerHTML += '<h2>Stories API Error:</h2><pre>' + error.message + '</pre>';
+            }
+        }
+        
+        testAPI();
+    </script>
+</body>
+</html>

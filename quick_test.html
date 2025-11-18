@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快速测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        button { padding: 8px 15px; margin: 5px; cursor: pointer; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        input { width: 100%; padding: 8px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>快速功能测试</h1>
+    
+    <div class="section">
+        <h2>1. 注册/登录测试用户</h2>
+        <input type="text" id="username" placeholder="用户名" value="testuser">
+        <input type="email" id="email" placeholder="邮箱" value="test@example.com">
+        <input type="password" id="password" placeholder="密码" value="testpass123">
+        <button onclick="register()">注册</button>
+        <button onclick="login()">登录</button>
+        <div id="authResult" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. 测试节点创建</h2>
+        <button onclick="testNodeCreation()">测试创建节点</button>
+        <div id="nodeResult" class="result"></div>
+    </div>
+
+    <script>
+        let authToken = null;
+
+        function showResult(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = message;
+            element.className = `result ${isSuccess ? 'success' : 'error'}`;
+        }
+
+        // 注册
+        async function register() {
+            try {
+                const username = document.getElementById('username').value;
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                
+                const response = await fetch('/api/v1/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    showResult('authResult', `注册成功！用户ID: ${result.data.user.id}`);
+                } else {
+                    showResult('authResult', `注册失败: ${result.message}`, false);
+                }
+            } catch (error) {
+                showResult('authResult', `网络错误: ${error.message}`, false);
+            }
+        }
+
+        // 登录
+        async function login() {
+            try {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                
+                const response = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    authToken = result.data.token;
+                    localStorage.setItem('token', authToken);
+                    showResult('authResult', `登录成功！Token: ${authToken.substring(0, 20)}...`);
+                } else {
+                    showResult('authResult', `登录失败: ${result.message}`, false);
+                }
+            } catch (error) {
+                showResult('authResult', `网络错误: ${error.message}`, false);
+            }
+        }
+
+        // 测试节点创建
+        async function testNodeCreation() {
+            if (!authToken) {
+                showResult('nodeResult', '请先登录', false);
+                return;
+            }
+
+            try {
+                // 1. 创建故事
+                const storyResponse = await fetch('/api/v1/stories', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        title: '测试故事',
+                        description: '这是一个测试故事'
+                    })
+                });
+
+                const storyResult = await storyResponse.json();
+                if (!storyResponse.ok) {
+                    throw new Error(`创建故事失败: ${storyResult.message}`);
+                }
+
+                const storyId = storyResult.data._id;
+
+                // 2. 创建根节点
+                const rootNodeResponse = await fetch(`/api/v1/stories/${storyId}/nodes`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        title: '故事开始',
+                        content: '这是故事的开始...',
+                        type: 'normal'
+                    })
+                });
+
+                const rootNodeResult = await rootNodeResponse.json();
+                if (!rootNodeResponse.ok) {
+                    throw new Error(`创建根节点失败: ${rootNodeResult.message}`);
+                }
+
+                const rootNodeId = rootNodeResult.data._id;
+
+                // 3. 创建选择节点
+                const choiceNodeResponse = await fetch(`/api/v1/stories/${storyId}/nodes`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        title: '选择你的道路',
+                        content: '你面临一个重要的选择...',
+                        type: 'choice',
+                        parentId: rootNodeId,
+                        choices: [
+                            { text: '选择A' },
+                            { text: '选择B' }
+                        ]
+                    })
+                });
+
+                const choiceNodeResult = await choiceNodeResponse.json();
+                if (!choiceNodeResponse.ok) {
+                    throw new Error(`创建选择节点失败: ${choiceNodeResult.message}`);
+                }
+
+                const choiceNodeId = choiceNodeResult.data._id;
+                const choiceIds = choiceNodeResult.data.choices.map(c => c.id);
+
+                // 4. 创建结局节点
+                const endingNodeResponse = await fetch(`/api/v1/stories/${storyId}/nodes`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        title: '故事结局',
+                        content: '故事到此结束...',
+                        type: 'ending',
+                        parentId: choiceNodeId
+                    })
+                });
+
+                const endingNodeResult = await endingNodeResponse.json();
+                if (!endingNodeResponse.ok) {
+                    throw new Error(`创建结局节点失败: ${endingNodeResult.message}`);
+                }
+
+                const endingNodeId = endingNodeResult.data._id;
+
+                // 5. 绑定选项到结局节点
+                const bindResponse = await fetch(`/api/v1/nodes/${choiceNodeId}/choices/${choiceIds[0]}/bind`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ targetNodeId: endingNodeId })
+                });
+
+                const bindResult = await bindResponse.json();
+                if (!bindResponse.ok) {
+                    throw new Error(`绑定选项失败: ${bindResult.message}`);
+                }
+
+                // 6. 获取故事树验证
+                const treeResponse = await fetch(`/api/v1/stories/${storyId}/tree`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const treeResult = await treeResponse.json();
+                if (!treeResponse.ok) {
+                    throw new Error(`获取故事树失败: ${treeResult.message}`);
+                }
+
+                showResult('nodeResult', `
+                    <strong>✅ 所有测试通过！</strong><br>
+                    故事ID: ${storyId}<br>
+                    根节点ID: ${rootNodeId}<br>
+                    选择节点ID: ${choiceNodeId}<br>
+                    选项ID: ${choiceIds.join(', ')}<br>
+                    结局节点ID: ${endingNodeId}<br>
+                    <br>
+                    <strong>故事树结构:</strong><br>
+                    <pre>${JSON.stringify(treeResult.data, null, 2)}</pre>
+                `);
+
+            } catch (error) {
+                showResult('nodeResult', `测试失败: ${error.message}`, false);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>最小化测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">最小化按钮测试</h1>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">原始按钮（从story_tree.html复制）</h2>
+            <div class="flex gap-3 w-full md:w-auto">
+                <button id="new-node" class="flex-1 md:flex-none px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center">
+                    <i class="fa fa-plus mr-2"></i> 添加新节点
+                </button>
+                <button id="save-graph" class="flex-1 md:flex-none px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center">
+                    <i class="fa fa-save mr-2"></i> 保存图谱
+                </button>
+                <button id="toggle-complete" class="flex-1 md:flex-none px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center">
+                    <i class="fa fa-check mr-2"></i> <span id="complete-text">标记完成</span>
+                </button>
+                <button id="export-story" class="flex-1 md:flex-none px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center">
+                    <i class="fa fa-download mr-2"></i> 导出故事
+                </button>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">按钮状态检查</h2>
+            <div id="button-status" class="space-y-2 text-sm"></div>
+        </div>
+        
+        <div class="mt-6">
+            <button onclick="checkButtons()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                检查按钮状态
+            </button>
+            <button onclick="hideButtons()" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 ml-2">
+                隐藏按钮（模拟查看模式）
+            </button>
+            <button onclick="showButtons()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 ml-2">
+                显示按钮（模拟编辑模式）
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function checkButtons() {
+            const buttons = ['new-node', 'save-graph', 'toggle-complete', 'export-story'];
+            const status = document.getElementById('button-status');
+            
+            let html = '';
+            buttons.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    const computedStyle = window.getComputedStyle(btn);
+                    const display = computedStyle.display;
+                    const visibility = computedStyle.visibility;
+                    const opacity = computedStyle.opacity;
+                    
+                    const isVisible = display !== 'none' && visibility !== 'hidden' && opacity > 0;
+                    
+                    html += `
+                        <div class="flex justify-between items-center p-2 border rounded">
+                            <span>${id}</span>
+                            <span class="${isVisible ? 'text-green-600' : 'text-red-600'}">
+                                ${isVisible ? '✅ 可见' : '❌ 隐藏'}
+                            </span>
+                            <small class="text-gray-500">display: ${display}, visibility: ${visibility}, opacity: ${opacity}</small>
+                        </div>
+                    `;
+                } else {
+                    html += `<div class="text-red-600">${id}: 元素未找到</div>`;
+                }
+            });
+            
+            status.innerHTML = html;
+        }
+        
+        function hideButtons() {
+            const editButtons = ['new-node', 'save-graph', 'export-story'];
+            editButtons.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.style.display = 'none';
+            });
+            setTimeout(checkButtons, 100);
+        }
+        
+        function showButtons() {
+            const editButtons = ['new-node', 'save-graph', 'export-story'];
+            editButtons.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.style.display = '';
+                    btn.classList.remove('hidden');
+                }
+            });
+            setTimeout(checkButtons, 100);
+        }
+        
+        // 页面加载后检查
+        window.addEventListener('load', function() {
+            setTimeout(checkButtons, 100);
+        });
+    </script>
+</body>
+</html>

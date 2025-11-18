@@ -2,8 +2,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const Story = require('../models/Story');
+const Collection = require('../models/Collection');
 const { body, validationResult } = require('express-validator');
-const protect = require('../middleware/auth');
+const authGuard = require('../middleware/auth');
 const { errorFormat } = require('../utils/errorFormat');
 const { cacheMiddleware, clearUserCache } = require('../middleware/cache');
 
@@ -13,7 +14,7 @@ const router = express.Router();
  * 1. 获取当前登录用户信息
  * GET /api/v1/users/me
  */
-router.get('/me', protect, async (req, res, next) => {
+router.get('/me', authGuard, async (req, res, next) => {
   try {
     // 从req.user获取用户信息（由protect中间件设置）
     const user = await User.findById(req.user.id).select('-password -refreshToken');
@@ -36,7 +37,7 @@ router.get('/me', protect, async (req, res, next) => {
  * PUT /api/v1/users/me
  */
 router.put('/me', 
-  protect,
+  authGuard,
   [
     body('username').optional().notEmpty().withMessage('用户名不能为空')
       .isLength({ min: 3, max: 50 }).withMessage('用户名长度必须在3-50个字符之间'),
@@ -112,7 +113,7 @@ router.put('/me',
  * PUT /api/v1/users/me/change-password
  */
 router.put('/me/change-password', 
-  protect,
+  authGuard,
   [
     body('currentPassword').notEmpty().withMessage('当前密码不能为空'),
     body('newPassword').isLength({ min: 6 }).withMessage('新密码长度不能少于6个字符')
@@ -154,10 +155,62 @@ router.put('/me/change-password',
 );
 
 /**
- * 4. 获取用户的故事列表
+ * 5. 获取用户创作统计数据
+ * GET /api/v1/users/me/stats
+ */
+router.get('/me/stats', authGuard, cacheMiddleware(60), async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    
+    // 统计已发布的故事数量
+    const publishedStories = await Story.countDocuments({ 
+      author: userId,
+      isPublic: true 
+    });
+    
+    // 统计草稿数量（未公开的故事）
+    const draftStories = await Story.countDocuments({ 
+      author: userId,
+      isPublic: false 
+    });
+    
+    // 统计收藏的故事数量
+    const collectedStories = await Collection.countDocuments({ 
+      user: userId 
+    });
+    
+    // 统计总故事数量
+    const totalStories = await Story.countDocuments({ author: userId });
+    
+    // 获取最近的故事统计（最近30天）
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const recentStories = await Story.countDocuments({
+      author: userId,
+      createdAt: { $gte: thirtyDaysAgo }
+    });
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        publishedStories,
+        draftStories,
+        collectedStories,
+        totalStories,
+        recentStories
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * 6. 获取用户故事列表
  * GET /api/v1/users/:userId/stories
  */
-router.get('/:userId/stories', protect, cacheMiddleware(180), async (req, res, next) => {
+router.get('/:userId/stories', authGuard, cacheMiddleware(180), async (req, res, next) => {
   try {
     const { userId } = req.params;
     const { page = 1, limit = 10 } = req.query;
@@ -204,7 +257,7 @@ router.get('/:userId/stories', protect, cacheMiddleware(180), async (req, res, n
 });
 
 /**
- * 5. 获取用户资料（公开信息）
+ * 7. 获取用户资料（公开信息）
  * GET /api/v1/users/:userId
  */
 router.get('/:userId', cacheMiddleware(300), async (req, res, next) => {

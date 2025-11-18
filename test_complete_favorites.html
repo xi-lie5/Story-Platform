@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>收藏功能完整测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        button { padding: 10px 15px; margin: 5px; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        .info { background: #e3f2fd; color: #1565c0; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <h1>收藏功能完整测试</h1>
+    
+    <div class="test-section">
+        <h3>测试步骤</h3>
+        <ol>
+            <li>自动登录测试用户</li>
+            <li>获取收藏列表</li>
+            <li>测试收藏功能</li>
+            <li>验证favorites.html页面</li>
+        </ol>
+        <button onclick="runFullTest()">运行完整测试</button>
+        <div id="test-result" class="result"></div>
+    </div>
+
+    <script>
+        let authToken = '';
+        let testResults = [];
+        
+        function log(message, type = 'info') {
+            testResults.push({ message, type, time: new Date().toLocaleTimeString() });
+            updateDisplay();
+        }
+        
+        function updateDisplay() {
+            const resultDiv = document.getElementById('test-result');
+            const html = testResults.map(r => 
+                `<div class="${r.type}">[${r.time}] ${r.message}</div>`
+            ).join('');
+            resultDiv.innerHTML = html;
+        }
+        
+        async function runFullTest() {
+            testResults = [];
+            log('开始完整测试...', 'info');
+            
+            try {
+                // 步骤1: 登录
+                log('步骤1: 尝试登录测试用户...', 'info');
+                const loginResult = await loginTest();
+                if (!loginResult.success) {
+                    log('登录失败，测试终止', 'error');
+                    return;
+                }
+                log('登录成功!', 'success');
+                
+                // 步骤2: 获取收藏列表
+                log('步骤2: 获取收藏列表...', 'info');
+                const favoritesResult = await getFavoritesTest();
+                if (!favoritesResult.success) {
+                    log('获取收藏列表失败', 'error');
+                } else {
+                    log(`获取收藏列表成功，共${favoritesResult.count}个收藏`, 'success');
+                }
+                
+                // 步骤3: 测试收藏切换
+                log('步骤3: 测试收藏切换功能...', 'info');
+                const toggleResult = await toggleFavoriteTest();
+                if (toggleResult.success) {
+                    log('收藏切换功能正常', 'success');
+                } else {
+                    log('收藏切换功能异常', 'error');
+                }
+                
+                // 步骤4: 验证页面访问
+                log('步骤4: 验证favorites.html页面访问...', 'info');
+                await testFavoritesPage();
+                
+                log('完整测试完成!', 'success');
+                
+            } catch (error) {
+                log(`测试过程中发生错误: ${error.message}`, 'error');
+            }
+        }
+        
+        async function loginTest() {
+            try {
+                const response = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'test849@example.com',
+                        password: 'password123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    authToken = data.data.token;
+                    // 存储token到localStorage，模拟真实登录状态
+                    localStorage.setItem('token', authToken);
+                    return { success: true, token: authToken };
+                } else {
+                    log(`登录失败: ${data.message || '未知错误'}`, 'error');
+                    return { success: false, error: data.message };
+                }
+            } catch (error) {
+                log(`登录网络错误: ${error.message}`, 'error');
+                return { success: false, error: error.message };
+            }
+        }
+        
+        async function getFavoritesTest() {
+            try {
+                const response = await fetch('/api/v1/interactions/user/favorites', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    const favorites = data.data.favorites || [];
+                    log(`收藏列表数据: ${JSON.stringify(data, null, 2)}`, 'info');
+                    return { success: true, count: favorites.length, data: data };
+                } else {
+                    log(`获取收藏列表失败: ${data.message || '未知错误'}`, 'error');
+                    return { success: false, error: data.message };
+                }
+            } catch (error) {
+                log(`获取收藏列表网络错误: ${error.message}`, 'error');
+                return { success: false, error: error.message };
+            }
+        }
+        
+        async function toggleFavoriteTest() {
+            try {
+                // 使用测试故事ID
+                const storyId = '691ae0687f43fdb32526f8f1';
+                const response = await fetch(`/api/v1/interactions/stories/${storyId}/favorite`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    log(`收藏切换成功: ${data.message}`, 'success');
+                    return { success: true, data: data };
+                } else {
+                    log(`收藏切换失败: ${data.message || '未知错误'}`, 'error');
+                    return { success: false, error: data.message };
+                }
+            } catch (error) {
+                log(`收藏切换网络错误: ${error.message}`, 'error');
+                return { success: false, error: error.message };
+            }
+        }
+        
+        async function testFavoritesPage() {
+            try {
+                // 在新窗口中打开favorites.html页面
+                const newWindow = window.open('/front/favorites.html', '_blank', 'width=800,height=600');
+                
+                if (newWindow) {
+                    log('已在新窗口中打开favorites.html页面', 'success');
+                    
+                    // 等待页面加载
+                    setTimeout(() => {
+                        try {
+                            // 检查页面是否正确加载
+                            if (newWindow.document) {
+                                log('favorites.html页面加载成功', 'success');
+                            } else {
+                                log('无法访问favorites.html页面内容', 'error');
+                            }
+                        } catch (e) {
+                            log('检查favorites.html页面时发生跨域错误，这是正常的', 'info');
+                        }
+                    }, 2000);
+                } else {
+                    log('无法打开新窗口，请手动访问favorites.html页面', 'error');
+                }
+            } catch (error) {
+                log(`测试favorites.html页面时发生错误: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

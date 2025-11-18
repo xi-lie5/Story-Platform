@@ -3,10 +3,24 @@ const mongoose = require('mongoose');
 const { body, validationResult, param } = require('express-validator');
 const Story = require('../models/Story');
 const StorySection = require('../models/StorySection');
-const protect = require('../middleware/auth');
+const authGuard = require('../middleware/auth');
 const { errorFormat } = require('../utils/errorFormat');
 
 const router = express.Router();
+
+// 公共章节路由 - 必须在 /:storyId 之前
+router.get('/public', async (req, res, next) => {
+  try {
+    // 这里可以实现获取公共章节的逻辑
+    res.status(200).json({
+      success: true,
+      message: '获取公共章节成功',
+      data: []
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.get('/:storyId', async (req, res, next) => {
   try {
@@ -94,6 +108,13 @@ router.get('/:storyId/:sectionId', async (req, res, next) => {
 const validateStoryOwner = async (req, res, next) => {
   const { storyId } = req.params;
 
+  // 对于临时ID（以local_开头），跳过权限验证，允许创建临时章节
+  if (storyId.startsWith('local_')) {
+    req.story = { author: { toString: () => req.user.id } }; // 模拟story对象
+    req.isTemporaryStory = true; // 标记这是临时故事
+    return next();
+  }
+
   if (!mongoose.Types.ObjectId.isValid(storyId)) {
     return next(errorFormat(400, '无效的故事ID', [], 10010));
   }
@@ -108,10 +129,11 @@ const validateStoryOwner = async (req, res, next) => {
   }
 
   req.story = story;
+  req.isTemporaryStory = false;
   return next();
 };
 
-router.post('/:storyId', protect, validateStoryOwner, [
+router.post('/:storyId', authGuard, validateStoryOwner, [
   body('order').isInt({ min: 1 }).withMessage('章节顺序必须是正整数'),
   body('type').isIn(['text', 'choice']).withMessage('章节类型只能是 text 或 choice'),
   body('text').trim().notEmpty().withMessage('章节文本必填').isLength({ max: 2000 }).withMessage('章节文本不能超过2000字'),
@@ -143,6 +165,22 @@ router.post('/:storyId', protect, validateStoryOwner, [
   try {
     const { storyId } = req.params;
     const { order, type, text, choices = [], isEnd = false, temporaryId, visualPosition, title } = req.body;
+
+    // 对于临时故事，直接返回成功，不进行数据库操作
+    if (req.isTemporaryStory) {
+      const mockSectionId = 'temp_section_' + Date.now();
+      return res.status(201).json({
+        success: true,
+        message: '临时章节创建成功',
+        data: {
+          id: mockSectionId,
+          temporaryId: temporaryId || mockSectionId,
+          order,
+          type,
+          isTemporary: true
+        }
+      });
+    }
 
     // 检查顺序是否已存在
     if (await StorySection.exists({ storyId, order })) {
@@ -182,7 +220,8 @@ router.post('/:storyId', protect, validateStoryOwner, [
         id: section.id,
         temporaryId: section.temporaryId,
         order: section.order,
-        type: section.type
+        type: section.type,
+        isTemporary: false
       }
     });
   } catch (error) {
@@ -190,7 +229,7 @@ router.post('/:storyId', protect, validateStoryOwner, [
   }
 });
 
-router.put('/:storyId/:sectionId', protect, validateStoryOwner, [
+router.put('/:storyId/:sectionId', authGuard, validateStoryOwner, [
   body('order').optional().isInt({ min: 1 }).withMessage('章节顺序必须是正整数'),
   body('type').optional().isIn(['text', 'choice']).withMessage('章节类型只能是 text 或 choice'),
   body('text').optional().trim().notEmpty().withMessage('章节内容不能为空'),
@@ -218,6 +257,21 @@ router.put('/:storyId/:sectionId', protect, validateStoryOwner, [
   try {
     const { storyId, sectionId } = req.params;
     const updateData = { ...req.body };
+
+    // 对于临时故事，直接返回成功，不进行数据库操作
+    if (req.isTemporaryStory) {
+      return res.status(200).json({
+        success: true,
+        message: '临时章节更新成功',
+        data: {
+          id: sectionId,
+          temporaryId: sectionId,
+          order: updateData.order || 1,
+          type: updateData.type || 'text',
+          isTemporary: true
+        }
+      });
+    }
 
     // 构建查询条件，支持通过临时ID更新
     let query = { storyId };
@@ -285,7 +339,8 @@ router.put('/:storyId/:sectionId', protect, validateStoryOwner, [
         id: section.id,
         temporaryId: section.temporaryId,
         order: section.order,
-        type: section.type
+        type: section.type,
+        isTemporary: false
       }
     });
   } catch (error) {
@@ -296,10 +351,22 @@ router.put('/:storyId/:sectionId', protect, validateStoryOwner, [
   }
 });
 
-router.delete('/:storyId/:sectionId', protect, validateStoryOwner, async (req, res, next) => {
+router.delete('/:storyId/:sectionId', authGuard, validateStoryOwner, async (req, res, next) => {
   try {
     const { storyId, sectionId } = req.params;
     const adjustOrder = req.query.adjustOrder !== 'false';
+
+    // 对于临时故事，直接返回成功，不进行数据库操作
+    if (req.isTemporaryStory) {
+      return res.status(200).json({
+        success: true,
+        message: '临时章节删除成功',
+        data: {
+          id: sectionId,
+          isTemporary: true
+        }
+      });
+    }
 
     // 构建查询条件，支持通过临时ID删除
     let query = { storyId };
@@ -332,7 +399,12 @@ router.delete('/:storyId/:sectionId', protect, validateStoryOwner, async (req, r
 
     res.status(200).json({
       success: true,
-      message: `章节已删除${adjustOrder ? '，后续章节顺序已重新调整' : ''}，引用关系已更新`
+      message: `章节已删除${adjustOrder ? '，后续章节顺序已重新调整' : ''}，引用关系已更新`,
+      data: {
+        id: section.id,
+        temporaryId: section.temporaryId,
+        isTemporary: false
+      }
     });
   } catch (error) {
     next(error);

@@ -1,11 +1,22 @@
 const mongoose = require('mongoose');
 
 module.exports = (err, req, res, next) => {
+    console.log('!!!!!!!!!! ERROR HANDLER CALLED !!!!!!!!!!');
+    console.log('Error message:', err.message);
+    
     // 默认错误配置
     let statusCode = err.statusCode || 500;
     let message = err.message || '服务器内部错误';
     let errors = err.errors || [];
     let code = err.code || null;
+
+    // 添加调试信息
+    console.log('=== 错误处理中间件调试 ===');
+    console.log('请求URL:', req.url);
+    console.log('请求方法:', req.method);
+    console.log('错误信息:', message);
+    console.log('错误堆栈:', err.stack);
+    console.log('========================');
 
     // 开发环境打印详细错误信息
     if (process.env.NODE_ENV !== 'production') {
@@ -95,9 +106,16 @@ module.exports = (err, req, res, next) => {
         timestamp: new Date().toISOString()
     };
 
+    // 调试：打印响应内容
+    console.log('=== 准备发送的响应 ===');
+    console.log('Response JSON:', JSON.stringify(response, null, 2));
+    console.log('Response string length:', JSON.stringify(response).length);
+    console.log('========================');
+
     // 安全头部设置
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
     
     // 返回错误响应
     res.status(statusCode).json(response);
