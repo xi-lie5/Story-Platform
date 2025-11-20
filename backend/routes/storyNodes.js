@@ -2,63 +2,9 @@ const express = require('express');
 const router = express.Router();
 const StoryNode = require('../models/StoryNode');
 const Story = require('../models/Story');
-const authGuard = require('../middleware/auth');
-const storyAuth = require('../middleware/storyAuth');
-
-console.log('=== STORY NODES ROUTER FILE LOADING ===');
-console.log('=== STORY NODES ROUTER LOADING ===');
-console.log('Router object:', typeof router);
-console.log('Router methods:', Object.getOwnPropertyNames(router.__proto__));
-
-// 测试路由 - 不需要任何中间件
-router.get('/direct-test', (req, res) => {
-  // 直接写入到stdout，绕过任何缓冲问题
-  process.stdout.write(`=== DIRECT TEST HIT at ${new Date().toISOString()} ===\n`);
-  process.stdout.write(`Method: ${req.method}\n`);
-  process.stdout.write(`URL: ${req.originalUrl}\n`);
-  process.stdout.write(`Path: ${req.path}\n`);
-  process.stdout.write(`Base URL: ${req.baseUrl}\n`);
-  
-  res.status(200).json({ 
-    message: 'Direct test works!',
-    timestamp: new Date().toISOString(),
-    path: req.path,
-    baseUrl: req.baseUrl,
-    originalUrl: req.originalUrl
-  });
-});
-
-// 调试检查路由
-router.get('/debug-check', (req, res) => {
-  console.log('=== DEBUG CHECK ROUTE HIT ===');
-  console.log('Router stack length:', router.stack.length);
-  console.log('Router stack:', router.stack.map(layer => layer.route?.path || layer.regexp));
-  res.json({ 
-    message: 'Debug check works!',
-    stackLength: router.stack.length,
-    routes: router.stack.map(layer => layer.route?.path || layer.regexp?.toString())
-  });
-});
-
-// 根路由测试
-router.get('/', (req, res) => {
-  console.log('=== STORY NODES ROOT ROUTE HIT ===');
-  res.json({ message: 'StoryNodes router working!' });
-});
-
-// 简单测试路由
-router.get('/simple-test', (req, res) => {
-  console.log('=== SIMPLE TEST ROUTE HIT ===');
-  res.json({ message: 'Simple test works!' });
-});
-
+const { authGuard } = require('../middleware/auth');
+const { storyAuth } = require('../middleware/storyAuth');
 // 公共路由（不需要认证）- 放在最前面
-// 测试路由
-router.get('/public/test', (req, res) => {
-  console.log('=== PUBLIC TEST ROUTE HIT ===');
-  res.json({ message: 'Public route working!' });
-});
-
 // 获取故事的所有节点（公共端点，不需要认证）
 router.get('/public/stories/:storyId/nodes', async (req, res) => {
   console.log('=== PUBLIC STORY NODES ROUTE HIT ===');

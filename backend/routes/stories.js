@@ -19,14 +19,6 @@ router.use((req, res, next) => {
   next();
 });
 
-console.log('=== Stories router loaded ===');
-
-// 测试路由
-router.get('/test', (req, res) => {
-  console.log('=== /test route matched ===');
-  res.json({ message: 'Test route works!' });
-});
-
 function buildSortOption(sort = 'latest') {
   switch (sort) {
     case 'popular':
