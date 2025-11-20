@@ -128,10 +128,6 @@
                 <input type="radio" name="node-type" value="ending" class="mr-2">
                 <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">结局节点</span>
               </label>
-              <label class="flex items-center cursor-pointer">
-                <input type="radio" name="node-type" value="branch" class="mr-2">
-                <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">分支节点</span>
-              </label>
             </div>
           </div>
 
@@ -277,9 +273,9 @@
           tinyEditor.setContent(currentNode.content);
         }
         
-        // 选项说明（选择节点）
-        if (currentNode.type === 'choice' && currentNode.choiceDescription) {
-          document.getElementById('choice-description-input').value = currentNode.choiceDescription;
+        // 选项说明（选择节点）- 移除旧数据模型的choiceDescription字段
+        if (currentNode.type === 'choice' && currentNode.description) {
+          document.getElementById('choice-description-input').value = currentNode.description;
         }
         
         // 选项
@@ -309,10 +305,6 @@
         case 'ending':
           typeBadge.className = 'node-type-badge px-3 py-1 text-xs rounded-full bg-green-100 text-green-800';
           typeBadge.textContent = '结局节点';
-          break;
-        case 'branch':
-          typeBadge.className = 'node-type-badge px-3 py-1 text-xs rounded-full bg-purple-100 text-purple-800';
-          typeBadge.textContent = '分支节点';
           break;
         default:
           typeBadge.className = 'node-type-badge px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-800';
@@ -376,12 +368,7 @@
       const choicesSection = document.getElementById('choices-section');
       const choiceDescriptionSection = document.getElementById('choice-description-section');
       
-      // 分支节点不需要内容，但需要选项
-      if (nodeType === 'branch') {
-        contentSection.style.display = 'none';
-        choicesSection.style.display = 'block';
-        choiceDescriptionSection.style.display = 'none';
-      } else if (nodeType === 'choice') {
+      if (nodeType === 'choice') {
         // 选择节点需要内容和选项说明，选项通过右键菜单管理
         contentSection.style.display = 'block';
         choicesSection.style.display = 'none';
@@ -406,13 +393,13 @@
           choices: []
         };
         
-        // 如果是选择节点，添加选项说明
+        // 如果是选择节点，添加选项说明 - 使用新的description字段
         if (formData.type === 'choice') {
-          formData.choiceDescription = document.getElementById('choice-description-input').value;
+          formData.description = document.getElementById('choice-description-input').value;
         }
         
-        // 收集选项数据（仅对选择节点和分支节点）
-        if (formData.type === 'choice' || formData.type === 'branch') {
+        // 收集选项数据（仅对选择节点）
+        if (formData.type === 'choice') {
           const choiceItems = document.querySelectorAll('.choice-item');
           choiceItems.forEach(item => {
             const textInput = item.querySelector('input[placeholder*="选项文本"]');
@@ -483,7 +470,6 @@
         // 如果选项没有目标节点，自动创建一个
         if (!choice.targetNodeId) {
           try {
-            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
             const response = await fetch(API_CONFIG.NODES.createNode(currentStoryId), {
               method: 'POST',
               headers: API_CONFIG.getAuthHeaders(),
@@ -491,7 +477,6 @@
                 parentId: currentNodeId,
                 title: choice.text,
                 content: `这是"${choice.text}"选项对应的内容...`,
-                choiceText: choice.text,
                 type: 'normal'
               })
             });
@@ -561,14 +546,13 @@
     }
 
     // 获取类型标签
-      function getTypeLabel(type) {
-        switch (type) {
-          case 'choice': return '选择节点';
-          case 'ending': return '结局节点';
-          case 'branch': return '分支节点';
-          default: return '普通节点';
-        }
+    function getTypeLabel(type) {
+      switch (type) {
+        case 'choice': return '选择节点';
+        case 'ending': return '结局节点';
+        default: return '普通节点';
       }
+    }
 
     // 绑定事件
     function bindEvents() {

@@ -28,7 +28,7 @@ const storyNodeSchema = new mongoose.Schema({
   type: {
     type: String,
     required: [true, '节点类型必填'],
-    enum: ['normal', 'choice', 'ending', 'branch'],
+    enum: ['normal', 'choice', 'ending'],
     default: 'normal'
   },
   order: {
@@ -45,6 +45,10 @@ const storyNodeSchema = new mongoose.Schema({
     text: {
       type: String,
       required: [true, '选项文本必填'],
+      trim: true
+    },
+    description: {
+      type: String,
       trim: true
     },
     targetNodeId: {
@@ -223,25 +227,25 @@ storyNodeSchema.statics.processNodeRelations = async function(nodes, storyId) {
           needsUpdate = true;
         }
         
-        // 自动创建分支节点
+        // 自动创建子节点
         if (choice.autoCreate && !choice.targetNodeId) {
-          const branchNode = new this({
+          const childNode = new this({
             storyId,
             parentId: node._id,
-            title: `分支：${choice.text}`,
-            content: '', // 分支节点不需要内容
-            type: 'branch', // 新的分支节点类型
+            title: choice.text,
+            content: '',
+            type: 'normal',
             order: i,
             depth: node.depth + 1,
             path: node.path ? `${node.path},${node._id}` : node._id.toString(),
             position: {
-              x: node.position.x + 200, // 在父节点右侧
-              y: node.position.y + (i * 100) // 垂直排列
+              x: node.position.x + 200,
+              y: node.position.y + (i * 100)
             }
           });
           
-          await branchNode.save();
-          choice.targetNodeId = branchNode._id;
+          await childNode.save();
+          choice.targetNodeId = childNode._id;
           choice.autoCreate = false;
           needsUpdate = true;
         }
@@ -282,12 +286,12 @@ storyNodeSchema.statics.createChild = async function(parentId, nodeData) {
   // 保存子节点
   await child.save();
   
-  // 如果父节点不是choice类型，并且提供了choiceText，自动添加一个选项
-  if (parent.type !== 'choice' && nodeData.choiceText) {
+  // 如果父节点不是choice类型，并且提供了description，自动添加一个选项
+  if (parent.type !== 'choice' && nodeData.description) {
     const choiceId = new mongoose.Types.ObjectId().toString();
     parent.choices.push({
       id: choiceId,
-      text: nodeData.choiceText,
+      text: nodeData.description,
       targetNodeId: child._id
     });
     await parent.save();

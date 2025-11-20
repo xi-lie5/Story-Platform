@@ -288,8 +288,8 @@
   </div>
 
   <script src="assets/js/auth.js"></script>
-  <script>
-    // 全局变量
+  <script src="assets/js/api-config.js"></script>
+  <script>  // 全局变量
     let currentStoryId = null;
     let graphData = {
       nodes: {},
@@ -381,10 +381,9 @@
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if (!token) return;
         
-        const response = await fetch(`http://localhost:5000/api/v1/stories/${currentStoryId}/sections`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        // 使用新的节点API而不是sections API
+        const response = await fetch(API_CONFIG.NODES.getStoryNodes(currentStoryId), {
+          headers: API_CONFIG.getAuthHeaders()
         });
         
         if (response.ok) {
@@ -400,28 +399,30 @@
     }
 
     // 转换后端数据格式
-    function convertBackendData(sections) {
+    function convertBackendData(nodes) {
       graphData = {
         nodes: {},
         connections: []
       };
       
-      sections.forEach(section => {
-        graphData.nodes[section._id] = {
-          id: section._id,
-          title: section.title,
-          content: section.text,
-          type: section.type || 'normal',
-          position: section.position || { x: Math.random() * 400, y: Math.random() * 300 }
+      nodes.forEach(node => {
+        graphData.nodes[node._id] = {
+          id: node._id,
+          title: node.title,
+          content: node.content,
+          type: node.type || 'normal',
+          position: node.position || { x: Math.random() * 400, y: Math.random() * 300 },
+          depth: node.depth || 0,
+          order: node.order || 0
         };
         
-        // 添加连接关系
-        if (section.choices && section.choices.length > 0) {
-          section.choices.forEach(choice => {
-            if (choice.nextSectionId) {
+        // 添加连接关系 - 统一处理choices数组
+        if (node.choices && node.choices.length > 0) {
+          node.choices.forEach(choice => {
+            if (choice.targetNodeId) {
               graphData.connections.push({
-                from: section._id,
-                to: choice.nextSectionId,
+                from: node._id,
+                to: choice.targetNodeId,
                 description: choice.text
               });
             }

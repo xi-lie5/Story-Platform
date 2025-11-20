@@ -199,160 +199,6 @@
 
   <script src="assets/js/auth.js"></script>
   <script>
-    /**
-     * 分类管理模块
-     * 负责从后端获取分类数据并管理分类相关操作
-     */
-    (function(window) {
-      const BACKEND_BASE_URL = window.AuthUI?.BACKEND_BASE_URL || 'http://localhost:5000';
-      
-      // 分类数据缓存
-      let categoriesCache = null;
-      let cacheTimestamp = 0;
-      const CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
-
-      /**
-       * 获取分类列表
-       * @param {boolean} forceRefresh - 是否强制刷新缓存
-       * @returns {Promise<Array>} 分类列表
-       */
-      async function getCategories(forceRefresh = false) {
-        const now = Date.now();
-        
-        // 检查缓存是否有效
-        if (!forceRefresh && categoriesCache && (now - cacheTimestamp) < CACHE_DURATION) {
-          return categoriesCache;
-        }
-
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch(`${BACKEND_BASE_URL}/api/v1/categories`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token && { 'Authorization': `Bearer ${token}` })
-            }
-          });
-
-          if (!response.ok) {
-            throw new Error(`获取分类列表失败: ${response.status}`);
-          }
-
-          const data = await response.json();
-          
-          if (data.success) {
-            categoriesCache = data.data;
-            cacheTimestamp = now;
-            return categoriesCache;
-          } else {
-            throw new Error(data.message || '获取分类列表失败');
-          }
-        } catch (error) {
-          console.error('获取分类列表失败:', error);
-          // 返回默认分类作为后备
-          return getDefaultCategories();
-        }
-      }
-
-      /**
-       * 填充分类下拉框
-       * @param {HTMLSelectElement} selectElement - 下拉框元素
-       * @param {Object} options - 配置选项
-       */
-      async function populateCategorySelect(selectElement, options = {}) {
-        const {
-          includeEmpty = true,
-          emptyText = '选择分类',
-          valueField = '_id',
-          textField = 'name'
-        } = options;
-
-        if (!selectElement) {
-          console.error('下拉框元素不存在');
-          return;
-        }
-
-        try {
-          const categories = await getCategories();
-          
-          // 清空现有选项
-          selectElement.innerHTML = '';
-
-          // 添加空选项
-          if (includeEmpty) {
-            const emptyOption = document.createElement('option');
-            emptyOption.value = '';
-            emptyOption.textContent = emptyText;
-            selectElement.appendChild(emptyOption);
-          }
-
-          // 添加分类选项
-          categories.forEach(category => {
-            const option = document.createElement('option');
-            option.value = category[valueField];
-            option.textContent = category[textField];
-            option.dataset.storyCount = category.storyCount || 0;
-            selectElement.appendChild(option);
-          });
-
-          // 触发change事件
-          selectElement.dispatchEvent(new Event('change'));
-        } catch (error) {
-          console.error('填充分类下拉框失败:', error);
-          // 使用默认分类作为后备
-          populateDefaultCategories(selectElement, options);
-        }
-      }
-
-      /**
-       * 获取默认分类（后备方案）
-       */
-      function getDefaultCategories() {
-        return [
-          { _id: 'fantasy', name: '奇幻冒险', storyCount: 0 },
-          { _id: 'sci-fi', name: '科幻未来', storyCount: 0 },
-          { _id: 'mystery', name: '悬疑推理', storyCount: 0 },
-          { _id: 'love', name: '爱情故事', storyCount: 0 },
-          { _id: 'horror', name: '恐怖惊悚', storyCount: 0 },
-          { _id: 'other', name: '其他类型', storyCount: 0 }
-        ];
-      }
-
-      /**
-       * 填充默认分类（后备方案）
-       */
-      function populateDefaultCategories(selectElement, options = {}) {
-        const { includeEmpty = true, emptyText = '选择分类' } = options;
-        
-        selectElement.innerHTML = '';
-        
-        if (includeEmpty) {
-          const emptyOption = document.createElement('option');
-          emptyOption.value = '';
-          emptyOption.textContent = emptyText;
-          selectElement.appendChild(emptyOption);
-        }
-
-        const defaultCategories = getDefaultCategories();
-        defaultCategories.forEach(category => {
-          const option = document.createElement('option');
-          option.value = category._id;
-          option.textContent = category.name;
-          option.dataset.storyCount = category.storyCount;
-          selectElement.appendChild(option);
-        });
-      }
-
-      // 导出到全局对象
-      window.CategoriesAPI = Object.freeze({
-        getCategories,
-        populateCategorySelect,
-        getDefaultCategories
-      });
-
-    })(window);
-  </script>
-  <script>
     const mobileMenuButton = document.getElementById('mobile-menu-button');
     const mobileMenu = document.getElementById('mobile-menu');
     if (mobileMenuButton && mobileMenu) {
@@ -425,20 +271,23 @@
 
     // 页面加载时检查登录状态并加载分类
     document.addEventListener('DOMContentLoaded', function() {
-      // 先加载分类数据（不需要登录）
-      loadCategories();
-      
-      // 然后检查登录状态
-      const authState = AuthUI.getAuthState();
-      
-      if (!authState) {
-        // 用户未登录，显示登录提示
-        showLoginPrompt();
-        return;
-      }
-      
-      // 用户已登录，更新UI显示用户信息
-      updateAuthUI(authState);
+      // 等待一小段时间确保auth.js完全加载
+      setTimeout(() => {
+        // 先加载分类数据（不需要登录）
+        loadCategories();
+        
+        // 然后检查登录状态
+        const authState = AuthUI.getAuthState();
+        
+        if (!authState) {
+          // 用户未登录，显示登录提示
+          showLoginPrompt();
+          return;
+        }
+        
+        // 用户已登录，更新UI显示用户信息
+        updateAuthUI(authState);
+      }, 100);
     });
 
     // 更新认证UI显示

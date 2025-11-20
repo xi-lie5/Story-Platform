@@ -2,12 +2,96 @@ const express = require('express');
 const router = express.Router();
 const StoryNode = require('../models/StoryNode');
 const Story = require('../models/Story');
-const auth = require('../middleware/auth');
 const authGuard = require('../middleware/auth');
 const storyAuth = require('../middleware/storyAuth');
 
+console.log('=== STORY NODES ROUTER FILE LOADING ===');
+console.log('=== STORY NODES ROUTER LOADING ===');
+console.log('Router object:', typeof router);
+console.log('Router methods:', Object.getOwnPropertyNames(router.__proto__));
+
+// 测试路由 - 不需要任何中间件
+router.get('/direct-test', (req, res) => {
+  // 直接写入到stdout，绕过任何缓冲问题
+  process.stdout.write(`=== DIRECT TEST HIT at ${new Date().toISOString()} ===\n`);
+  process.stdout.write(`Method: ${req.method}\n`);
+  process.stdout.write(`URL: ${req.originalUrl}\n`);
+  process.stdout.write(`Path: ${req.path}\n`);
+  process.stdout.write(`Base URL: ${req.baseUrl}\n`);
+  
+  res.status(200).json({ 
+    message: 'Direct test works!',
+    timestamp: new Date().toISOString(),
+    path: req.path,
+    baseUrl: req.baseUrl,
+    originalUrl: req.originalUrl
+  });
+});
+
+// 调试检查路由
+router.get('/debug-check', (req, res) => {
+  console.log('=== DEBUG CHECK ROUTE HIT ===');
+  console.log('Router stack length:', router.stack.length);
+  console.log('Router stack:', router.stack.map(layer => layer.route?.path || layer.regexp));
+  res.json({ 
+    message: 'Debug check works!',
+    stackLength: router.stack.length,
+    routes: router.stack.map(layer => layer.route?.path || layer.regexp?.toString())
+  });
+});
+
+// 根路由测试
+router.get('/', (req, res) => {
+  console.log('=== STORY NODES ROOT ROUTE HIT ===');
+  res.json({ message: 'StoryNodes router working!' });
+});
+
+// 简单测试路由
+router.get('/simple-test', (req, res) => {
+  console.log('=== SIMPLE TEST ROUTE HIT ===');
+  res.json({ message: 'Simple test works!' });
+});
+
+// 公共路由（不需要认证）- 放在最前面
+// 测试路由
+router.get('/public/test', (req, res) => {
+  console.log('=== PUBLIC TEST ROUTE HIT ===');
+  res.json({ message: 'Public route working!' });
+});
+
+// 获取故事的所有节点（公共端点，不需要认证）
+router.get('/public/stories/:storyId/nodes', async (req, res) => {
+  console.log('=== PUBLIC STORY NODES ROUTE HIT ===');
+  console.log('Story ID:', req.params.storyId);
+  try {
+    const { storyId } = req.params;
+    const { type, depth } = req.query;
+    
+    const query = { storyId };
+    if (type) query.type = type;
+    if (depth) query.depth = parseInt(depth);
+    
+    const nodes = await StoryNode.find(query)
+      .sort({ depth: 1, order: 1 })
+      .populate('parentId', 'title')
+      .populate('choices.targetNodeId', 'title');
+    
+    res.json({
+      success: true,
+      data: nodes
+    });
+  } catch (error) {
+    console.error('获取节点列表失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '获取节点列表失败',
+      error: error.message
+    });
+  }
+});
+
 // 获取故事树
-router.get('/stories/:storyId/tree', auth, storyAuth, async (req, res) => {
+router.get('/stories/:storyId/tree', authGuard, storyAuth, async (req, res) => {
   try {
     const { storyId } = req.params;
     
@@ -34,7 +118,7 @@ router.get('/stories/:storyId/tree', auth, storyAuth, async (req, res) => {
 });
 
 // 获取故事的所有节点（平铺结构，用于编辑器）
-router.get('/stories/:storyId/nodes', auth, storyAuth, async (req, res) => {
+router.get('/stories/:storyId/nodes', authGuard, storyAuth, async (req, res) => {
   try {
     const { storyId } = req.params;
     const { type, depth } = req.query;
@@ -63,7 +147,7 @@ router.get('/stories/:storyId/nodes', auth, storyAuth, async (req, res) => {
 });
 
 // 创建根节点（新故事）
-router.post('/stories/:storyId/root', auth, async (req, res) => {
+router.post('/stories/:storyId/root', authGuard, async (req, res) => {
   try {
     const { storyId } = req.params;
     const { title, content } = req.body;
@@ -116,23 +200,27 @@ router.post('/stories/:storyId/root', auth, async (req, res) => {
 });
 
 // 创建子节点
-router.post('/stories/:storyId/nodes', auth, storyAuth, async (req, res) => {
+router.post('/stories/:storyId/nodes', authGuard, storyAuth, async (req, res) => {
   try {
     const { storyId } = req.params;
-    const { parentId, title, content, type, choiceText, choices } = req.body;
+    const { parentId, title, content, type, description, choices } = req.body;
     
     console.log('🔍 收到的请求数据:', JSON.stringify(req.body, null, 2));
     
-    // 准备节点数据
+    // 准备节点数据 - 移除旧数据模型的choiceText字段
     const nodeData = {
       title: title || '新章节',
       content: content || '请输入章节内容...',
-      type: type || 'normal',
-      choiceText: choiceText
+      type: type || 'normal'
     };
     
-    // 如果是choice类型节点，并且提供了choices数组，在创建时就包含
-    if (type === 'choice' && choices && Array.isArray(choices)) {
+    // 如果是choice类型节点，添加description字段
+    if (type === 'choice' && description) {
+      nodeData.description = description;
+    }
+    
+    // 如果提供了choices数组，在创建时就包含
+    if (choices && Array.isArray(choices)) {
       console.log('📝 设置choices数组:', choices); // 调试日志
       nodeData.choices = choices.map(choice => ({
         id: choice.id || new mongoose.Types.ObjectId().toString(),
@@ -164,7 +252,7 @@ router.post('/stories/:storyId/nodes', auth, storyAuth, async (req, res) => {
 });
 
 // 批量保存节点（处理自动创建分支和关系绑定）
-router.post('/stories/:storyId/nodes/batch', auth, storyAuth, async (req, res) => {
+router.post('/stories/:storyId/nodes/batch', authGuard, storyAuth, async (req, res) => {
   try {
     const { storyId } = req.params;
     const { nodes } = req.body;
@@ -195,10 +283,10 @@ router.post('/stories/:storyId/nodes/batch', auth, storyAuth, async (req, res) =
 });
 
 // 更新节点
-router.put('/nodes/:nodeId', auth, async (req, res) => {
+router.put('/nodes/:nodeId', authGuard, async (req, res) => {
   try {
     const { nodeId } = req.params;
-    const { title, content, type, choices, position } = req.body;
+    const { title, content, type, description, choices, position } = req.body;
     
     const node = await StoryNode.findById(nodeId);
     if (!node) {
@@ -215,6 +303,11 @@ router.put('/nodes/:nodeId', auth, async (req, res) => {
     if (position) {
       node.position.x = position.x || node.position.x;
       node.position.y = position.y || node.position.y;
+    }
+    
+    // 如果是choice类型节点，更新description字段
+    if (type === 'choice' && description !== undefined) {
+      node.description = description;
     }
     
     // 更新选项
@@ -240,7 +333,7 @@ router.put('/nodes/:nodeId', auth, async (req, res) => {
 });
 
 // 删除节点及其子树
-router.delete('/nodes/:nodeId', auth, async (req, res) => {
+router.delete('/nodes/:nodeId', authGuard, async (req, res) => {
   try {
     const { nodeId } = req.params;
     
@@ -261,7 +354,7 @@ router.delete('/nodes/:nodeId', auth, async (req, res) => {
 });
 
 // 移动节点（改变父节点或顺序）
-router.put('/nodes/:nodeId/move', auth, async (req, res) => {
+router.put('/nodes/:nodeId/move', authGuard, async (req, res) => {
   try {
     const { nodeId } = req.params;
     const { newParentId, newOrder } = req.body;
@@ -332,7 +425,7 @@ router.put('/nodes/:nodeId/move', auth, async (req, res) => {
 });
 
 // 绑定选项到目标节点
-router.put('/nodes/:nodeId/choices/:choiceId/bind', auth, async (req, res) => {
+router.put('/nodes/:nodeId/choices/:choiceId/bind', authGuard, async (req, res) => {
   try {
     const { nodeId, choiceId } = req.params;
     const { targetNodeId } = req.body;
@@ -392,7 +485,7 @@ router.put('/nodes/:nodeId/choices/:choiceId/bind', auth, async (req, res) => {
 });
 
 // 验证故事的一致性
-router.get('/stories/:storyId/validate', auth, storyAuth, async (req, res) => {
+router.get('/stories/:storyId/validate', authGuard, storyAuth, async (req, res) => {
   try {
     const { storyId } = req.params;
     

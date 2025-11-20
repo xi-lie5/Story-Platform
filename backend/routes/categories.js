@@ -16,6 +16,7 @@ const router = express.Router();
  */
 router.get('/', async (req, res, next) => {
   try {
+    console.log('=== 分类API被调用 ===');
     const { sort = 'storyCount' } = req.query;
     
     // 构建排序对象
@@ -28,13 +29,18 @@ router.get('/', async (req, res, next) => {
     
     // 查询分类列表
     const categories = await Category.find().sort(sortObject);
+    console.log('=== 查询到分类数量:', categories.length);
     
-    res.status(200).json({
+    const responseData = {
       success: true,
       count: categories.length,
       data: categories
-    });
+    };
+    
+    console.log('=== 分类API响应:', JSON.stringify(responseData, null, 2));
+    res.status(200).json(responseData);
   } catch (err) {
+    console.error('=== 分类API错误:', err);
     next(err);
   }
 });

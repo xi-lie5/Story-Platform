@@ -178,6 +178,49 @@
     };
   }
 
+  // Categories API
+  const CategoriesAPI = {
+    async getCategories() {
+      try {
+        const response = await fetch(`${BACKEND_BASE_URL}/api/v1/categories`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data.success ? data.data : [];
+      } catch (error) {
+        console.error('获取分类失败:', error);
+        return [];
+      }
+    },
+
+    async populateCategorySelect(selectElement, options = {}) {
+      const { includeEmpty = false, emptyText = '请选择分类' } = options;
+      
+      // 清空现有选项
+      selectElement.innerHTML = '';
+      
+      // 添加空选项（如果需要）
+      if (includeEmpty) {
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = emptyText;
+        selectElement.appendChild(emptyOption);
+      }
+      
+      // 获取分类数据
+      const categories = await this.getCategories();
+      
+      // 添加分类选项
+      categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category._id;
+        option.textContent = category.name;
+        selectElement.appendChild(option);
+      });
+    }
+  };
+
   window.AuthUI = Object.freeze({
     init,
     getAuthState,
@@ -187,5 +230,8 @@
     BACKEND_BASE_URL,
     AUTH_STORAGE_KEYS: [...AUTH_STORAGE_KEYS]
   });
+
+  // 将CategoriesAPI添加到全局对象
+  window.CategoriesAPI = CategoriesAPI;
 })(window);
 
