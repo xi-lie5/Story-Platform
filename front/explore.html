@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>探索故事 - StoryForge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#ec4899',
+                    },
+                },
+            }
+        }
+    </script>
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .backdrop-blur {
+                backdrop-filter: blur(8px);
+            }
+            .navbar-modern {
+                background: rgba(255,255,255,0.98);
+                backdrop-filter: blur(10px);
+                border-bottom: 1px solid rgba(0,0,0,0.08);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            }
+            .navbar-link {
+                transition: color 0.2s ease;
+            }
+            .btn-primary-modern {
+                background: #6366f1;
+                transition: background-color 0.2s ease;
+            }
+            .btn-primary-modern:hover {
+                background: #5558e3;
+            }
+            .btn-secondary-modern {
+                background: transparent;
+                border: 1px solid #e5e7eb;
+                color: #6b7280;
+                transition: all 0.2s ease;
+            }
+            .btn-secondary-modern:hover {
+                background: #f9fafb;
+                border-color: #d1d5db;
+            }
+            
+            .story-card {
+                @apply bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden;
+                border: 1px solid #e5e7eb;
+            }
+            
+            .story-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            }
+            
+            .loading-container {
+                @apply flex flex-col items-center justify-center py-20;
+            }
+            
+            .loading-spinner {
+                @apply w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4;
+            }
+            
+            .pagination-container {
+                @apply flex justify-center items-center space-x-2 mt-8;
+            }
+            
+            .pagination-btn {
+                @apply px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors;
+            }
+            
+            .pagination-btn.active {
+                @apply bg-blue-500 text-white border-blue-500;
+            }
+            
+            .pagination-btn:disabled {
+                @apply opacity-50 cursor-not-allowed;
+            }
+            
+            .nav-link {
+                position: relative;
+                transition: color 0.3s ease;
+            }
+            
+            .nav-link::after {
+                content: '';
+                position: absolute;
+                bottom: -2px;
+                left: 0;
+                width: 0;
+                height: 2px;
+                background-color: #3b82f6;
+                transition: width 0.3s ease;
+            }
+            
+            .nav-link.active::after,
+            .nav-link:hover::after {
+                width: 100%;
+            }
+            
+            .nav-link.active {
+                color: #3b82f6;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <!-- 导航栏 -->
+    <nav class="navbar-modern">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <!-- Logo区域 -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+                        <i class="fa fa-book text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl md:text-2xl font-display font-bold text-gray-900">StoryForge</h1>
+                        <p class="text-xs text-slate-500 hidden md:block">AI故事创作平台</p>
+                    </div>
+                </div>
+                
+                <!-- 桌面端导航链接 -->
+                <div class="hidden lg:flex items-center space-x-8">
+                    <a href="index.html" class="navbar-link font-medium text-slate-600 hover:text-primary">首页</a>
+                    <a href="explore.html" class="navbar-link active font-medium text-slate-700 hover:text-primary">探索故事</a>
+                    <a href="create.html" class="navbar-link font-medium text-slate-600 hover:text-primary">创建故事</a>
+                    <a href="my_stories.html" class="navbar-link font-medium text-slate-600 hover:text-primary">我的作品</a>
+                    <a href="favorites.html" class="navbar-link font-medium text-slate-600 hover:text-primary">我的收藏</a>
+                    <a href="profile.html" class="navbar-link font-medium text-slate-600 hover:text-primary">个人中心</a>
+                    <a href="about.html" class="navbar-link font-medium text-slate-600 hover:text-primary">关于</a>
+                </div>
+                
+                <!-- 认证区域 -->
+                <div id="auth-area-desktop" class="flex items-center space-x-3">
+                    <!-- AuthUI会动态渲染登录状态或用户信息 -->
+                </div>
+                
+                <!-- 移动端菜单按钮 -->
+                <button id="mobile-menu-button" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors">
+                    <i class="fa fa-bars text-slate-600 text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 移动端菜单 -->
+        <div class="lg:hidden hidden bg-white/95 backdrop-blur-md border-t border-slate-200" id="mobile-menu">
+            <div class="container mx-auto px-4 py-4 space-y-3">
+                <a href="index.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">首页</a>
+                <a href="explore.html" class="block py-3 px-4 rounded-lg font-medium text-primary bg-primary/5">探索故事</a>
+                <a href="create.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">创建故事</a>
+                <a href="my_stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">我的作品</a>
+                <a href="favorites.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">我的收藏</a>
+                <a href="profile.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">个人中心</a>
+                <a href="about.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">关于</a>
+                <div class="flex flex-col space-y-3 pt-3 border-t border-slate-200">
+                    <div id="auth-area-mobile">
+                        <!-- AuthUI会动态渲染移动端登录状态或用户信息 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区 -->
+    <section class="pb-20 px-4">
+        <div class="container mx-auto max-w-6xl">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-2xl md:text-3xl font-bold">探索精彩故事</h2>
+                <span id="story-count" class="text-sm text-slate-500">共 0 个故事</span>
+            </div>
+
+            <!-- 筛选区 -->
+            <div class="bg-white rounded-2xl shadow-xl p-6 mb-8">
+                <div class="flex flex-wrap gap-4">
+                    <div class="w-full md:w-auto md:flex-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">故事类型</label>
+                        <select
+                            class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all">
+                            <option value="">全部类型</option>
+                            <option value="fantasy">奇幻冒险</option>
+                            <option value="sci-fi">科幻未来</option>
+                            <option value="mystery">悬疑推理</option>
+                            <option value="romance">爱情故事</option>
+                            <option value="horror">恐怖惊悚</option>
+                        </select>
+                    </div>
+
+                    <div class="w-full md:w-auto md:flex-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">排序方式</label>
+                        <select
+                            class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all">
+                            <option value="popular">热门优先</option>
+                            <option value="recent">最新发布</option>
+                            <option value="complete">已完成</option>
+                            <option value="branches">分支最多</option>
+                        </select>
+                    </div>
+
+                    <div class="w-full md:w-auto self-end">
+                        <button
+                            class="w-full md:w-auto px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                            筛选
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 故事列表 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[400px]" id="stories-container">
+                <!-- 加载中状态 -->
+                <div class="col-span-full loading-container">
+                    <div class="loading-spinner"></div>
+                    <p class="text-gray-600">正在加载精彩故事...</p>
+                </div>
+            </div>
+
+            <!-- 分页 -->
+            <div id="pagination-container" class="pagination-container">
+                <!-- 分页按钮将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="bg-slate-900 text-white py-12 px-4">
+        <div class="container mx-auto max-w-6xl">
+            <div class="border-t border-slate-800 pt-8 text-center text-slate-500 text-sm">
+                <p>&copy; 2023 StoryForge. 保留所有权利。</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="assets/js/auth.js"></script>
+    <script>
+        /**
+         * 分类管理模块
+         * 负责从后端获取分类数据并管理分类相关操作
+         */
+        (function(window) {
+          const BACKEND_BASE_URL = window.AuthUI?.BACKEND_BASE_URL || 'http://localhost:5000';
+          
+          // 分类数据缓存
+          let categoriesCache = null;
+          let cacheTimestamp = 0;
+          const CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
+
+          async function getCategories(forceRefresh = false) {
+            const now = Date.now();
+            
+            if (!forceRefresh && categoriesCache && (now - cacheTimestamp) < CACHE_DURATION) {
+              return categoriesCache;
+            }
+
+            try {
+              const token = localStorage.getItem('token');
+              const response = await fetch(`${BACKEND_BASE_URL}/api/v1/categories`, {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(token && { 'Authorization': `Bearer ${token}` })
+                }
+              });
+
+              if (!response.ok) {
+                throw new Error(`获取分类列表失败: ${response.status}`);
+              }
+
+              const data = await response.json();
+              
+              if (data.success) {
+                categoriesCache = data.data;
+                cacheTimestamp = now;
+                return categoriesCache;
+              } else {
+                throw new Error(data.message || '获取分类列表失败');
+              }
+            } catch (error) {
+              console.error('获取分类列表失败:', error);
+              return getDefaultCategories();
+            }
+          }
+
+          function getDefaultCategories() {
+            return [
+              { _id: 'fantasy', name: '奇幻冒险', storyCount: 0 },
+              { _id: 'sci-fi', name: '科幻未来', storyCount: 0 },
+              { _id: 'mystery', name: '悬疑推理', storyCount: 0 },
+              { _id: 'love', name: '爱情故事', storyCount: 0 },
+              { _id: 'horror', name: '恐怖惊悚', storyCount: 0 },
+              { _id: 'other', name: '其他类型', storyCount: 0 }
+            ];
+          }
+
+          async function populateCategorySelect(selectElement, options = {}) {
+            const {
+              includeEmpty = true,
+              emptyText = '全部类型',
+              valueField = '_id',
+              textField = 'name'
+            } = options;
+
+            if (!selectElement) {
+              console.error('下拉框元素不存在');
+              return;
+            }
+
+            try {
+              const categories = await getCategories();
+              
+              selectElement.innerHTML = '';
+
+              if (includeEmpty) {
+                const emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.textContent = emptyText;
+                selectElement.appendChild(emptyOption);
+              }
+
+              categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category[valueField];
+                option.textContent = category[textField];
+                option.dataset.storyCount = category.storyCount || 0;
+                selectElement.appendChild(option);
+              });
+
+              selectElement.dispatchEvent(new Event('change'));
+            } catch (error) {
+              console.error('填充分类下拉框失败:', error);
+              populateDefaultCategories(selectElement, options);
+            }
+          }
+
+          window.CategoriesAPI = Object.freeze({
+            getCategories,
+            populateCategorySelect,
+            getDefaultCategories
+          });
+
+        })(window);
+
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+
+        AuthUI.init();
+
+        // 页面加载时初始化分类筛选
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化分类筛选下拉框
+            const categorySelect = document.querySelector('select');
+            if (categorySelect) {
+                CategoriesAPI.populateCategorySelect(categorySelect, {
+                    includeEmpty: true,
+                    emptyText: '全部类型'
+                });
+            }
+        });
+
+        // 通用功能：按钮点击反馈
+        document.querySelectorAll('button, a[href]').forEach(el => {
+            // 忽略外部链接和特定不需要反馈的元素
+            if (!el.href || el.href.includes(window.location.host) || el.tagName === 'BUTTON') {
+                el.addEventListener('click', function (e) {
+                    // 保存按钮逻辑
+                    if (this.innerHTML.includes('保存') || this.id === 'save-story' || this.id === 'save-btn') {
+                        e.preventDefault();
+                        showNotification('已保存成功！', 'success');
+                        return;
+                    }
+
+                    // 删除按钮逻辑
+                    if (this.innerHTML.includes('删除') || this.innerHTML.includes('放弃')) {
+                        e.preventDefault();
+                        if (confirm('确定要删除/放弃吗？此操作不可恢复')) {
+                            showNotification('已删除', 'info');
+                        }
+                        return;
+                    }
+
+                    // AI相关按钮逻辑
+                    if (this.id.includes('ai-') || this.innerHTML.includes('AI') || this.innerHTML.includes('续写')) {
+                        e.preventDefault();
+                        const originalHTML = this.innerHTML;
+                        this.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 处理中...';
+                        this.disabled = true;
+
+                        setTimeout(() => {
+                            this.innerHTML = originalHTML;
+                            this.disabled = false;
+                            showNotification('AI已完成处理，结果已更新', 'success');
+                        }, 1500);
+                        return;
+                    }
+
+                    // 添加分支/角色按钮逻辑
+                    if (this.innerHTML.includes('添加分支') || this.innerHTML.includes('添加角色')) {
+                        e.preventDefault();
+                        showNotification('已添加新分支/角色', 'success');
+                        return;
+                    }
+
+                    // 自动排列按钮逻辑
+                    if (this.innerHTML.includes('自动排列')) {
+                        e.preventDefault();
+                        showNotification('已自动排列节点', 'info');
+                        return;
+                    }
+
+                    // 导出按钮逻辑
+                    if (this.innerHTML.includes('导出')) {
+                        e.preventDefault();
+                        showNotification('导出成功，文件已下载', 'success');
+                        return;
+                    }
+                });
+            }
+        });
+
+        // 通知提示功能
+        function showNotification(message, type = 'info') {
+            // 创建通知元素
+            const notification = document.createElement('div');
+            notification.className = `fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center transition-all duration-300 transform translate-y-10 opacity-0`;
+
+            // 根据类型设置样式
+            if (type === 'success') {
+                notification.classList.add('bg-green-50', 'border', 'border-green-200', 'text-green-700');
+                notification.innerHTML = `<i class="fa fa-check-circle mr-2"></i>${message}`;
+            } else if (type === 'error') {
+                notification.classList.add('bg-red-50', 'border', 'border-red-200', 'text-red-700');
+                notification.innerHTML = `<i class="fa fa-exclamation-circle mr-2"></i>${message}`;
+            } else {
+                notification.classList.add('bg-blue-50', 'border', 'border-blue-200', 'text-blue-700');
+                notification.innerHTML = `<i class="fa fa-info-circle mr-2"></i>${message}`;
+            }
+
+            // 添加到页面
+            document.body.appendChild(notification);
+
+            // 显示动画
+            setTimeout(() => {
+                notification.classList.remove('translate-y-10', 'opacity-0');
+            }, 10);
+
+            // 3秒后隐藏
+            setTimeout(() => {
+                notification.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // 节点点击跳转（针对故事框架页）
+        document.querySelectorAll('.node-hover').forEach(node => {
+            node.addEventListener('click', function (e) {
+                if (!e.target.closest('button')) {
+                    const nodeTitle = this.querySelector('span').textContent;
+                    showNotification(`正在进入「${nodeTitle}」的编辑页面`, 'info');
+                    setTimeout(() => {
+                        window.location.href = 'story_editor_new.html';
+                    }, 500);
+                }
+            });
+        });
+
+        // 全局变量
+        let currentPage = 1;
+        let totalPages = 1;
+        let pageSize = 12;
+        let totalStories = 0;
+        let currentFilter = {
+            type: '',
+            sort: 'popular'
+        };
+
+        // 加载故事数据
+        async function loadStories(page = 1) {
+            try {
+                console.log(`正在加载第${page}页故事...`);
+                currentPage = page;
+                
+                // 显示加载状态
+                const storiesContainer = document.getElementById('stories-container');
+                if (storiesContainer) {
+                    storiesContainer.innerHTML = `
+                        <div class="loading-container">
+                            <div class="loading-spinner"></div>
+                            <p class="text-slate-500">正在加载精彩故事...</p>
+                        </div>
+                    `;
+                }
+
+                // 构建API URL
+                const params = new URLSearchParams({
+                    page: page,
+                    limit: pageSize,
+                    sort: currentFilter.sort
+                });
+                
+                if (currentFilter.type) {
+                    params.append('type', currentFilter.type);
+                }
+
+                const response = await fetch(`/api/v1/stories/public?${params}`);
+                
+                if (!response.ok) {
+                    console.warn(`API请求失败: ${response.status}，使用空状态`);
+                    // 如果API失败，显示空状态而不是错误
+                    renderStories([]);
+                    updateStoryCount(0);
+                    renderPagination();
+                    return;
+                }
+                
+                const data = await response.json();
+                console.log('获取到的故事数据:', data);
+                
+                // 更新全局变量
+                totalStories = data.total || 0;
+                totalPages = Math.ceil(totalStories / pageSize);
+                
+                // 更新故事计数
+                updateStoryCount();
+                
+                // 渲染故事卡片
+                renderStories(data.stories || []);
+                
+                // 渲染分页
+                renderPagination();
+                
+            } catch (error) {
+                console.error('加载故事失败:', error);
+                // 如果发生错误，显示空状态而不是错误信息
+                const storiesContainer = document.getElementById('stories-container');
+                if (storiesContainer) {
+                    storiesContainer.innerHTML = `
+                        <div class="col-span-full text-center py-20">
+                            <i class="fa fa-book text-4xl text-slate-300 mb-4"></i>
+                            <p class="text-slate-600 text-lg mb-2">暂无故事</p>
+                            <p class="text-slate-500">快来创建第一个精彩故事吧！</p>
+                        </div>
+                    `;
+                }
+                updateStoryCount(0);
+                renderPagination();
+            }
+        }
+
+        // 渲染故事卡片
+        function renderStories(stories) {
+            const storiesContainer = document.getElementById('stories-container');
+            if (!storiesContainer) return;
+            
+            if (!stories || stories.length === 0) {
+                storiesContainer.innerHTML = `
+                    <div class="col-span-full empty-state-container">
+                        <div class="empty-state text-center py-20">
+                            <div class="empty-icon text-6xl mb-4">📚</div>
+                            <h3 class="empty-title text-xl font-semibold text-slate-700 mb-2">暂无故事</h3>
+                            <p class="empty-description text-slate-500 mb-6">还没有人创建故事，快来成为第一个创作者吧！</p>
+                            <a href="create.html" class="empty-action-btn inline-flex items-center px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                                <i class="fa fa-plus mr-2"></i>
+                                创建第一个故事
+                            </a>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            storiesContainer.innerHTML = '';
+            storiesContainer.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
+            
+            stories.forEach(story => {
+                const card = createStoryCard(story);
+                storiesContainer.appendChild(card);
+            });
+        }
+
+        // 更新故事计数
+        function updateStoryCount(count = null) {
+            const countElement = document.getElementById('story-count');
+            if (countElement) {
+                const storyCount = count !== null ? count : totalStories;
+                countElement.textContent = `共 ${storyCount} 个故事`;
+            }
+        }
+
+        // 渲染分页控件
+        function renderPagination() {
+            const paginationContainer = document.getElementById('pagination-container');
+            if (!paginationContainer) return;
+            
+            if (totalPages <= 1) {
+                paginationContainer.innerHTML = '';
+                return;
+            }
+            
+            let paginationHTML = '';
+            
+            // 上一页按钮
+            paginationHTML += `
+                <button 
+                    class="pagination-btn ${currentPage === 1 ? 'disabled' : ''}"
+                    onclick="${currentPage > 1 ? `loadStories(${currentPage - 1})` : ''}"
+                    ${currentPage === 1 ? 'disabled' : ''}>
+                    <i class="fa fa-chevron-left"></i>
+                </button>
+            `;
+            
+            // 页码按钮
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, startPage + 4);
+            
+            if (startPage > 1) {
+                paginationHTML += `<button class="pagination-btn" onclick="loadStories(1)">1</button>`;
+                if (startPage > 2) {
+                    paginationHTML += `<span class="px-2 text-slate-500">...</span>`;
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHTML += `
+                    <button 
+                        class="pagination-btn ${i === currentPage ? 'active' : ''}"
+                        onclick="loadStories(${i})">
+                        ${i}
+                    </button>
+                `;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    paginationHTML += `<span class="px-2 text-slate-500">...</span>`;
+                }
+                paginationHTML += `<button class="pagination-btn" onclick="loadStories(${totalPages})">${totalPages}</button>`;
+            }
+            
+            // 下一页按钮
+            paginationHTML += `
+                <button 
+                    class="pagination-btn ${currentPage === totalPages ? 'disabled' : ''}"
+                    onclick="${currentPage < totalPages ? `loadStories(${currentPage + 1})` : ''}"
+                    ${currentPage === totalPages ? 'disabled' : ''}>
+                    <i class="fa fa-chevron-right"></i>
+                </button>
+            `;
+            
+            paginationContainer.innerHTML = paginationHTML;
+        }
+
+        // 更新导航栏激活状态
+        function updateNavigationActive() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.navbar-link');
+            
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                const href = link.getAttribute('href');
+                if (href && currentPath.includes(href.replace('.html', ''))) {
+                    link.classList.add('active');
+                }
+            });
+            
+            // 移动端菜单也更新
+            const mobileLinks = document.querySelectorAll('#mobile-menu a');
+            mobileLinks.forEach(link => {
+                link.classList.remove('bg-primary/5', 'text-primary');
+                link.classList.add('text-slate-600');
+                const href = link.getAttribute('href');
+                if (href && currentPath.includes(href.replace('.html', ''))) {
+                    link.classList.add('bg-primary/5', 'text-primary');
+                    link.classList.remove('text-slate-600');
+                }
+            });
+        }
+
+        // 应用筛选
+        function applyFilter() {
+            const typeSelect = document.querySelector('select:first-of-type');
+            const sortSelect = document.querySelector('select:last-of-type');
+            
+            currentFilter.type = typeSelect.value;
+            currentFilter.sort = sortSelect.value;
+            
+            // 重置到第一页
+            loadStories(1);
+        }
+
+        // 初始化页面
+        function initializePage() {
+            console.log('DOM已加载，开始初始化页面...');
+            
+            // 初始化AuthUI
+            if (typeof AuthUI !== 'undefined') {
+                console.log('初始化AuthUI...');
+                AuthUI.init({
+                    container: 'auth-area-desktop',
+                    mobileContainer: 'auth-area-mobile',
+                    showAvatar: true,
+                    showName: true,
+                    avatarSize: 'medium'
+                });
+            } else {
+                console.error('AuthUI未找到，请确保auth.js已加载');
+            }
+            
+            // 移动端菜单切换
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', function() {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+            
+            // 更新导航激活状态
+            updateNavigationActive();
+            
+            // 设置筛选事件监听
+            const filterButton = document.querySelector('button.bg-primary.text-white');
+            if (filterButton) {
+                filterButton.addEventListener('click', applyFilter);
+            }
+            
+            // 检查URL中是否有continue参数
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('continue') === 'true') {
+                console.log('检测到continue参数，显示通知');
+                showNotification('检测到未完成作品，正在跳转...', 'info');
+            }
+            
+            // 加载故事数据
+            console.log('开始加载故事数据...');
+            loadStories();
+        }
+
+        // 为筛选按钮添加事件监听
+        document.addEventListener('DOMContentLoaded', function() {
+            // 延迟执行初始化，确保所有脚本都已加载
+            setTimeout(initializePage, 100);
+        });
+
+        // 创建故事卡片元素
+        function createStoryCard(story) {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow';
+            
+            // 获取类型对应的颜色类
+            const typeColor = getTypeColorClass(story.type);
+            
+            card.innerHTML = `
+                <div class="h-48 overflow-hidden">
+                    <img src="${story.coverImage || `https://picsum.photos/id/${story.id || 1000}/600/400`}" alt="${story.title}" 
+                        class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                </div>
+                <div class="p-5">
+                    <div class="flex items-center text-xs text-slate-500 mb-2">
+                        <span class="${typeColor.bg} ${typeColor.text} px-2 py-1 rounded-full mr-2">${story.typeName}</span>
+                        <span>${story.branchCount || 0}个分支</span>
+                        <span class="mx-2">•</span>
+                        <span>${story.status === 'completed' ? '已完成' : '更新中'}</span>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">${story.title}</h3>
+                    <p class="text-slate-600 text-sm mb-4 line-clamp-2">${story.description}</p>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center">
+                            <img src="${story.authorAvatar || `https://picsum.photos/id/${story.authorId || 100}/100`}" alt="${story.authorName}" class="w-6 h-6 rounded-full mr-2">
+                            <span class="text-sm text-slate-600">${story.authorName}</span>
+                        </div>
+                        <button class="text-primary hover:text-primary/80 transition-colors" onclick="window.location.href='story_tree_new.html?id=${story.id}&mode=read'">
+                            <i class="fa fa-book"></i> 阅读
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            return card;
+        }
+        
+        // 获取类型对应的颜色类
+        function getTypeColorClass(type) {
+            const typeColors = {
+                '奇幻': { bg: 'bg-purple-100', text: 'text-purple-600' },
+                '奇幻冒险': { bg: 'bg-purple-100', text: 'text-purple-600' },
+                'fantasy': { bg: 'bg-purple-100', text: 'text-purple-600' },
+                '科幻': { bg: 'bg-blue-100', text: 'text-blue-600' },
+                '科幻未来': { bg: 'bg-blue-100', text: 'text-blue-600' },
+                'sci-fi': { bg: 'bg-blue-100', text: 'text-blue-600' },
+                '悬疑': { bg: 'bg-amber-100', text: 'text-amber-600' },
+                '悬疑推理': { bg: 'bg-amber-100', text: 'text-amber-600' },
+                'mystery': { bg: 'bg-amber-100', text: 'text-amber-600' },
+                '爱情': { bg: 'bg-pink-100', text: 'text-pink-600' },
+                '爱情故事': { bg: 'bg-pink-100', text: 'text-pink-600' },
+                'romance': { bg: 'bg-pink-100', text: 'text-pink-600' },
+                '恐怖': { bg: 'bg-red-100', text: 'text-red-600' },
+                '恐怖惊悚': { bg: 'bg-red-100', text: 'text-red-600' },
+                'horror': { bg: 'bg-red-100', text: 'text-red-600' },
+                'default': { bg: 'bg-slate-100', text: 'text-slate-600' }
+            };
+            
+            // 尝试直接匹配，如果找不到则尝试转小写后匹配
+            return typeColors[type] || typeColors[type.toLowerCase()] || typeColors.default;
+        }
+        
+        // 模拟故事数据
+        function getMockStories() {
+            return [
+                {
+                    id: 1,
+                    title: '示例故事',
+                    description: '年轻魔法师艾拉在森林中发现神秘门，每个选择都将触发不同的冒险历程...',
+                    type: 'fantasy',
+                    typeName: '奇幻冒险',
+                    branchCount: 8,
+                    status: 'completed',
+                    authorId: 1,
+                    authorName: '林小艾',
+                    authorAvatar: 'https://picsum.photos/id/64/100',
+                    coverImage: 'https://picsum.photos/id/1067/600/400'
+                },
+                {
+                    id: 2,
+                    title: '时间旅行者的抉择',
+                    description: '来自2077年的时间特工，必须在不改变历史的前提下完成拯救未来的任务...',
+                    type: 'sci-fi',
+                    typeName: '科幻未来',
+                    branchCount: 12,
+                    status: 'updating',
+                    authorId: 2,
+                    authorName: '陈未来',
+                    authorAvatar: 'https://picsum.photos/id/91/100',
+                    coverImage: 'https://picsum.photos/id/1071/600/400'
+                },
+                {
+                    id: 3,
+                    title: '老钟表店的秘密',
+                    description: '小镇上的老钟表店能让人回到过去，但每次回溯都要付出意想不到的代价...',
+                    type: 'mystery',
+                    typeName: '悬疑推理',
+                    branchCount: 5,
+                    status: 'completed',
+                    authorId: 3,
+                    authorName: '王时光',
+                    authorAvatar: 'https://picsum.photos/id/26/100',
+                    coverImage: 'https://picsum.photos/id/1058/600/400'
+                },
+                {
+                    id: 4,
+                    title: '雨季的图书馆',
+                    description: '每个雨季都会出现的神秘图书馆，藏着能改变命运的爱情小说，只读对的人...',
+                    type: 'romance',
+                    typeName: '爱情故事',
+                    branchCount: 7,
+                    status: 'completed',
+                    authorId: 4,
+                    authorName: '雨小荷',
+                    authorAvatar: 'https://picsum.photos/id/65/100',
+                    coverImage: 'https://picsum.photos/id/1060/600/400'
+                },
+                {
+                    id: 5,
+                    title: '午夜收音机',
+                    description: '废弃电台的午夜广播会播放未发生的死亡事件，收听者必须阻止预言成真...',
+                    type: 'horror',
+                    typeName: '恐怖惊悚',
+                    branchCount: 9,
+                    status: 'updating',
+                    authorId: 5,
+                    authorName: '张夜声',
+                    authorAvatar: 'https://picsum.photos/id/177/100',
+                    coverImage: 'https://picsum.photos/id/1059/600/400'
+                }
+            ];
+        }
+        
+
+
+    </script>
+</body>
+
+</html>
