@@ -88,7 +88,7 @@
     }
     .tree-canvas {
       background-image: 
-        linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+        linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
         linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
       background-size: 20px 20px;
       cursor: grab;
@@ -243,8 +243,9 @@
             <div id="empty-state" class="flex flex-col items-center justify-center h-full">
               <i class="fa fa-sitemap text-6xl text-gray-300 mb-4"></i>
               <h3 class="text-xl font-semibold text-gray-600 mb-2">开始创建您的故事</h3>
-              <p class="text-gray-500 mb-4">点击"创建故事开始"按钮来创建第一个节点</p>
-              <button id="empty-create-root" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors mb-6">
+              <p class="text-gray-500 mb-4">点击'创建故事开始'按钮来创建第一个节点</p>
+              
+              <button id="empty-create-root" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center mb-6">
                 <i class="fa fa-plus mr-2"></i> 创建故事开始
               </button>
               
@@ -277,9 +278,6 @@
     </div>
     <div class="context-menu-item" data-action="add-child">
       <i class="fa fa-plus mr-2"></i> 添加子节点
-    </div>
-    <div class="context-menu-item" data-action="add-choice">
-      <i class="fa fa-random mr-2"></i> 添加选项
     </div>
     <div class="border-t border-gray-200 my-2"></div>
     <div class="context-menu-item" data-action="delete">
@@ -432,22 +430,40 @@
     }
 
     // 创建根节点
-    function createRootNode() {
-      const nodeId = Date.now().toString();
-      const newNode = {
-        id: nodeId,
-        title: '故事开始',
-        content: '这是您的故事开始...',
-        type: 'normal',
-        position: { x: 400, y: 50 }
-      };
-      
-      graphData.nodes[nodeId] = newNode;
-      saveGraphData();
-      renderTree();
-      updateStoryInfo();
-      
-      showNotification('根节点创建成功', 'success');
+    async function createRootNode() {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) {
+          showNotification('请先登录', 'error');
+          return;
+        }
+
+        // 创建根节点数据
+        const rootNode = {
+          id: 'node-' + Date.now(),
+          title: '故事开始',
+          content: '这是故事的开始...',
+          type: 'normal',
+          position: { x: 400, y: 50 },
+          depth: 0,
+          order: 0
+        };
+
+        // 添加到图数据
+        graphData.nodes[rootNode.id] = rootNode;
+
+        // 保存数据
+        saveGraphData();
+
+        // 重新渲染
+        renderTree();
+        updateStoryInfo();
+        
+        showNotification('根节点创建成功', 'success');
+      } catch (error) {
+        console.error('创建根节点失败:', error);
+        showNotification('创建根节点失败', 'error');
+      }
     }
 
     // 渲染树状图
@@ -638,9 +654,6 @@
         case 'add-child':
           addChildNode(nodeId);
           break;
-        case 'add-choice':
-          addChoiceToNode(nodeId);
-          break;
         case 'delete':
           deleteNode(nodeId);
           break;
@@ -682,42 +695,6 @@
       updateStoryInfo();
       
       showNotification('子节点添加成功', 'success');
-    }
-
-    // 添加选择选项
-    function addChoiceToNode(nodeId) {
-      const choiceText = prompt('请输入选择选项文本:');
-      if (!choiceText) return;
-      
-      const targetNodeId = Date.now().toString();
-      const sourceNode = graphData.nodes[nodeId];
-      
-      const newNode = {
-        id: targetNodeId,
-        title: choiceText,
-        content: '',
-        type: 'choice',
-        position: { 
-          x: sourceNode.position.x + (Math.random() - 0.5) * 150,
-          y: sourceNode.position.y + 120
-        }
-      };
-      
-      graphData.nodes[targetNodeId] = newNode;
-      graphData.connections.push({
-        from: nodeId,
-        to: targetNodeId,
-        description: choiceText
-      });
-      
-      // 更新源节点为选择节点
-      graphData.nodes[nodeId].type = 'choice';
-      
-      saveGraphData();
-      renderTree();
-      updateStoryInfo();
-      
-      showNotification('选择选项添加成功', 'success');
     }
 
     // 删除节点
@@ -816,7 +793,9 @@
       const transform = `translate(${canvasOffset.x}px, ${canvasOffset.y}px) scale(${zoomLevel})`;
       
       nodesLayer.style.transform = transform;
+      nodesLayer.style.transformOrigin = '0 0';
       connectionLayer.style.transform = transform;
+      connectionLayer.style.transformOrigin = '0 0';
     }
 
     // 画布拖拽功能
@@ -844,8 +823,28 @@
 
     function handleCanvasWheel(e) {
       e.preventDefault();
+      
+      const canvas = document.getElementById('tree-canvas');
+      const rect = canvas.getBoundingClientRect();
+      
+      // 获取鼠标在画布中的位置
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      
+      // 计算缩放前的世界坐标
+      const worldX = (mouseX - canvasOffset.x) / zoomLevel;
+      const worldY = (mouseY - canvasOffset.y) / zoomLevel;
+      
+      // 应用缩放
       const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      zoom(delta);
+      const newZoomLevel = Math.max(0.3, Math.min(3, zoomLevel * delta));
+      
+      // 计算缩放后的偏移量，使鼠标位置保持在相同的世界坐标
+      canvasOffset.x = mouseX - worldX * newZoomLevel;
+      canvasOffset.y = mouseY - worldY * newZoomLevel;
+      zoomLevel = newZoomLevel;
+      
+      updateCanvasTransform();
     }
 
     // 节点拖拽功能
@@ -993,10 +992,35 @@
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if (!token || currentStoryId === 'default') return;
         
-        // 这里可以实现后端同步逻辑
-        console.log('同步数据到后端...');
+        // 准备要保存的数据
+        const storyData = {
+          nodes: graphData.nodes,
+          connections: graphData.connections,
+          lastModified: new Date().toISOString()
+        };
+        
+        // 发送到后端API
+        const response = await fetch(`http://localhost:5000/api/v1/stories/${currentStoryId}/tree`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(storyData)
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('故事树数据已保存到数据库:', result);
+          showNotification('数据已自动保存', 'success');
+        } else {
+          const error = await response.json();
+          console.error('保存失败:', error);
+          showNotification('保存失败: ' + (error.message || '未知错误'), 'error');
+        }
       } catch (error) {
         console.error('同步到后端失败:', error);
+        showNotification('网络错误，保存失败', 'error');
       }
     }
 

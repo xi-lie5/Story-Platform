@@ -82,6 +82,20 @@ const storySchema = new mongoose.Schema({
   reviewComment: {
     type: String,
     maxlength: [500, '审核意见不能超过500个字符']
+  },
+  treeData: {
+    nodes: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {}
+    },
+    connections: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: []
+    },
+    lastModified: {
+      type: Date,
+      default: Date.now
+    }
   }
 }, {
   timestamps: true,

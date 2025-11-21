@@ -2,8 +2,21 @@ const express = require('express');
 const router = express.Router();
 const StoryNode = require('../models/StoryNode');
 const Story = require('../models/Story');
-const { authGuard } = require('../middleware/auth');
-const { storyAuth } = require('../middleware/storyAuth');
+const authGuard = require('../middleware/auth');
+const storyAuth = require('../middleware/storyAuth');
+
+// 全局中间件 - 记录所有请求
+router.use((req, res, next) => {
+  console.log('🔥 storyNodes路由收到请求:', req.method, req.path);
+  next();
+});
+
+// 测试路由
+router.get('/test', (req, res) => {
+  console.log('🔥 storyNodes测试路由被访问！');
+  res.json({ message: 'storyNodes路由工作正常' });
+});
+
 // 公共路由（不需要认证）- 放在最前面
 // 获取故事的所有节点（公共端点，不需要认证）
 router.get('/public/stories/:storyId/nodes', async (req, res) => {
@@ -223,6 +236,36 @@ router.post('/stories/:storyId/nodes/batch', authGuard, storyAuth, async (req, r
     res.status(500).json({
       success: false,
       message: '批量保存节点失败',
+      error: error.message
+    });
+  }
+});
+
+// 获取单个节点
+router.get('/nodes/:nodeId', authGuard, async (req, res) => {
+  try {
+    const { nodeId } = req.params;
+    
+    const node = await StoryNode.findById(nodeId)
+      .populate('parentId', 'title')
+      .populate('choices.targetNodeId', 'title');
+    
+    if (!node) {
+      return res.status(404).json({
+        success: false,
+        message: '节点不存在'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: node
+    });
+  } catch (error) {
+    console.error('获取节点失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '获取节点失败',
       error: error.message
     });
   }

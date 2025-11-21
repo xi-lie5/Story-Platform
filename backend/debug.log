@@ -46,3 +46,57 @@
 === MIDDLEWARE EXECUTED ===
 [2025-11-20T08:32:13.149Z] PUT /api/v1/stories/691ed16c605cbb637da646f5/toggle-complete
 === MIDDLEWARE EXECUTED ===
+[2025-11-20T08:42:14.324Z] OPTIONS /api/v1/storyNodes/stories/691ed16c605cbb637da646f5/nodes
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:42:14.326Z] GET /api/v1/storyNodes/stories/691ed16c605cbb637da646f5/nodes
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:48:39.743Z] OPTIONS /api/v1/storyNodes/stories/691ed16c605cbb637da646f5/nodes
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:48:39.745Z] GET /api/v1/storyNodes/stories/691ed16c605cbb637da646f5/nodes
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:48:50.294Z] OPTIONS /api/v1/stories/691ed16c605cbb637da646f5/toggle-complete
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:48:50.296Z] PUT /api/v1/stories/691ed16c605cbb637da646f5/toggle-complete
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:51:28.383Z] OPTIONS /api/v1/storyNodes/stories/691ed16c605cbb637da646f5/nodes
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:51:28.385Z] GET /api/v1/storyNodes/stories/691ed16c605cbb637da646f5/nodes
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:52:03.106Z] OPTIONS /api/v1/storyNodes/stories/691ed16c605cbb637da646f5/nodes
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:52:03.108Z] GET /api/v1/storyNodes/stories/691ed16c605cbb637da646f5/nodes
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:52:13.015Z] GET /front/story_tree_new.html?ide_webview_request_time=1763628732956
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:52:25.008Z] GET /front/story_tree_new.html?ide_webview_request_time=1763628732956
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:52:35.739Z] OPTIONS /api/v1/storyNodes/stories/691ed16c605cbb637da646f5/nodes
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:52:35.741Z] GET /api/v1/storyNodes/stories/691ed16c605cbb637da646f5/nodes
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:53:30.106Z] GET /front/story_tree_new.html?ide_webview_request_time=1763628810101
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:54:50.482Z] OPTIONS /api/v1/storyNodes/stories/691ed16c605cbb637da646f5/nodes
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:54:50.485Z] GET /api/v1/storyNodes/stories/691ed16c605cbb637da646f5/nodes
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:54:52.626Z] OPTIONS /api/v1/stories/691ed16c605cbb637da646f5/tree
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:54:52.628Z] PUT /api/v1/stories/691ed16c605cbb637da646f5/tree
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:54:56.852Z] OPTIONS /api/v1/storyNodes/stories/691ed16c605cbb637da646f5/nodes
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:54:56.854Z] GET /api/v1/storyNodes/stories/691ed16c605cbb637da646f5/nodes
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:54:58.508Z] OPTIONS /api/v1/stories/691ed16c605cbb637da646f5/tree
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:54:58.510Z] PUT /api/v1/stories/691ed16c605cbb637da646f5/tree
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:55:01.370Z] OPTIONS /api/v1/stories/691ed16c605cbb637da646f5/tree
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:55:01.373Z] PUT /api/v1/stories/691ed16c605cbb637da646f5/tree
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:55:03.275Z] OPTIONS /api/v1/stories/691ed16c605cbb637da646f5/tree
+=== MIDDLEWARE EXECUTED ===
+[2025-11-20T08:55:03.276Z] PUT /api/v1/stories/691ed16c605cbb637da646f5/tree
+=== MIDDLEWARE EXECUTED ===

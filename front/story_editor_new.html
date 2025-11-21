@@ -246,13 +246,25 @@
             currentNode = result.data;
             populateForm();
             updateNodeInfo();
+          } else {
+            showNotification(`加载节点失败: ${result.message}`, 'error');
+            setTimeout(() => {
+              window.location.href = `story_tree_new.html?story=${currentStoryId}`;
+            }, 2000);
           }
         } else {
-          showNotification('加载节点数据失败', 'error');
+          const error = await response.json();
+          showNotification(`加载节点失败: ${error.message || '节点不存在'}`, 'error');
+          setTimeout(() => {
+            window.location.href = `story_tree_new.html?story=${currentStoryId}`;
+          }, 2000);
         }
       } catch (error) {
         console.error('加载节点数据失败:', error);
         showNotification('网络错误，请重试', 'error');
+        setTimeout(() => {
+          window.location.href = `story_tree_new.html?story=${currentStoryId}`;
+        }, 2000);
       }
     }
 
@@ -339,6 +351,11 @@
         container.appendChild(choiceItem);
       }
 
+    // 移除选项项
+    function removeChoiceItem(button) {
+      button.closest('.choice-item').remove();
+    }
+
     // 切换自动创建选项
     function toggleAutoCreate(checkbox) {
       const choiceItem = checkbox.closest('.choice-item');
@@ -356,11 +373,6 @@
       }
     }
 
-    // 移除选项项
-    function removeChoiceItem(button) {
-      button.closest('.choice-item').remove();
-    }
-
     // 更新类型可见性
     function updateTypeVisibility() {
       const nodeType = document.querySelector('input[name="node-type"]:checked').value;
@@ -371,7 +383,7 @@
       if (nodeType === 'choice') {
         // 选择节点需要内容和选项说明，选项通过右键菜单管理
         contentSection.style.display = 'block';
-        choicesSection.style.display = 'none';
+        choicesSection.style.display = 'block';
         choiceDescriptionSection.style.display = 'block';
       } else {
         // 普通节点和结局节点只需要内容
@@ -384,6 +396,12 @@
     // 保存节点
     async function saveNode() {
       try {
+        // 检查节点是否存在
+        if (!currentNode) {
+          showNotification('节点数据未加载，无法保存', 'error');
+          return;
+        }
+        
         // 收集表单数据
         const formData = {
           title: document.getElementById('title-input').value,
@@ -453,14 +471,16 @@
             
             // 通知树状视图更新
             notifyTreeUpdate('node_updated', { nodeId: currentNodeId });
+          } else {
+            showNotification(`保存失败: ${result.message}`, 'error');
           }
         } else {
           const error = await response.json();
-          showNotification(`保存失败: ${error.message}`, 'error');
+          showNotification(`保存失败: ${error.message || '未知错误'}`, 'error');
         }
       } catch (error) {
         console.error('保存节点失败:', error);
-        showNotification('网络错误', 'error');
+        showNotification('网络错误，请检查网络连接', 'error');
       }
     }
 

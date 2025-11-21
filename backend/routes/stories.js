@@ -763,6 +763,51 @@ router.patch('/:storyId/complete', authGuard, async (req, res, next) => {
   }
 });
 
+// 保存故事树数据
+router.put('/:storyId/tree', authGuard, async (req, res, next) => {
+  try {
+    const { storyId } = req.params;
+    const { nodes, connections, lastModified } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+      return next(errorFormat(400, '无效的故事ID', [], 10010));
+    }
+
+    const story = await Story.findById(storyId);
+
+    if (!story) {
+      return next(errorFormat(404, '故事不存在', [], 10010));
+    }
+
+    if (story.author.toString() !== req.user.id) {
+      return next(errorFormat(403, '没有权限修改此故事', [], 10011));
+    }
+
+    // 更新故事的树数据
+    story.treeData = {
+      nodes: nodes || {},
+      connections: connections || [],
+      lastModified: lastModified || new Date().toISOString()
+    };
+
+    await story.save();
+
+    // 清除相关缓存
+    clearStoryCache(storyId);
+
+    res.status(200).json({
+      success: true,
+      message: '故事树数据保存成功',
+      data: {
+        id: story.id,
+        treeData: story.treeData
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // 取消发布故事
 router.patch('/:storyId/unpublish', authGuard, async (req, res, next) => {
   try {

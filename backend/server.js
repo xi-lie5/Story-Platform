@@ -23,6 +23,13 @@ app.use(cors({
   credentials: true
 }));
 
+// 全局请求日志中间件
+app.use((req, res, next) => {
+  console.log('🌐 收到请求:', req.method, req.path);
+  console.log('🌐 完整URL:', req.originalUrl);
+  next();
+});
+
 // 静态资源（头像、封面）
 app.use('/avatar', express.static(path.join(__dirname, 'avatar')));
 app.use('/coverImage', express.static(path.join(__dirname, 'coverImage')));
@@ -54,6 +61,7 @@ app.get(BASE_URL, (req, res) => {
       `${BASE_URL}/auth`,
       `${BASE_URL}/stories`,
       `${BASE_URL}/sections`,
+      `${BASE_URL}/storyNodes`,
       `${BASE_URL}/categories`,
       `${BASE_URL}/users`,
       `${BASE_URL}/interactions`,
@@ -62,16 +70,82 @@ app.get(BASE_URL, (req, res) => {
   });
 });
 
+// 测试路由
+app.get(`${BASE_URL}/test`, (req, res) => {
+  console.log('🔥 测试路由被访问！');
+  res.json({ message: '测试路由工作正常' });
+});
+
 // 路由注册
-app.use(`${BASE_URL}/auth`, require('./routes/auth'));
-app.use(`${BASE_URL}/stories`, require('./routes/stories'));
-app.use(`${BASE_URL}/sections`, require('./routes/sections'));
-app.use(`${BASE_URL}/storyNodes`, require('./routes/storyNodes'));
-app.use(`${BASE_URL}/categories`, require('./routes/categories'));
-app.use(`${BASE_URL}/users`, require('./routes/users'));
-app.use(`${BASE_URL}/interactions`, require('./routes/interactions')); // 用户交互功能路由（收藏、评分等）
-app.use(`${BASE_URL}/admin`, require('./routes/admin')); // 管理员功能路由
-app.use(`${BASE_URL}`, require('./routes/collections')); // 收藏功能路由
+console.log('注册路由...');
+try {
+  app.use(`${BASE_URL}/auth`, require('./routes/auth'));
+  console.log('✅ auth路由注册成功');
+} catch(e) {
+  console.error('❌ auth路由注册失败:', e.message);
+}
+
+try {
+  app.use(`${BASE_URL}/stories`, require('./routes/stories'));
+  console.log('✅ stories路由注册成功');
+} catch(e) {
+  console.error('❌ stories路由注册失败:', e.message);
+}
+
+try {
+  app.use(`${BASE_URL}/sections`, require('./routes/sections'));
+  console.log('✅ sections路由注册成功');
+} catch(e) {
+  console.error('❌ sections路由注册失败:', e.message);
+}
+
+try {
+  const storyNodesRouter = require('./routes/storyNodes');
+  console.log('🔍 storyNodes路由器类型:', typeof storyNodesRouter);
+  console.log('🔍 storyNodes路由器名称:', storyNodesRouter.name);
+  app.use(`${BASE_URL}/storyNodes`, storyNodesRouter);
+  console.log('✅ storyNodes路由注册成功');
+} catch(e) {
+  console.error('❌ storyNodes路由注册失败:', e.message);
+  console.error('❌ 错误堆栈:', e.stack);
+}
+
+try {
+  app.use(`${BASE_URL}/categories`, require('./routes/categories'));
+  console.log('✅ categories路由注册成功');
+} catch(e) {
+  console.error('❌ categories路由注册失败:', e.message);
+}
+
+try {
+  app.use(`${BASE_URL}/users`, require('./routes/users'));
+  console.log('✅ users路由注册成功');
+} catch(e) {
+  console.error('❌ users路由注册失败:', e.message);
+}
+
+try {
+  app.use(`${BASE_URL}/interactions`, require('./routes/interactions')); // 用户交互功能路由（收藏、评分等）
+  console.log('✅ interactions路由注册成功');
+} catch(e) {
+  console.error('❌ interactions路由注册失败:', e.message);
+}
+
+try {
+  app.use(`${BASE_URL}/admin`, require('./routes/admin')); // 管理员功能路由
+  console.log('✅ admin路由注册成功');
+} catch(e) {
+  console.error('❌ admin路由注册失败:', e.message);
+}
+
+try {
+  app.use(`${BASE_URL}/collections`, require('./routes/collections')); // 收藏功能路由
+  console.log('✅ collections路由注册成功');
+} catch(e) {
+  console.error('❌ collections路由注册失败:', e.message);
+}
+
+console.log('所有路由注册完成');
 
 // 错误处理
 app.use(errorHandler);

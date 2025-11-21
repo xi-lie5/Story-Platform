@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试节点保存</title>
+    <script src="assets/js/api-config.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .notification { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <h1>测试节点保存功能</h1>
+    
+    <div id="notification"></div>
+    
+    <div class="form-group">
+        <label>节点ID:</label>
+        <input type="text" id="nodeId" value="test123">
+    </div>
+    
+    <div class="form-group">
+        <label>标题:</label>
+        <input type="text" id="title" value="测试节点">
+    </div>
+    
+    <div class="form-group">
+        <label>内容:</label>
+        <textarea id="content" rows="4">这是测试内容</textarea>
+    </div>
+    
+    <div class="form-group">
+        <label>类型:</label>
+        <select id="type">
+            <option value="normal">普通节点</option>
+            <option value="choice">选择节点</option>
+            <option value="ending">结局节点</option>
+        </select>
+    </div>
+    
+    <button onclick="testSave()">测试保存</button>
+    <button onclick="testLoad()">测试加载</button>
+    
+    <script>
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+        
+        async function testSave() {
+            try {
+                const nodeId = document.getElementById('nodeId').value;
+                const formData = {
+                    title: document.getElementById('title').value,
+                    content: document.getElementById('content').value,
+                    type: document.getElementById('type').value,
+                    order: 0,
+                    choices: []
+                };
+                
+                const response = await fetch(API_CONFIG.NODES.updateNode(nodeId), {
+                    method: 'PUT',
+                    headers: API_CONFIG.getAuthHeaders(),
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showNotification('保存成功！', 'success');
+                } else {
+                    showNotification(`保存失败: ${result.message || '未知错误'}`, 'error');
+                }
+            } catch (error) {
+                console.error('保存错误:', error);
+                showNotification('网络错误', 'error');
+            }
+        }
+        
+        async function testLoad() {
+            try {
+                const nodeId = document.getElementById('nodeId').value;
+                
+                const response = await fetch(API_CONFIG.NODES.getNode(nodeId), {
+                    headers: API_CONFIG.getAuthHeaders()
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    document.getElementById('title').value = result.data.title || '';
+                    document.getElementById('content').value = result.data.content || '';
+                    document.getElementById('type').value = result.data.type || 'normal';
+                    showNotification('加载成功！', 'success');
+                } else {
+                    showNotification(`加载失败: ${result.message || '节点不存在'}`, 'error');
+                }
+            } catch (error) {
+                console.error('加载错误:', error);
+                showNotification('网络错误', 'error');
+            }
+        }
+    </script>
+</body>
+</html>
