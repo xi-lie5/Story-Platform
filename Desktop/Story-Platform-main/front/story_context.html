@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>迷失森林的秘密 - StoryForge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6366f1',
+            secondary: '#ec4899',
+            dark: '#1e293b',
+            light: '#f8fafc'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['Playfair Display', 'serif'],
+            serif: ['Georgia', 'Cambria', 'serif']
+          },
+        },
+      }
+    }
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto { content-visibility: auto; }
+      .text-shadow { text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+      .animate-float { animation: float 6s ease-in-out infinite; }
+      .animate-pulse-slow { animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+      .backdrop-blur { backdrop-filter: blur(8px); }
+    }
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-15px); }
+      100% { transform: translateY(0px); }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 font-sans">
+  <!-- 导航栏（与首页一致） -->
+  <nav class="glass-effect sticky top-0 z-50" id="navbar">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <i class="fa fa-book text-white text-2xl"></i>
+        <h1 class="text-xl md:text-2xl font-display font-bold text-white">StoryForge</h1>
+      </div>
+      <nav class="hidden md:flex items-center space-x-8">
+        <a href="index.html" class="font-medium text-white/90 hover:text-white transition-colors">首页</a>
+        <a href="explore.html" class="font-medium text-white transition-colors">探索故事</a>
+        <a href="create.html" class="font-medium text-white/90 hover:text-white transition-colors">创建故事</a>
+        <a href="my_stories.html" class="font-medium text-white/90 hover:text-white transition-colors">我的作品</a>
+        <a href="about.html" class="font-medium text-white/90 hover:text-white transition-colors">关于</a>
+      </nav>
+      <div class="flex items-center space-x-4">
+        <!-- 未登录状态 -->
+        <div id="auth-not-logged-in" class="hidden md:flex items-center space-x-4">
+          <button class="px-5 py-2 rounded-full bg-white/10 backdrop-blur border border-white/20 text-white hover:bg-white/20 transition-colors">
+            <a href="login.html" class="block w-full h-full">登录</a>
+          </button>
+          <button class="px-5 py-2 rounded-full bg-primary text-white hover:bg-primary/90 shadow-md hover:shadow-lg transition-all">
+            <a href="register.html" class="block w-full h-full">注册</a>
+          </button>
+        </div>
+        <!-- 已登录状态 -->
+        <div id="auth-logged-in" class="hidden items-center space-x-4">
+          <div class="relative group">
+            <div class="flex items-center space-x-2 cursor-pointer">
+              <img src="https://picsum.photos/id/1005/100" alt="用户头像" class="w-9 h-9 rounded-full object-cover border-2 border-white/20">
+              <span class="font-medium hidden lg:inline-block text-white" id="nav-username">用户名</span>
+              <i class="fa fa-angle-down text-white/60 group-hover:text-white transition-colors"></i>
+            </div>
+            <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 z-10 hidden group-hover:block">
+              <a href="profile.html" class="block px-4 py-2 text-sm text-slate-700 hover:bg-primary/5 hover:text-primary transition-colors">
+                <i class="fa fa-user mr-2"></i>个人设置
+              </a>
+              <a href="my_stories.html" class="block px-4 py-2 text-sm text-slate-700 hover:bg-primary/5 hover:text-primary transition-colors">
+                <i class="fa fa-book mr-2"></i>我的作品
+              </a>
+              <div class="border-t border-slate-100 my-1"></div>
+              <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-primary/5 hover:text-primary transition-colors">
+                <i class="fa fa-sign-out mr-2"></i>退出登录
+              </button>
+            </div>
+          </div>
+        </div>
+        <button class="md:hidden text-xl text-white" id="mobile-menu-button">
+          <i class="fa fa-bars"></i>
+        </button>
+      </div>
+    </div>
+    <div class="md:hidden hidden bg-white/10 backdrop-blur absolute w-full" id="mobile-menu">
+      <div class="container mx-auto px-4 py-3 flex flex-col space-y-4">
+        <a href="index.html" class="font-medium py-2 text-white/90 hover:text-white transition-colors">首页</a>
+        <a href="explore.html" class="font-medium py-2 text-white transition-colors">探索故事</a>
+        <a href="create.html" class="font-medium py-2 text-white/90 hover:text-white transition-colors">创建故事</a>
+        <!-- 移动端未登录状态 -->
+        <div id="mobile-auth-not-logged-in" class="space-y-2">
+          <button class="w-full px-5 py-2 rounded-full bg-white/10 backdrop-blur border border-white/20 text-white hover:bg-white/20 transition-colors">
+            <a href="login.html" class="block w-full h-full">登录</a>
+          </button>
+          <button class="w-full px-5 py-2 rounded-full bg-primary text-white hover:bg-primary/90 transition-colors">
+            <a href="register.html" class="block w-full h-full">注册</a>
+          </button>
+        </div>
+        <!-- 移动端已登录状态 -->
+        <div id="mobile-auth-logged-in" class="hidden space-y-2">
+          <div class="flex items-center space-x-2 px-2 py-1">
+            <img src="https://picsum.photos/id/1005/100" alt="用户头像" class="w-8 h-8 rounded-full object-cover">
+            <span class="font-medium text-white" id="mobile-nav-username">用户名</span>
+          </div>
+          <a href="my_stories.html" class="font-medium py-2 text-white/90 hover:text-white transition-colors">
+            <i class="fa fa-book mr-2"></i>我的作品
+          </a>
+          <a href="profile.html" class="font-medium py-2 text-white/90 hover:text-white transition-colors">
+            <i class="fa fa-user mr-2"></i>个人设置
+          </a>
+          <button id="mobile-logout-btn" class="w-full text-left font-medium py-2 text-white/90 hover:text-white transition-colors">
+            <i class="fa fa-sign-out mr-2"></i>退出登录
+          </button>
+        </div>
+        <a href="about.html" class="font-medium py-2 text-white/90 hover:text-white transition-colors">关于</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 故事内容区域 -->
+  <section class="pb-20 px-4">
+    <div class="container mx-auto max-w-4xl">
+      <!-- 故事封面 -->
+      <div class="relative rounded-3xl overflow-hidden h-64 md:h-80 mb-8 shadow-xl">
+        <img src="https://picsum.photos/id/119/1200/600" alt="迷失森林的秘密" class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+        <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
+          <div class="flex flex-wrap gap-2 mb-3">
+            <span class="px-3 py-1 rounded-full bg-primary/80 text-white text-xs">奇幻冒险</span>
+            <span class="px-3 py-1 rounded-full bg-white/20 text-white text-xs flex items-center gap-1">
+              <i class="fa fa-code-fork"></i> 8个结局
+            </span>
+            <span class="px-3 py-1 rounded-full bg-white/20 text-white text-xs flex items-center gap-1">
+              <i class="fa fa-clock-o"></i> 25分钟阅读
+            </span>
+          </div>
+          <h1 class="text-2xl md:text-4xl font-display font-bold mb-2">迷失森林的秘密</h1>
+          <div class="flex items-center gap-3">
+            <img src="https://picsum.photos/id/1012/100" alt="作者头像" class="w-10 h-10 rounded-full border-2 border-white">
+            <div>
+              <p class="font-medium">林小雨</p>
+              <p class="text-sm text-white/80">发布于 2023年10月15日</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 故事工具栏 -->
+      <div class="bg-white rounded-2xl shadow-md p-4 flex flex-wrap justify-between items-center mb-8 gap-4">
+        <div class="flex items-center gap-6">
+          <button id="collect-btn" class="flex items-center gap-2 text-slate-600 hover:text-primary transition-colors">
+            <i class="fa fa-heart-o" id="collect-icon"></i>
+            <span id="collect-text">收藏 (128)</span>
+          </button>
+          <button class="flex items-center gap-2 text-slate-600 hover:text-primary transition-colors">
+            <i class="fa fa-star-o"></i>
+            <span>评分 (4.8)</span>
+          </button>
+          <button class="flex items-center gap-2 text-slate-600 hover:text-primary transition-colors">
+            <i class="fa fa-share-alt"></i>
+            <span>分享</span>
+          </button>
+        </div>
+        <div class="flex items-center gap-3">
+          <button class="p-2 rounded-full border border-slate-200 text-slate-600 hover:border-primary hover:text-primary transition-colors">
+            <i class="fa fa-font"></i>
+          </button>
+          <button class="p-2 rounded-full border border-slate-200 text-slate-600 hover:border-primary hover:text-primary transition-colors">
+            <i class="fa fa-adjust"></i>
+          </button>
+          <button class="p-2 rounded-full border border-slate-200 text-slate-600 hover:border-primary hover:text-primary transition-colors">
+            <i class="fa fa-bookmark-o"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 故事内容 -->
+      <div class="bg-white rounded-2xl shadow-md p-6 md:p-8 mb-8 font-serif text-lg leading-relaxed">
+        <p class="mb-6">
+          暮色四合，你背着行囊站在一片陌生的森林边缘。地图上没有标记这个地方，但导航却把你带到了这里。空气中弥漫着潮湿的泥土气息，夹杂着一种不知名花朵的芬芳。
+        </p>
+        <p class="mb-6">
+          就在你犹豫是否要转身离开时，森林深处传来一阵悠扬的歌声，仿佛有某种神秘的力量在召唤着你。你感到一种莫名的冲动，想要一探究竟。
+        </p>
+        <p class="mb-6">
+          当你踏入森林的那一刻，身后的景象突然模糊起来，回头望去，来时的路已经消失不见，只剩下茂密的树林。天空明明刚才还是黄昏，此刻却挂着一轮皎洁的满月，月光透过树叶的缝隙洒下，在地上形成斑驳的光影。
+        </p>
+        <p class="mb-6">
+          你继续往前走了大约十几分钟，眼前出现了一个岔路口。左边的路蜿蜒曲折，通向一片更加幽暗的树林，隐约能听到流水声；右边的路相对开阔，月光照耀下，可以看到尽头有一座小小的木屋，窗户里透出温暖的灯光。
+        </p>
+      </div>
+
+      <!-- 分支选择 -->
+      <div class="bg-white rounded-2xl shadow-md p-6 md:p-8 mb-8">
+        <h3 class="text-xl font-bold mb-6 text-center">你会选择哪条路？</h3>
+        <div class="space-y-4">
+          <button class="w-full p-6 bg-slate-50 rounded-xl text-left hover:bg-primary/5 transition-colors border border-slate-100 hover:border-primary/30">
+            <a href="story-reader.html?id=1&node=left" class="block w-full h-full">
+              <h4 class="font-bold text-lg mb-2">向左走，前往幽暗的树林</h4>
+              <p class="text-slate-600">探索未知的水域，也许能找到离开森林的线索</p>
+            </a>
+          </button>
+          <button class="w-full p-6 bg-slate-50 rounded-xl text-left hover:bg-primary/5 transition-colors border border-slate-100 hover:border-primary/30">
+            <a href="story-reader.html?id=1&node=right" class="block w-full h-full">
+              <h4 class="font-bold text-lg mb-2">向右走，前往木屋寻求帮助</h4>
+              <p class="text-slate-600">也许木屋里的人能告诉你这是什么地方</p>
+            </a>
+          </button>
+        </div>
+      </div>
+
+      <!-- 故事进度 -->
+      <div class="bg-white rounded-2xl shadow-md p-6 md:p-8 mb-8">
+        <h3 class="text-xl font-bold mb-6">故事进度</h3>
+        <div class="mb-4">
+          <div class="flex justify-between mb-2">
+            <span class="text-sm font-medium">当前进度</span>
+            <span class="text-sm font-medium">25%</span>
+          </div>
+          <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div class="h-full bg-primary rounded-full" style="width: 25%"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-4 gap-2 text-center text-sm">
+          <div class="p-2 rounded-lg bg-primary/10 text-primary font-medium">起点</div>
+          <div class="p-2 rounded-lg bg-primary/10 text-primary font-medium">当前</div>
+          <div class="p-2 rounded-lg bg-slate-100 text-slate-400">未知</div>
+          <div class="p-2 rounded-lg bg-slate-100 text-slate-400">结局</div>
+        </div>
+      </div>
+
+      <!-- 作者其他作品 -->
+      <div>
+        <h3 class="text-xl font-bold mb-6">作者的其他作品</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow flex">
+            <img src="https://picsum.photos/id/29/300/300" alt="故事封面" class="w-1/3 object-cover">
+            <div class="p-4 w-2/3">
+              <h4 class="font-bold mb-2 line-clamp-1">月下的精灵</h4>
+              <p class="text-sm text-slate-600 mb-2 line-clamp-2">一个关于人类与精灵友谊的故事...</p>
+              <div class="flex items-center gap-1 text-amber-500 text-xs">
+                <i class="fa fa-star"></i>
+                <span>4.6</span>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow flex">
+            <img src="https://picsum.photos/id/96/300/300" alt="故事封面" class="w-1/3 object-cover">
+            <div class="p-4 w-2/3">
+              <h4 class="font-bold mb-2 line-clamp-1">时光之钥</h4>
+              <p class="text-sm text-slate-600 mb-2 line-clamp-2">一把能够打开时间之门的神秘钥匙...</p>
+              <div class="flex items-center gap-1 text-amber-500 text-xs">
+                <i class="fa fa-star"></i>
+                <span>4.7</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 页脚（与首页一致） -->
+  <footer class="bg-slate-900 text-white py-12 px-4">
+    <div class="container mx-auto max-w-6xl">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div>
+          <div class="flex items-center space-x-2 mb-6">
+            <i class="fa fa-book text-primary text-2xl"></i>
+            <h2 class="text-xl font-display font-bold">StoryForge</h2>
+          </div>
+          <p class="text-slate-400 mb-6">AI驱动的交互式故事生成平台，让每个人都能创作出精彩的故事。</p>
+          <div class="flex space-x-4">
+            <a href="#" class="text-slate-400 hover:text-white transition-colors"><i class="fa fa-twitter"></i></a>
+            <a href="#" class="text-slate-400 hover:text-white transition-colors"><i class="fa fa-facebook"></i></a>
+            <a href="#" class="text-slate-400 hover:text-white transition-colors"><i class="fa fa-instagram"></i></a>
+            <a href="#" class="text-slate-400 hover:text-white transition-colors"><i class="fa fa-github"></i></a>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold mb-6">产品</h3>
+          <ul class="space-y-3">
+            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">功能介绍</a></li>
+            <li><a href="pricing.html" class="text-slate-400 hover:text-white transition-colors">定价方案</a></li>
+            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">使用教程</a></li>
+            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">更新日志</a></li>
+            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">API文档</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold mb-6">资源</h3>
+          <ul class="space-y-3">
+            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">故事模板</a></li>
+            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">创作指南</a></li>
+            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">社区讨论</a></li>
+            <li><a href="faq.html" class="text-slate-400 hover:text-white transition-colors">常见问题</a></li>
+            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">联系支持</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold mb-6">公司</h3>
+          <ul class="space-y-3">
+            <li><a href="about.html" class="text-slate-400 hover:text-white transition-colors">关于我们</a></li>
+            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">招贤纳士</a></li>
+            <li><a href="terms.html" class="text-slate-400 hover:text-white transition-colors">服务条款</a></li>
+            <li><a href="privacy.html" class="text-slate-400 hover:text-white transition-colors">隐私政策</a></li>
+            <li><a href="#" class="text-slate-400 hover:text-white transition-colors">联系我们</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center">
+        <p class="text-slate-500 text-sm mb-4 md:mb-0">© 2023 StoryForge. 保留所有权利。</p>
+        <div class="flex space-x-6">
+          <a href="terms.html" class="text-slate-500 hover:text-white text-sm transition-colors">服务条款</a>
+          <a href="privacy.html" class="text-slate-500 hover:text-white text-sm transition-colors">隐私政策</a>
+          <a href="#" class="text-slate-500 hover:text-white text-sm transition-colors">Cookie设置</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- JavaScript（与首页一致） -->
+  <script src="assets/js/auth.js"></script>
+  <script>
+    // 导航栏滚动效果
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 50) {
+        navbar.classList.add('py-2', 'shadow-md');
+        navbar.classList.remove('py-3', 'shadow-sm');
+      } else {
+        navbar.classList.add('py-3', 'shadow-sm');
+        navbar.classList.remove('py-2', 'shadow-md');
+      }
+    });
+    
+    // 移动端菜单切换
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    mobileMenuButton.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+    });
+    
+    // 平滑滚动
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('href');
+        if (targetId === '#') return;
+        
+        const targetElement = document.querySelector(targetId);
+        if (targetElement) {
+          window.scrollTo({
+            top: targetElement.offsetTop - 80,
+            behavior: 'smooth'
+          });
+          if (!mobileMenu.classList.contains('hidden')) {
+            mobileMenu.classList.add('hidden');
+          }
+        }
+      });
+    });
+    
+    // 检查登录状态并更新导航栏
+    function checkLoginStatus() {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const userInfo = localStorage.getItem('userInfo') || sessionStorage.getItem('userInfo');
+      
+      if (token && userInfo) {
+        const user = JSON.parse(userInfo);
+        // 显示已登录状态
+        document.getElementById('auth-logged-in').classList.remove('hidden');
+        document.getElementById('auth-not-logged-in').classList.add('hidden');
+        document.getElementById('mobile-auth-logged-in').classList.remove('hidden');
+        document.getElementById('mobile-auth-not-logged-in').classList.add('hidden');
+        
+        // 更新用户名
+        const username = user.username || user.email.split('@')[0];
+        document.getElementById('nav-username').textContent = username;
+        document.getElementById('mobile-nav-username').textContent = username;
+      } else {
+        // 显示未登录状态
+        document.getElementById('auth-logged-in').classList.add('hidden');
+        document.getElementById('auth-not-logged-in').classList.remove('hidden');
+        document.getElementById('mobile-auth-logged-in').classList.add('hidden');
+        document.getElementById('mobile-auth-not-logged-in').classList.remove('hidden');
+      }
+    }
+    
+    // 退出登录
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('userInfo');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('refreshToken');
+      sessionStorage.removeItem('userInfo');
+      
+      // 更新导航栏
+      checkLoginStatus();
+      
+      // 显示通知
+      showNotification('已成功退出登录', 'success');
+      
+      // 延迟跳转回首页
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 1000);
+    });
+    
+    // 移动端退出登录
+    document.getElementById('mobile-logout-btn').addEventListener('click', () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('userInfo');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('refreshToken');
+      sessionStorage.removeItem('userInfo');
+      
+      // 更新导航栏
+      checkLoginStatus();
+      
+      // 关闭移动端菜单
+      mobileMenu.classList.add('hidden');
+      
+      // 显示通知
+      showNotification('已成功退出登录', 'success');
+      
+      // 延迟跳转回首页
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 1000);
+    });
+    
+    // 页面加载时检查登录状态
+    window.addEventListener('DOMContentLoaded', checkLoginStatus);
+
+    AuthUI.init();
+
+    // 收藏功能实现
+    const collectBtn = document.getElementById('collect-btn');
+    const collectIcon = document.getElementById('collect-icon');
+    const collectText = document.getElementById('collect-text');
+    const storyId = new URLSearchParams(window.location.search).get('id');
+
+    if (collectBtn && storyId) {
+        collectBtn.addEventListener('click', async () => {
+            const authState = AuthUI.getAuthState();
+            if (!authState) {
+                alert('请先登录后再收藏');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                // 检查是否已收藏
+                const isCollected = collectIcon.classList.contains('fa-heart');
+                
+                if (isCollected) {
+                    // 取消收藏
+                    await fetch('/api/v1/users/collections/' + storyId, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': 'Bearer ' + authState.token,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    collectIcon.classList.remove('fa-heart');
+                    collectIcon.classList.add('fa-heart-o');
+                    collectIcon.classList.remove('text-red-500');
+                    collectBtn.classList.remove('text-red-500');
+                    showNotification('已取消收藏', 'info');
+                } else {
+                    // 添加收藏
+                    const response = await fetch('/api/v1/users/collections', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': 'Bearer ' + authState.token,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ storyId })
+                    });
+                    
+                    if (response.ok) {
+                        collectIcon.classList.remove('fa-heart-o');
+                        collectIcon.classList.add('fa-heart');
+                        collectIcon.classList.add('text-red-500');
+                        collectBtn.classList.add('text-red-500');
+                        showNotification('收藏成功', 'success');
+                    }
+                }
+            } catch (error) {
+                console.error('收藏操作失败:', error);
+                showNotification('操作失败，请稍后重试', 'error');
+            }
+        });
+
+        // 初始检查收藏状态
+        async function checkCollectionStatus() {
+            const authState = AuthUI.getAuthState();
+            if (authState) {
+                try {
+                    const response = await fetch('/api/v1/users/collections', {
+                        headers: {
+                            'Authorization': 'Bearer ' + authState.token
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const isCollected = data.data.some(collection => collection.story._id === storyId);
+                        
+                        if (isCollected) {
+                            collectIcon.classList.remove('fa-heart-o');
+                            collectIcon.classList.add('fa-heart');
+                            collectIcon.classList.add('text-red-500');
+                            collectBtn.classList.add('text-red-500');
+                        }
+                    }
+                } catch (error) {
+                    console.error('检查收藏状态失败:', error);
+                }
+            }
+        }
+
+        checkCollectionStatus();
+    }
+
+    // 通知提示功能
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center transition-all duration-300 transform translate-y-10 opacity-0`;
+
+        if (type === 'success') {
+            notification.classList.add('bg-green-50', 'border', 'border-green-200', 'text-green-700');
+            notification.innerHTML = `<i class="fa fa-check-circle mr-2"></i>${message}`;
+        } else if (type === 'error') {
+            notification.classList.add('bg-red-50', 'border', 'border-red-200', 'text-red-700');
+            notification.innerHTML = `<i class="fa fa-exclamation-circle mr-2"></i>${message}`;
+        } else {
+            notification.classList.add('bg-blue-50', 'border', 'border-blue-200', 'text-blue-700');
+            notification.innerHTML = `<i class="fa fa-info-circle mr-2"></i>${message}`;
+        }
+
+        document.body.appendChild(notification);
+        setTimeout(() => notification.classList.remove('translate-y-10', 'opacity-0'), 10);
+        setTimeout(() => {
+            notification.classList.add('translate-y-10', 'opacity-0');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+  </script>
+</body>
+</html>
