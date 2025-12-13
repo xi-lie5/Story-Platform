@@ -31,6 +31,11 @@ const storyNodeSchema = new mongoose.Schema({
     enum: ['normal', 'choice', 'ending'],
     default: 'normal'
   },
+  description: {
+    type: String,
+    trim: true,
+    description: '节点描述，用于choice类型节点的说明'
+  },
   order: {
     type: Number,
     required: [true, '节点顺序必填'],
@@ -193,9 +198,38 @@ storyNodeSchema.statics.processNodeRelations = async function(nodes, storyId) {
   
   // 第一阶段：保存所有节点，建立临时ID映射
   for (const nodeData of nodes) {
+    // 提取临时ID
+    const tempId = nodeData.tempId || nodeData.id || nodeData._id?.toString();
+    
+    // 准备节点数据，排除tempId字段
+    const { tempId: _, id: __, ...nodeFields } = nodeData;
+    
+    // 确定parentId（如果有）
+    let parentId = nodeData.parentId || null;
+    if (parentId && nodeMap[parentId]) {
+      parentId = nodeMap[parentId];
+    }
+    
+    // 计算depth和path
+    let depth = 0;
+    let path = '';
+    if (parentId) {
+      const parent = await this.findById(parentId);
+      if (parent) {
+        depth = parent.depth + 1;
+        path = parent.path ? `${parent.path},${parent._id}` : parent._id.toString();
+      }
+    }
+    
+    // 创建节点
     const node = new this({
-      ...nodeData,
-      storyId
+      ...nodeFields,
+      storyId,
+      parentId: parentId,
+      depth: depth,
+      path: path,
+      position: nodeData.position || { x: 0, y: 0 },
+      order: nodeData.order || 0
     });
     
     // 处理choices中的临时关系
@@ -208,7 +242,9 @@ storyNodeSchema.statics.processNodeRelations = async function(nodes, storyId) {
     }
     
     await node.save();
-    nodeMap[nodeData.tempId || nodeData._id?.toString()] = node._id.toString();
+    if (tempId) {
+      nodeMap[tempId] = node._id.toString();
+    }
     createdNodes.push(node);
   }
   

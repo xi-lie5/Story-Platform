@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const StoryNode = require('../models/StoryNode');
 const Story = require('../models/Story');
 const authGuard = require('../middleware/auth');
@@ -162,11 +163,11 @@ router.post('/stories/:storyId/root', authGuard, async (req, res) => {
 router.post('/stories/:storyId/nodes', authGuard, storyAuth, async (req, res) => {
   try {
     const { storyId } = req.params;
-    const { parentId, title, content, type, description, choices } = req.body;
+    const { parentId, title, content, type, description, choices, position } = req.body;
     
     console.log('🔍 收到的请求数据:', JSON.stringify(req.body, null, 2));
     
-    // 准备节点数据 - 移除旧数据模型的choiceText字段
+    // 准备节点数据
     const nodeData = {
       title: title || '新章节',
       content: content || '请输入章节内容...',
@@ -178,33 +179,61 @@ router.post('/stories/:storyId/nodes', authGuard, storyAuth, async (req, res) =>
       nodeData.description = description;
     }
     
+    // 如果提供了位置信息
+    if (position) {
+      nodeData.position = position;
+    }
+    
     // 如果提供了choices数组，在创建时就包含
     if (choices && Array.isArray(choices)) {
-      console.log('📝 设置choices数组:', choices); // 调试日志
+      console.log('📝 设置choices数组:', choices);
       nodeData.choices = choices.map(choice => ({
         id: choice.id || new mongoose.Types.ObjectId().toString(),
         text: choice.text,
+        description: choice.description,
         targetNodeId: choice.targetNodeId || null
       }));
-    } else {
-      console.log('📝 没有设置choices数组，type:', type, 'choices:', choices);
     }
     
-    console.log('📝 创建节点数据:', JSON.stringify(nodeData, null, 2)); // 调试日志
+    console.log('📝 创建节点数据:', JSON.stringify(nodeData, null, 2));
     
-    // 创建子节点
-    const childNode = await StoryNode.createChild(parentId, nodeData);
+    let newNode;
+    
+    // 如果有parentId，使用createChild方法创建子节点
+    if (parentId) {
+      newNode = await StoryNode.createChild(parentId, nodeData);
+    } else {
+      // 如果没有parentId，直接创建节点（可能是根节点或独立节点）
+      // 检查是否已有根节点
+      const existingRoot = await StoryNode.findOne({ storyId, parentId: null });
+      if (existingRoot) {
+        // 如果已有根节点，将新节点作为根节点的子节点
+        newNode = await StoryNode.createChild(existingRoot._id, nodeData);
+      } else {
+        // 创建根节点
+        newNode = new StoryNode({
+          ...nodeData,
+          storyId,
+          parentId: null,
+          order: 0,
+          depth: 0,
+          path: '',
+          position: position || { x: 400, y: 50 }
+        });
+        await newNode.save();
+      }
+    }
     
     res.status(201).json({
       success: true,
-      message: '子节点创建成功',
-      data: childNode
+      message: '节点创建成功',
+      data: newNode
     });
   } catch (error) {
-    console.error('创建子节点失败:', error);
+    console.error('创建节点失败:', error);
     res.status(500).json({
       success: false,
-      message: '创建子节点失败',
+      message: '创建节点失败',
       error: error.message
     });
   }
