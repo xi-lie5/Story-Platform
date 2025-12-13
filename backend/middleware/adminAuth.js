@@ -1,38 +1,34 @@
+// middleware/role.js
 const { errorFormat } = require('../utils/errorFormat');
 
-/**
- * 管理员权限验证中间件
- * 检查用户是否具有管理员权限
- */
-const adminGuard = (req, res, next) => {
-  if (!req.user) {
-    return next(errorFormat(401, '请先登录', [], 10007));
-  }
-
-  if (req.user.role !== 'admin') {
-    return next(errorFormat(403, '权限不足，需要管理员权限', [], 10005));
-  }
-
-  next();
+// 集中配置
+const ROLE = {
+  ADMIN:  'admin',
+  EDITOR: 'editor',
 };
 
-/**
- * 编辑者权限验证中间件
- * 检查用户是否具有编辑者或管理员权限
- */
-const editorGuard = (req, res, next) => {
-  if (!req.user) {
-    return next(errorFormat(401, '请先登录', [], 10007));
-  }
-
-  if (!['admin', 'editor'].includes(req.user.role)) {
-    return next(errorFormat(403, '权限不足，需要编辑者或管理员权限', [], 10005));
-  }
-
-  next();
+const ERR = {
+  NEED_LOGIN:  errorFormat(401, '请先登录', [], 10007),
+  FORBIDDEN:   errorFormat(403, '权限不足', [], 10005),
 };
 
+/* 1. 登录守卫 */
+const loginGuard = (req, _res, next) =>
+  req.user ? next() : next(ERR.NEED_LOGIN);
+
+/* 2. 通用角色守卫工厂 */
+const roleGuard = (allowedRoles) => {
+  return (req, _res, next) => {
+    if (!allowedRoles.includes(req.user.role)) {
+      return next(ERR.FORBIDDEN);
+    }
+    next();
+  };
+};
+
+/* 3. 导出组合后的中间件 */
 module.exports = {
-  adminGuard,
-  editorGuard
+  loginGuard,
+  adminGuard:  [loginGuard, roleGuard([ROLE.ADMIN])],
+  editorGuard: [loginGuard, roleGuard([ROLE.ADMIN, ROLE.EDITOR])],
 };
