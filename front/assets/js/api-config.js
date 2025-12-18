@@ -17,25 +17,87 @@ const API_CONFIG = {
     };
   },
   
-  // 节点相关API
-  NODES: {
-    // 获取单个节点
-    getNode: (nodeId) => API_CONFIG.buildUrl(`/storyNodes/nodes/${nodeId}`),
-    // 获取故事的所有节点
-    getStoryNodes: (storyId) => API_CONFIG.buildUrl(`/storyNodes/stories/${storyId}/nodes`),
-    // 创建节点
-    createNode: (storyId) => API_CONFIG.buildUrl(`/storyNodes/stories/${storyId}/nodes`),
-    // 批量保存节点
-    batchSave: (storyId) => API_CONFIG.buildUrl(`/storyNodes/stories/${storyId}/nodes/batch`),
-    // 删除节点
-    deleteNode: (nodeId) => API_CONFIG.buildUrl(`/storyNodes/nodes/${nodeId}`),
-    // 更新节点
-    updateNode: (nodeId) => API_CONFIG.buildUrl(`/storyNodes/nodes/${nodeId}`),
-    // 移动节点
-    moveNode: (nodeId) => API_CONFIG.buildUrl(`/storyNodes/nodes/${nodeId}/move`),
-    // 绑定选择到目标节点
-    bindChoice: (nodeId, choiceId) => API_CONFIG.buildUrl(`/storyNodes/nodes/${nodeId}/choices/${choiceId}/bind`)
+  // 通用API请求函数
+  async request(url, options = {}) {
+    try {
+      const headers = {
+        ...this.getAuthHeaders(),
+        ...options.headers
+      };
+      
+      const response = await fetch(url, {
+        ...options,
+        headers
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || `HTTP错误: ${response.status}`);
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('API请求错误:', error);
+      throw error;
+    }
   },
+  
+  // GET请求
+  get(url, options = {}) {
+    return this.request(url, {
+      ...options,
+      method: 'GET'
+    });
+  },
+  
+  // POST请求
+  post(url, data = {}, options = {}) {
+    return this.request(url, {
+      ...options,
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  
+  // PUT请求
+  put(url, data = {}, options = {}) {
+    return this.request(url, {
+      ...options,
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+  
+  // DELETE请求
+  delete(url, options = {}) {
+    return this.request(url, {
+      ...options,
+      method: 'DELETE'
+    });
+  },
+  
+  // 节点相关API
+    NODES: {
+      // 获取单个节点
+      getNode: (nodeId) => API_CONFIG.buildUrl(`/storyNodes/nodes/${nodeId}`),
+      // 获取故事的所有节点
+      getStoryNodes: (storyId) => API_CONFIG.buildUrl(`/storyNodes/stories/${storyId}/nodes`),
+      // 创建根节点
+      createRoot: (storyId) => API_CONFIG.buildUrl(`/storyNodes/stories/${storyId}/root`),
+      // 创建节点
+      createNode: (storyId) => API_CONFIG.buildUrl(`/storyNodes/stories/${storyId}/nodes`),
+      // 批量保存节点
+      batchSave: (storyId) => API_CONFIG.buildUrl(`/storyNodes/stories/${storyId}/nodes/batch`),
+      // 删除节点
+      deleteNode: (nodeId) => API_CONFIG.buildUrl(`/storyNodes/nodes/${nodeId}`),
+      // 更新节点
+      updateNode: (nodeId) => API_CONFIG.buildUrl(`/storyNodes/nodes/${nodeId}`),
+      // 移动节点
+      moveNode: (nodeId) => API_CONFIG.buildUrl(`/storyNodes/nodes/${nodeId}/move`),
+      // 绑定选择到目标节点
+      bindChoice: (nodeId, choiceId) => API_CONFIG.buildUrl(`/storyNodes/nodes/${nodeId}/choices/${choiceId}/bind`)
+    },
   
   // 故事相关API
   STORIES: {

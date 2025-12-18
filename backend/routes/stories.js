@@ -3,21 +3,14 @@ const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const Story = require('../models/Story');
 const Category = require('../models/Category');
-const StorySection = require('../models/StorySection');
+const StoryNode = require('../models/StoryNode');
 const authGuard = require('../middleware/auth');
 const { errorFormat } = require('../utils/errorFormat');
 const { cacheMiddleware, clearStoryCache } = require('../middleware/cache');
 
 const router = express.Router();
 
-// Stories 路由全局中间件 - 记录所有请求
-router.use((req, res, next) => {
-  console.log(`📚 STORIES ROUTE: ${req.method} ${req.originalUrl}`);
-  console.log('📚 Base URL:', req.baseUrl);
-  console.log('📚 Path:', req.path);
-  console.log('📚 Params:', req.params);
-  next();
-});
+
 
 function buildSortOption(sort = 'latest') {
   switch (sort) {
@@ -91,7 +84,6 @@ router.get('/', cacheMiddleware(300), async (req, res, next) => {
 
 // 使用缓存中间件，缓存公共故事列表，TTL设为5分钟
 router.get('/public', async (req, res, next) => {
-  console.log('=== /public route matched WITHOUT cache ===');
   try {
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 9, 1), 50);
@@ -169,7 +161,7 @@ router.get('/:storyId', cacheMiddleware(180), async (req, res, next) => {
           category: { name: '未分类' },
           coverImage: '',
           description: '这是一个临时创建的故事，尚未保存到服务器',
-          sections: [],
+          nodes: [],
           view: 0,
           rating: 0,
           createdAt: new Date(),
@@ -183,18 +175,25 @@ router.get('/:storyId', cacheMiddleware(180), async (req, res, next) => {
       return next(errorFormat(400, '无效的故事ID', [], 10010));
     }
 
+    // 获取故事基本信息
     const story = await Story.findById(storyId)
       .populate('author', 'username avatar')
-      .populate('category', 'name')
-      .populate({
-        path: 'sections',
-        options: { sort: { order: 1 } }
-      });
+      .populate('category', 'name');
 
     if (!story) {
       return next(errorFormat(404, '故事不存在', [], 10010));
     }
 
+    // 获取故事所有节点
+    const nodes = await StoryNode.find({ storyId })
+      .sort({ depth: 1, order: 1 })
+      .populate('parentId', 'title')
+      .populate('choices.targetNodeId', 'title');
+
+    // 获取故事树
+    const tree = await StoryNode.getStoryTree(storyId);
+
+    // 更新浏览量
     await Story.findByIdAndUpdate(storyId, { $inc: { view: 1 } });
 
     res.status(200).json({
@@ -207,14 +206,20 @@ router.get('/:storyId', cacheMiddleware(180), async (req, res, next) => {
         category: story.category,
         coverImage: story.coverImage,
         description: story.description,
-        sections: story.sections.map((section) => ({
-          id: section.id,
-          order: section.order,
-          type: section.type,
-          text: section.text,
-          choices: section.choices,
-          isEnd: section.isEnd
+        nodes: nodes.map((node) => ({
+          id: node.id,
+          parentId: node.parentId,
+          title: node.title,
+          content: node.content,
+          type: node.type,
+          description: node.description,
+          choices: node.choices,
+          position: node.position,
+          depth: node.depth,
+          path: node.path,
+          order: node.order
         })),
+        tree: tree,
         view: story.view + 1,
         rating: story.rating,
         createdAt: story.createdAt,
@@ -261,6 +266,21 @@ router.post('/', authGuard, [
 
     await Category.updateOne({ _id: categoryId }, { $inc: { storyCount: 1 } }).session(session);
 
+    // 创建故事根节点
+    const rootNode = new StoryNode({
+      storyId: story[0].id,
+      parentId: null,
+      title: '故事开始',
+      content: '这是故事的开始...',
+      type: 'normal',
+      order: 0,
+      depth: 0,
+      path: '',
+      position: { x: 400, y: 50 }  // 默认位置居中偏上
+    });
+    
+    await rootNode.save({ session });
+
     await session.commitTransaction();
     
     // 清除相关缓存
@@ -272,6 +292,7 @@ router.post('/', authGuard, [
       data: {
         id: story[0].id,
         title: story[0].title,
+        rootNodeId: rootNode._id,
         isTemporary: false
       }
     });
@@ -363,7 +384,6 @@ router.delete('/:storyId', authGuard, async (req, res, next) => {
       return next(errorFormat(403, '没有权限删除此故事', [], 10011));
     }
 
-    await StorySection.deleteMany({ storyId }).session(session);
     await Story.deleteOne({ _id: storyId }).session(session);
     await Category.updateOne({ _id: story.category }, { $inc: { storyCount: -1 } }).session(session);
 
@@ -381,288 +401,9 @@ router.delete('/:storyId', authGuard, async (req, res, next) => {
   }
 });
 
-// 使用缓存中间件，缓存故事图谱，TTL设为2分钟
-router.get('/:storyId/graph', cacheMiddleware(120), async (req, res, next) => {
-  try {
-    const { storyId } = req.params;
 
-    // 对于临时故事，返回空的图谱结构
-    if (storyId.startsWith('local_')) {
-      return res.status(200).json({
-        success: true,
-        message: '获取临时故事图谱成功',
-        data: {
-          story: {
-            id: storyId,
-            title: '临时故事',
-            author: { username: '临时用户', avatar: '' },
-            category: { name: '未分类' },
-            coverImage: '',
-            description: '这是一个临时创建的故事，尚未保存到服务器'
-          },
-          nodes: [],
-          connections: [],
-          isTemporary: true
-        }
-      });
-    }
 
-    if (!mongoose.Types.ObjectId.isValid(storyId)) {
-      return next(errorFormat(400, '无效的故事ID', [], 10010));
-    }
 
-    const story = await Story.findById(storyId)
-      .populate('author', 'username avatar')
-      .populate('category', 'name');
-
-    if (!story) {
-      return next(errorFormat(404, '故事不存在', [], 10010));
-    }
-
-    const sections = await StorySection.find({ storyId })
-      .sort({ order: 1 })
-      .populate('choices.nextSectionId', 'id temporaryId title type');
-
-    // 构建节点和连接的数据结构
-    const nodes = sections.map(section => ({
-      id: section.id,
-      temporaryId: section.temporaryId,
-      type: section.type,
-      order: section.order,
-      title: section.title,
-      text: section.text,
-      visualPosition: section.visualPosition,
-      isEnd: section.isEnd,
-      statistics: section.statistics
-    }));
-
-    // 构建连接关系
-    const connections = [];
-    sections.forEach(section => {
-      if (section.choices && section.choices.length > 0) {
-        section.choices.forEach(choice => {
-          if (choice.nextSectionId || choice.nextTemporaryId) {
-            connections.push({
-              id: choice.id || `connection_${section.id}_${connections.length}`,
-              sourceId: section.id,
-              targetId: choice.nextSectionId ? choice.nextSectionId.toString() : null,
-              targetTemporaryId: choice.nextTemporaryId || null,
-              choiceText: choice.text,
-              choiceDescription: choice.description
-            });
-          }
-        });
-      }
-    });
-
-    res.status(200).json({
-      success: true,
-      message: '获取故事图谱成功',
-      data: {
-        story: {
-          id: story.id,
-          title: story.title,
-          author: story.author,
-          category: story.category,
-          coverImage: story.coverImage,
-          description: story.description
-        },
-        nodes,
-        connections,
-        isTemporary: false
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// 批量保存故事图谱数据
-router.put('/:storyId/graph', authGuard, async (req, res, next) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const { storyId } = req.params;
-    const { nodes, metadata = {} } = req.body;
-
-    if (!mongoose.Types.ObjectId.isValid(storyId)) {
-      await session.abortTransaction();
-      return next(errorFormat(400, '无效的故事ID', [], 10010));
-    }
-
-    // 验证用户权限
-    const story = await Story.findById(storyId).session(session);
-    if (!story) {
-      await session.abortTransaction();
-      return next(errorFormat(404, '故事不存在', [], 10010));
-    }
-
-    if (story.author.toString() !== req.user.id) {
-      await session.abortTransaction();
-      return next(errorFormat(403, '没有权限修改此故事', [], 10011));
-    }
-
-    // 验证请求数据
-    if (!nodes || !Array.isArray(nodes)) {
-      await session.abortTransaction();
-      return next(errorFormat(400, '无效的节点数据', [], 10013));
-    }
-
-    // 获取现有的章节数据，用于ID映射
-    const existingSections = await StorySection.find({ storyId }).session(session);
-    const existingSectionMap = new Map();
-    const existingTemporaryIdMap = new Map();
-    
-    existingSections.forEach(section => {
-      existingSectionMap.set(section.id.toString(), section);
-      if (section.temporaryId) {
-        existingTemporaryIdMap.set(section.temporaryId, section.id.toString());
-      }
-    });
-
-    // 第一阶段：创建临时ID到MongoDB ID的映射关系
-    const tempIdToMongoIdMap = new Map();
-    
-    // 先记录已有的临时ID映射
-    existingSections.forEach(section => {
-      if (section.temporaryId) {
-        tempIdToMongoIdMap.set(section.temporaryId, section.id.toString());
-      }
-    });
-
-    // 第二阶段：批量处理所有节点
-    const updatedSections = [];
-    const createdSections = [];
-    
-    for (const node of nodes) {
-      // 验证节点必填字段
-      if (!node.temporaryId) {
-        await session.abortTransaction();
-        return next(errorFormat(400, '每个节点必须有temporaryId', [], 10014));
-      }
-
-      // 查找现有章节或创建新章节
-      let section;
-      let isNewSection = false;
-      
-      // 尝试通过临时ID找到现有章节
-      if (existingTemporaryIdMap.has(node.temporaryId)) {
-        const mongoId = existingTemporaryIdMap.get(node.temporaryId);
-        section = existingSectionMap.get(mongoId);
-      } 
-      // 或通过MongoDB ID找到现有章节
-      else if (node.id && existingSectionMap.has(node.id)) {
-        section = existingSectionMap.get(node.id);
-        // 如果有临时ID但还没映射，添加到映射表
-        if (!tempIdToMongoIdMap.has(node.temporaryId)) {
-          tempIdToMongoIdMap.set(node.temporaryId, node.id);
-        }
-      } 
-      // 创建新章节
-      else {
-        section = new StorySection({
-          storyId,
-          temporaryId: node.temporaryId
-        });
-        isNewSection = true;
-      }
-
-      // 更新章节字段
-      section.type = node.type || 'text';
-      section.order = node.order || 9999;
-      section.title = node.title || '';
-      section.text = node.text || '';
-      section.visualPosition = node.visualPosition || { x: 0, y: 0 };
-      section.isEnd = node.isEnd || false;
-
-      // 处理选项和连接关系
-      if (node.choices && Array.isArray(node.choices)) {
-        section.choices = node.choices.map(choice => {
-          const processedChoice = {
-            id: choice.id,
-            text: choice.text || '',
-            description: choice.description || ''
-          };
-
-          // 尝试解析目标引用
-          if (choice.targetId && mongoose.Types.ObjectId.isValid(choice.targetId)) {
-            processedChoice.nextSectionId = choice.targetId;
-          }
-          // 如果是临时ID引用，暂时只保存临时ID，在保存后再处理映射
-          else if (choice.targetTemporaryId) {
-            processedChoice.nextTemporaryId = choice.targetTemporaryId;
-          }
-
-          return processedChoice;
-        });
-      } else {
-        section.choices = [];
-      }
-
-      // 保存章节
-      await section.save({ session });
-      
-      // 记录到映射表（对于新创建的章节）
-      if (isNewSection && !tempIdToMongoIdMap.has(node.temporaryId)) {
-        tempIdToMongoIdMap.set(node.temporaryId, section.id.toString());
-        createdSections.push(section);
-      } else if (!isNewSection) {
-        updatedSections.push(section);
-      }
-    }
-
-    // 第三阶段：更新临时ID引用为实际MongoDB ID
-    for (const section of [...createdSections, ...updatedSections]) {
-      let needUpdate = false;
-      
-      for (const choice of section.choices) {
-        if (choice.nextTemporaryId && tempIdToMongoIdMap.has(choice.nextTemporaryId)) {
-          choice.nextSectionId = tempIdToMongoIdMap.get(choice.nextTemporaryId);
-          delete choice.nextTemporaryId;
-          needUpdate = true;
-        }
-      }
-      
-      if (needUpdate) {
-        await section.save({ session });
-      }
-    }
-
-    // 如果提供了元数据，更新故事信息
-    if (metadata) {
-      const storyUpdates = {};
-      if (metadata.title !== undefined) storyUpdates.title = metadata.title;
-      if (metadata.description !== undefined) storyUpdates.description = metadata.description;
-      if (metadata.coverImage !== undefined) storyUpdates.coverImage = metadata.coverImage;
-      
-      if (Object.keys(storyUpdates).length > 0) {
-        await Story.updateOne({ _id: storyId }, storyUpdates).session(session);
-      }
-    }
-
-    await session.commitTransaction();
-    
-    // 清除相关缓存
-    clearStoryCache(storyId);
-
-    // 返回更新后的映射信息和操作结果
-    res.status(200).json({
-      success: true,
-      message: '故事图谱保存成功',
-      data: {
-        temporaryIdMap: Object.fromEntries(tempIdToMongoIdMap),
-        updatedCount: updatedSections.length,
-        createdCount: createdSections.length
-      }
-    });
-  } catch (error) {
-    await session.abortTransaction();
-    next(error);
-  } finally {
-    session.endSession();
-  }
-});
 
 // 提交故事审核
 router.patch('/:storyId/submit', authGuard, async (req, res, next) => {
@@ -712,11 +453,6 @@ router.patch('/:storyId/submit', authGuard, async (req, res, next) => {
 
 // 标记故事为完成/未完成
 router.patch('/:storyId/complete', authGuard, async (req, res, next) => {
-  console.log('=== COMPLETE ROUTE HIT ===');
-  console.log('Story ID:', req.params.storyId);
-  console.log('Request body:', req.body);
-  console.log('User:', req.user);
-  
   try {
     const { storyId } = req.params;
     const { isCompleted } = req.body;
@@ -763,50 +499,7 @@ router.patch('/:storyId/complete', authGuard, async (req, res, next) => {
   }
 });
 
-// 保存故事树数据
-router.put('/:storyId/tree', authGuard, async (req, res, next) => {
-  try {
-    const { storyId } = req.params;
-    const { nodes, connections, lastModified } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(storyId)) {
-      return next(errorFormat(400, '无效的故事ID', [], 10010));
-    }
-
-    const story = await Story.findById(storyId);
-
-    if (!story) {
-      return next(errorFormat(404, '故事不存在', [], 10010));
-    }
-
-    if (story.author.toString() !== req.user.id) {
-      return next(errorFormat(403, '没有权限修改此故事', [], 10011));
-    }
-
-    // 更新故事的树数据
-    story.treeData = {
-      nodes: nodes || {},
-      connections: connections || [],
-      lastModified: lastModified || new Date().toISOString()
-    };
-
-    await story.save();
-
-    // 清除相关缓存
-    clearStoryCache(storyId);
-
-    res.status(200).json({
-      success: true,
-      message: '故事树数据保存成功',
-      data: {
-        id: story.id,
-        treeData: story.treeData
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
-});
 
 // 取消发布故事
 router.patch('/:storyId/unpublish', authGuard, async (req, res, next) => {

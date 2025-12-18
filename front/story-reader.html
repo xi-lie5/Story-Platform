@@ -45,31 +45,64 @@
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
   <!-- 导航栏 -->
-  <nav class="bg-white shadow-sm sticky top-0 z-50" id="navbar">
-    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-      <div class="flex items-center space-x-2">
-        <i class="fa fa-book text-primary text-2xl"></i>
-        <h1 class="text-xl md:text-2xl font-display font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">StoryForge</h1>
+  <nav class="navbar-modern sticky top-0 z-50">
+    <div class="container mx-auto px-4 py-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+            <i class="fa fa-book text-white text-lg"></i>
+          </div>
+          <h1 class="text-xl md:text-2xl font-display font-bold text-gray-900">StoryForge</h1>
+        </div>
+        
+        <nav class="hidden md:flex items-center space-x-8">
+          <a href="index.html" class="navbar-link font-medium transition-colors">首页</a>
+          <a href="explore.html" class="navbar-link font-medium transition-colors">探索故事</a>
+          <a href="create.html" class="navbar-link font-medium transition-colors">创建故事</a>
+          <a href="my_stories.html" class="navbar-link font-medium transition-colors">我的作品</a>
+          <a href="favorites.html" class="navbar-link font-medium transition-colors">我的收藏</a>
+          <a href="profile.html" class="navbar-link font-medium transition-colors">个人中心</a>
+          <a href="about.html" class="navbar-link font-medium transition-colors">关于</a>
+        </nav>
+        
+        <!-- 认证区域 -->
+        <div id="auth-area-desktop" class="flex items-center space-x-3"></div>
+        
+        <!-- 阅读器控制按钮 -->
+        <div class="flex items-center space-x-3">
+          <button id="back-btn" class="p-2 rounded-full border border-slate-200 text-slate-600 hover:border-primary hover:text-primary transition-colors">
+            <i class="fa fa-arrow-left"></i>
+          </button>
+          <button id="font-size-btn" class="p-2 rounded-full border border-slate-200 text-slate-600 hover:border-primary hover:text-primary transition-colors">
+            <i class="fa fa-font"></i>
+          </button>
+          <button id="theme-btn" class="p-2 rounded-full border border-slate-200 text-slate-600 hover:border-primary hover:text-primary transition-colors">
+            <i class="fa fa-adjust"></i>
+          </button>
+          
+          <!-- 移动端菜单按钮 -->
+          <button id="mobile-menu-button" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors">
+              <i class="fa fa-bars text-slate-600 text-xl"></i>
+          </button>
+        </div>
       </div>
-      
-      <nav class="hidden md:flex items-center space-x-8">
-        <a href="index.html" class="font-medium hover:text-primary transition-colors">首页</a>
-        <a href="explore.html" class="font-medium hover:text-primary transition-colors">探索故事</a>
-        <a href="create.html" class="font-medium hover:text-primary transition-colors">创建故事</a>
-        <a href="my_stories.html" class="font-medium hover:text-primary transition-colors">我的作品</a>
-        <a href="about.html" class="font-medium hover:text-primary transition-colors">关于</a>
-      </nav>
-      
-      <div class="flex items-center space-x-4">
-        <button id="back-btn" class="p-2 rounded-full border border-slate-200 text-slate-600 hover:border-primary hover:text-primary transition-colors">
-          <i class="fa fa-arrow-left"></i>
-        </button>
-        <button id="font-size-btn" class="p-2 rounded-full border border-slate-200 text-slate-600 hover:border-primary hover:text-primary transition-colors">
-          <i class="fa fa-font"></i>
-        </button>
-        <button id="theme-btn" class="p-2 rounded-full border border-slate-200 text-slate-600 hover:border-primary hover:text-primary transition-colors">
-          <i class="fa fa-adjust"></i>
-        </button>
+    </div>
+    
+    <!-- 移动端菜单 -->
+    <div class="md:hidden hidden bg-white/95 backdrop-blur-md border-t border-slate-200" id="mobile-menu">
+      <div class="container mx-auto px-4 py-4 space-y-3">
+        <a href="index.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">首页</a>
+        <a href="explore.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">探索故事</a>
+        <a href="create.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">创建故事</a>
+        <a href="my_stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">我的作品</a>
+        <a href="favorites.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">我的收藏</a>
+        <a href="profile.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">个人中心</a>
+        <a href="about.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">关于</a>
+        <div class="flex flex-col space-y-3 pt-3 border-t border-slate-200">
+          <div id="auth-area-mobile">
+            <!-- AuthUI会动态渲染移动端登录状态或用户信息 -->
+          </div>
+        </div>
       </div>
     </div>
   </nav>
@@ -171,7 +204,20 @@
   </div>
 
   <!-- JavaScript -->
+  <script src="assets/js/auth.js"></script>
   <script>
+    // 初始化AuthUI
+    AuthUI.init();
+
+    // 移动端菜单功能
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (mobileMenuButton && mobileMenu) {
+      mobileMenuButton.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+      });
+    }
+
     // 全局变量
     let currentStory = null;
     let currentNode = null;

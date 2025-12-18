@@ -15,6 +15,10 @@
             secondary: '#ec4899',
           },
         },
+      },
+      // 禁用生产环境警告
+      future: {
+        disableDeprecationWarnings: true,
       }
     }
   </script>
@@ -23,59 +27,193 @@
       transition: all 0.3s ease;
       cursor: pointer;
       user-select: none;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      min-height: 100px;
+      backdrop-filter: blur(10px);
+    }
+    .tree-node::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background-color: var(--node-border-color, #6366f1);
+      transition: all 0.3s ease;
     }
     .tree-node:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 12px 35px rgba(0,0,0,0.2);
+    }
+    .tree-node:hover::before {
+      width: 8px;
+    }
+    .tree-node.selected-node {
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.5), 0 6px 20px rgba(99, 102, 241, 0.3);
+      animation: pulse 2s ease-in-out infinite;
+      transform: scale(1.05);
+      z-index: 50;
+    }
+    .tree-node.dragging {
+      opacity: 0.8;
+      transform: scale(1.08);
+      z-index: 100;
+      pointer-events: none;
+    }
+    .tree-node:not(.selected-node):active {
+      transform: translateY(0) scale(0.98);
+    }
+    @keyframes pulse {
+      0%, 100% {
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.5), 0 4px 12px rgba(99, 102, 241, 0.3);
+      }
+      50% {
+        box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.4), 0 6px 20px rgba(99, 102, 241, 0.2);
+      }
     }
     .tree-line {
       stroke: #cbd5e1;
       stroke-width: 2;
       fill: none;
+      transition: stroke 0.3s ease, stroke-width 0.3s ease, opacity 0.3s ease;
+      marker-end: url(#arrowhead);
+      opacity: 0.8;
+    }
+    .tree-line:hover {
+      stroke: #6366f1;
+      stroke-width: 4;
+      opacity: 1;
     }
     .tree-line.animated {
       stroke-dasharray: 5, 5;
-      animation: dash 20s linear infinite;
+      animation: dash 15s linear infinite;
+      stroke: #8b5cf6;
+    }
+    /* 选中节点时，与它相关的连接线高亮 */
+    .selected-node ~ svg .tree-line {
+      opacity: 0.4;
+    }
+    /* 连接线的箭头标记 */
+    #arrowhead {
+      transition: fill 0.3s ease;
+    }
+    .tree-line:hover #arrowhead {
+      fill: #6366f1;
     }
     @keyframes dash {
       to {
         stroke-dashoffset: -100;
       }
     }
+    
+    /* 节点类型特定样式 */
+    .node-choice {
+      --node-border-color: #f59e0b;
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border: 2px solid #f59e0b;
+      color: #92400e;
+    }
+    .node-choice::before {
+      content: '\f0a9'; /* Font Awesome 箭头图标 */
+      font-family: 'FontAwesome';
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 12px;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .node-ending {
+      --node-border-color: #22c55e;
+      background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+      border: 2px solid #22c55e;
+      color: #166534;
+    }
+    .node-ending::before {
+      content: '\f00c'; /* Font Awesome 对勾图标 */
+      font-family: 'FontAwesome';
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 12px;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .node-normal {
+      --node-border-color: #3b82f6;
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border: 2px solid #3b82f6;
+      color: #1e40af;
+    }
+    .node-normal::before {
+      content: '\f02d'; /* Font Awesome 书签图标 */
+      font-family: 'FontAwesome';
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 12px;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    /* 增强节点内容展示 */
+    .tree-node h4 {
+      font-weight: 600;
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+    .tree-node p {
+      line-height: 1.4;
+      opacity: 0.8;
+    }
+    /* 节点悬停时显示完整内容 */
+    .tree-node:hover p {
+      opacity: 1;
+      display: block;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
     .context-menu {
       position: fixed;
       background: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-      padding: 8px 0;
+      border-radius: 10px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+      padding: 6px 0;
       z-index: 1000;
       display: none;
-      min-width: 180px;
+      min-width: 190px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.18);
     }
     .context-menu-item {
       padding: 10px 20px;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: all 0.2s ease;
       font-size: 14px;
       color: #374151;
+      position: relative;
     }
     .context-menu-item:hover {
-      background: #f1f5f9;
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      color: #1e293b;
     }
-    .node-choice {
-      background: #fef3c7;
-      border: 2px solid #f59e0b;
-      color: #92400e;
+    .context-menu-item:hover::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 70%;
+      background: #6366f1;
+      border-radius: 0 3px 3px 0;
     }
-    .node-ending {
-      background: #dcfce7;
-      border: 2px solid #22c55e;
-      color: #166534;
-    }
-    .node-normal {
-      background: #eff6ff;
-      border: 2px solid #3b82f6;
-      color: #1e40af;
+    .context-menu-item i {
+      width: 16px;
+      text-align: center;
     }
     .choice-label {
       background: #fbbf24;
@@ -129,8 +267,16 @@
         <a href="explore.html" class="font-medium text-gray-600 hover:text-primary transition-colors">探索故事</a>
         <a href="create.html" class="font-medium text-gray-600 hover:text-primary transition-colors">创建故事</a>
         <a href="my_stories.html" class="font-medium text-gray-600 hover:text-primary transition-colors">我的作品</a>
+        <a href="favorites.html" class="font-medium text-gray-600 hover:text-primary transition-colors">我的收藏</a>
+        <a href="profile.html" class="font-medium text-gray-600 hover:text-primary transition-colors">个人中心</a>
         <a href="about.html" class="font-medium text-gray-600 hover:text-primary transition-colors">关于</a>
       </nav>
+      
+      <div class="flex items-center space-x-4 md:hidden">
+        <button id="mobile-menu-button" class="p-2 rounded-lg hover:bg-slate-100 transition-colors">
+          <i class="fa fa-bars text-slate-600 text-xl"></i>
+        </button>
+      </div>
       
       <div class="flex items-center space-x-4" id="auth-area-desktop"></div>
     </div>
@@ -152,6 +298,9 @@
           <button id="auto-layout" class="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex items-center">
             <i class="fa fa-magic mr-2"></i> 自动布局
           </button>
+          <button id="save-graph" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center">
+            <i class="fa fa-save mr-2"></i> 保存图谱
+          </button>
           <button id="zoom-in" class="px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
             <i class="fa fa-search-plus"></i>
           </button>
@@ -166,7 +315,7 @@
 
       <!-- 故事信息 -->
       <div class="bg-white rounded-xl shadow-lg p-4 mb-6">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div class="flex items-center space-x-4">
             <div>
               <h3 class="font-bold text-lg text-gray-900" id="current-story-title">加载中...</h3>
@@ -176,11 +325,38 @@
               </p>
             </div>
           </div>
-          <div class="flex gap-2">
-            <button id="toggle-complete" class="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex items-center">
-              <i class="fa fa-check-circle mr-2"></i>
-              <span id="complete-text">标记完成</span>
-            </button>
+          <div class="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+            <div class="relative w-full md:w-64">
+              <input 
+                type="text" 
+                id="node-search-input" 
+                class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                placeholder="搜索节点标题或内容..."
+              >
+              <button id="clear-search" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600" style="display: none;">
+                <i class="fa fa-times-circle"></i>
+              </button>
+            </div>
+            <div class="flex gap-2">
+              <button id="filter-all" class="px-3 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors">
+                全部
+              </button>
+              <button id="filter-normal" class="px-3 py-1.5 bg-blue-100 text-blue-800 rounded-lg text-sm hover:bg-blue-200 transition-colors">
+                章节
+              </button>
+              <button id="filter-choice" class="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg text-sm hover:bg-amber-200 transition-colors">
+                选择
+              </button>
+              <button id="filter-ending" class="px-3 py-1.5 bg-green-100 text-green-800 rounded-lg text-sm hover:bg-green-200 transition-colors">
+                结局
+              </button>
+            </div>
+            <div class="flex gap-2">
+              <button id="toggle-complete" class="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex items-center">
+                <i class="fa fa-check-circle mr-2"></i>
+                <span id="complete-text">标记完成</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -261,6 +437,12 @@
           
           <!-- SVG 连接线层 -->
           <svg id="connection-layer" class="absolute top-0 left-0 w-full h-full pointer-events-none" style="z-index: 1;">
+            <!-- 定义箭头标记 -->
+            <defs>
+              <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#cbd5e1" />
+              </marker>
+            </defs>
           </svg>
           
           <!-- 节点层 -->
@@ -297,6 +479,24 @@
     </div>
   </section>
 
+  <!-- 移动端菜单 -->
+  <div class="md:hidden hidden bg-white/95 backdrop-blur-md border-t border-slate-200 fixed top-[60px] left-0 right-0 z-40" id="mobile-menu">
+    <div class="container mx-auto px-4 py-4 space-y-3">
+      <a href="index.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">首页</a>
+      <a href="explore.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">探索故事</a>
+      <a href="create.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">创建故事</a>
+      <a href="my_stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">我的作品</a>
+      <a href="favorites.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">我的收藏</a>
+      <a href="profile.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">个人中心</a>
+      <a href="about.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">关于</a>
+      <div class="flex flex-col space-y-3 pt-3 border-t border-slate-200">
+        <div id="auth-area-mobile">
+          <!-- AuthUI会动态渲染移动端登录状态或用户信息 -->
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 右键菜单 -->
   <div id="context-menu" class="context-menu">
     <div class="context-menu-item" data-action="edit">
@@ -326,9 +526,17 @@
     let canvasOffset = { x: 0, y: 0 };
     let isNodeDragging = false;
     let draggedNodeId = null;
+    let currentFilter = 'all';
+    let currentSearchQuery = '';
 
     // 初始化
     document.addEventListener('DOMContentLoaded', function() {
+      // 初始化AuthUI
+      AuthUI.init({
+        desktopArea: 'auth-area-desktop',
+        mobileArea: 'auth-area-mobile'
+      });
+      
       initializePage();
       bindEvents();
       loadStoryData();
@@ -347,6 +555,25 @@
       canvas.addEventListener('mouseup', handleCanvasMouseUp);
       canvas.addEventListener('mouseleave', handleCanvasMouseUp);
       canvas.addEventListener('wheel', handleCanvasWheel);
+      
+      // 设置移动端菜单事件
+      const mobileMenuButton = document.getElementById('mobile-menu-button');
+      const mobileMenu = document.getElementById('mobile-menu');
+      
+      if (mobileMenuButton && mobileMenu) {
+        mobileMenuButton.addEventListener('click', function() {
+          mobileMenu.classList.toggle('hidden');
+        });
+      }
+      
+      // 点击页面其他区域关闭移动端菜单
+      if (mobileMenuButton && mobileMenu) {
+        document.addEventListener('click', function(e) {
+          if (!mobileMenuButton.contains(e.target) && !mobileMenu.contains(e.target)) {
+            mobileMenu.classList.add('hidden');
+          }
+        });
+      }
     }
 
     // 绑定事件
@@ -369,6 +596,9 @@
       // 自动布局
       document.getElementById('auto-layout').addEventListener('click', autoLayout);
       
+      // 手动保存
+      document.getElementById('save-graph').addEventListener('click', manualSaveToBackend);
+      
       // 缩放控制
       document.getElementById('zoom-in').addEventListener('click', () => zoom(1.2));
       document.getElementById('zoom-out').addEventListener('click', () => zoom(0.8));
@@ -385,6 +615,60 @@
       document.querySelectorAll('.context-menu-item').forEach(item => {
         item.addEventListener('click', handleContextMenuAction);
       });
+      
+      // 节点类型筛选
+      document.getElementById('filter-all').addEventListener('click', () => setNodeFilter('all'));
+      document.getElementById('filter-normal').addEventListener('click', () => setNodeFilter('normal'));
+      document.getElementById('filter-choice').addEventListener('click', () => setNodeFilter('choice'));
+      document.getElementById('filter-ending').addEventListener('click', () => setNodeFilter('ending'));
+      
+      // 节点搜索
+      const searchInput = document.getElementById('node-search-input');
+      const clearSearchBtn = document.getElementById('clear-search');
+      
+      searchInput.addEventListener('keyup', handleNodeSearch);
+      clearSearchBtn.addEventListener('click', clearNodeSearch);
+    }
+    
+    // 设置节点筛选
+    function setNodeFilter(filterType) {
+      currentFilter = filterType;
+      
+      // 更新按钮样式
+      document.getElementById('filter-all').className = 'px-3 py-1.5 rounded-lg text-sm hover:bg-primary/90 transition-colors ' + (filterType === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700');
+      document.getElementById('filter-normal').className = 'px-3 py-1.5 rounded-lg text-sm hover:bg-blue-200 transition-colors ' + (filterType === 'normal' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700');
+      document.getElementById('filter-choice').className = 'px-3 py-1.5 rounded-lg text-sm hover:bg-amber-200 transition-colors ' + (filterType === 'choice' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-700');
+      document.getElementById('filter-ending').className = 'px-3 py-1.5 rounded-lg text-sm hover:bg-green-200 transition-colors ' + (filterType === 'ending' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700');
+      
+      // 重新渲染树
+      renderTree();
+    }
+    
+    // 处理节点搜索
+    function handleNodeSearch(e) {
+      currentSearchQuery = e.target.value.trim().toLowerCase();
+      const clearSearchBtn = document.getElementById('clear-search');
+      
+      // 显示/隐藏清空按钮
+      if (currentSearchQuery) {
+        clearSearchBtn.style.display = 'block';
+      } else {
+        clearSearchBtn.style.display = 'none';
+      }
+      
+      renderTree();
+    }
+    
+    // 清空节点搜索
+    function clearNodeSearch() {
+      const searchInput = document.getElementById('node-search-input');
+      const clearSearchBtn = document.getElementById('clear-search');
+      
+      searchInput.value = '';
+      currentSearchQuery = '';
+      clearSearchBtn.style.display = 'none';
+      
+      renderTree();
     }
 
     // 加载故事数据
@@ -449,9 +733,25 @@
     // 加载故事信息
     async function loadStoryInfo() {
       try {
+        console.log('加载故事信息 - currentStoryId:', currentStoryId);
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        if (!token || currentStoryId === 'default') return;
+        console.log('加载故事信息 - token:', token);
         
+        const storyTitleElement = document.getElementById('current-story-title');
+        
+        if (currentStoryId === 'default') {
+          storyTitleElement.textContent = '默认故事';
+          showNotification('当前为默认故事模式', 'info');
+          return;
+        }
+        
+        if (!token) {
+          storyTitleElement.textContent = '请先登录';
+          showNotification('请先登录以加载故事信息', 'error');
+          return;
+        }
+        
+        storyTitleElement.textContent = '加载中...';
         const response = await fetch(API_CONFIG.STORIES.getStory(currentStoryId), {
           headers: API_CONFIG.getAuthHeaders()
         });
@@ -460,11 +760,30 @@
           const result = await response.json();
           if (result.success && result.data) {
             const story = result.data;
-            document.getElementById('current-story-title').textContent = story.title || `故事 #${currentStoryId.slice(-6)}`;
+            storyTitleElement.textContent = story.title || `故事 #${currentStoryId.slice(-6)}`;
+          } else {
+            const errorMsg = result.message || '故事信息获取失败';
+            storyTitleElement.textContent = '加载失败';
+            console.error('加载故事信息失败 - API返回失败:', result);
+            showNotification(`加载故事信息失败: ${errorMsg}`, 'error');
           }
+        } else {
+          const responseText = await response.text();
+          let errorMsg = `HTTP错误: ${response.status}`;
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMsg = errorData.message || errorMsg;
+          } catch (parseError) {
+            // 响应不是JSON格式
+          }
+          storyTitleElement.textContent = '加载失败';
+          console.error('加载故事信息失败 - HTTP错误:', response.status, responseText);
+          showNotification(`加载故事信息失败: ${errorMsg}`, 'error');
         }
       } catch (error) {
         console.error('加载故事信息失败:', error);
+        document.getElementById('current-story-title').textContent = '加载失败';
+        showNotification(`加载故事信息失败: ${error.message}`, 'error');
       }
     }
 
@@ -508,6 +827,7 @@
 
     // 从输入框创建节点
     async function createNodeFromInput() {
+      console.log('开始创建节点...');
       const input = document.getElementById('story-direction-input');
       const direction = input.value.trim();
       
@@ -519,18 +839,33 @@
       
       // 检查是否有根节点
       const nodeIds = Object.keys(graphData.nodes);
+      console.log('当前节点数量:', nodeIds.length);
+      
       if (nodeIds.length === 0) {
         // 如果没有节点，先创建根节点
+        console.log('没有根节点，创建根节点...');
         await createRootNode();
+        // 重新获取节点列表
+        const updatedNodeIds = Object.keys(graphData.nodes);
+        console.log('创建根节点后节点数量:', updatedNodeIds.length);
+        
+        if (updatedNodeIds.length === 0) {
+          // 如果根节点创建失败，停止执行
+          console.log('根节点创建失败，停止执行');
+          return;
+        }
       }
       
       // 确定父节点（如果有选中的节点，使用选中的节点；否则使用最后一个节点）
       let parentNodeId = selectedNodeId;
+      console.log('选中的节点ID:', parentNodeId);
+      
       if (!parentNodeId) {
         // 找到最后一个节点作为父节点
         const nodes = Object.values(graphData.nodes);
         if (nodes.length > 0) {
           parentNodeId = nodes[nodes.length - 1].id;
+          console.log('使用最后一个节点作为父节点:', parentNodeId);
         }
       }
       
@@ -556,60 +891,60 @@
           }
         };
         
+        // 显示创建中提示
+        showNotification('正在创建节点...', 'info');
+        
         // 如果有父节点，通过API创建子节点
         if (parentNodeId && currentStoryId !== 'default') {
           try {
-            const response = await fetch(API_CONFIG.NODES.createNode(currentStoryId), {
-              method: 'POST',
-              headers: API_CONFIG.getAuthHeaders(),
-              body: JSON.stringify({
-                parentId: parentNodeId,
-                title: newNode.title,
-                content: newNode.content,
-                type: newNode.type
-              })
+            const response = await API_CONFIG.post(API_CONFIG.NODES.createNode(currentStoryId), {
+              parentId: parentNodeId,
+              title: newNode.title,
+              content: newNode.content,
+              type: newNode.type
             });
             
-            if (response.ok) {
-              const result = await response.json();
-              if (result.success) {
-                const savedNode = result.data;
-                newNode.id = savedNode._id || savedNode.id;
-                newNode.position = savedNode.position || newNode.position;
-                
-                // 添加到图数据
-                graphData.nodes[newNode.id] = newNode;
-                
-                // 如果有父节点，添加连接
-                if (parentNodeId) {
-                  graphData.connections.push({
-                    from: parentNodeId,
-                    to: newNode.id,
-                    description: '继续'
-                  });
-                }
-                
-                // 保存数据
-                saveGraphData();
-                
-                // 重新渲染
-                renderTree();
-                updateStoryInfo();
-                
-                // 清空输入框
-                input.value = '';
-                
-                showNotification('节点创建成功', 'success');
-                return;
+            if (response.success) {
+              const savedNode = response.data;
+              newNode.id = savedNode._id || savedNode.id;
+              newNode.position = savedNode.position || newNode.position;
+              
+              // 添加到图数据
+              graphData.nodes[newNode.id] = newNode;
+              
+              // 如果有父节点，添加连接
+              if (parentNodeId) {
+                graphData.connections.push({
+                  from: parentNodeId,
+                  to: newNode.id,
+                  description: '继续'
+                });
               }
+              
+              // 保存数据
+              saveGraphData();
+              
+              // 重新渲染
+              renderTree();
+              updateStoryInfo();
+              
+              // 清空输入框
+              input.value = '';
+              
+              showNotification('节点创建成功', 'success');
+              return;
+            } else {
+              showNotification(`节点创建失败: ${response.message}`, 'error');
+              return;
             }
           } catch (error) {
             console.error('通过API创建节点失败:', error);
-            // 继续使用本地创建方式
+            showNotification(`节点创建失败: ${error.message}`, 'error');
+            return;
           }
         }
         
-        // 本地创建节点（如果API失败或没有父节点）
+        // 本地创建节点（仅在本地模式下）
         newNode.id = 'node-' + Date.now();
         graphData.nodes[newNode.id] = newNode;
         
@@ -632,46 +967,87 @@
         // 清空输入框
         input.value = '';
         
-        showNotification('节点创建成功', 'success');
+        showNotification('节点创建成功（本地模式）', 'success');
       } catch (error) {
         console.error('创建节点失败:', error);
-        showNotification('创建节点失败', 'error');
+        showNotification(`创建节点失败: ${error.message}`, 'error');
       }
     }
 
     // 创建根节点
     async function createRootNode() {
       try {
+        console.log('开始创建根节点...');
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        if (!token) {
-          showNotification('请先登录', 'error');
-          return;
-        }
+        console.log('创建根节点 - token:', token);
 
-        // 检查是否已有根节点
-        const nodeIds = Object.keys(graphData.nodes);
-        if (nodeIds.length > 0) {
+        // 检查是否已有根节点 - 修复：只检查根节点，不检查所有节点
+        console.log('创建根节点 - 检查是否已有根节点');
+        let hasRootNode = false;
+        for (const nodeId in graphData.nodes) {
+          const node = graphData.nodes[nodeId];
+          // 根节点的特征：depth为0或没有父节点（在前端数据中体现为depth为0）
+          if (node.depth === 0) {
+            hasRootNode = true;
+            break;
+          }
+        }
+        
+        console.log('创建根节点 - 已有根节点:', hasRootNode);
+        if (hasRootNode) {
           showNotification('根节点已存在', 'info');
           return;
         }
 
-        // 如果有故事ID，通过API创建根节点
-        if (currentStoryId !== 'default') {
+        // 显示创建中提示
+        showNotification('正在创建根节点...', 'info');
+
+        // 无论是否有token或currentStoryId，都尝试创建根节点
+        let isAPISuccess = false;
+        
+        // 如果有故事ID和token，尝试通过API创建根节点
+        if (currentStoryId !== 'default' && token) {
           try {
-            const rootUrl = API_CONFIG.NODES.createNode(currentStoryId).replace('/nodes', '/root');
-            const response = await fetch(rootUrl, {
+            const createRootUrl = API_CONFIG.NODES.createRoot(currentStoryId);
+            console.log('=== 通过API创建根节点开始 ===');
+            console.log('URL:', createRootUrl);
+            console.log('currentStoryId:', currentStoryId);
+            console.log('token:', token);
+            const requestData = {
+              title: '故事开始',
+              content: '这是故事的开始...'
+            };
+            console.log('请求数据:', JSON.stringify(requestData));
+            
+            // 直接使用fetch而不是API_CONFIG.post，以便更好地调试
+            const response = await fetch(createRootUrl, {
               method: 'POST',
               headers: API_CONFIG.getAuthHeaders(),
-              body: JSON.stringify({
-                title: '故事开始',
-                content: '这是故事的开始...'
-              })
+              body: JSON.stringify(requestData)
             });
             
+            console.log('响应状态:', response.status);
+            console.log('响应头:', response.headers);
+            const responseText = await response.text();
+            console.log('响应内容:', responseText);
+            
+            let result;
+            try {
+              result = JSON.parse(responseText);
+              console.log('解析后的响应:', result);
+            } catch (parseError) {
+              console.error('解析API响应失败:', parseError);
+              console.error('错误堆栈:', parseError.stack);
+              showNotification('API响应格式错误，将尝试本地创建', 'error');
+              throw new Error('API响应解析失败');
+            }
+            
             if (response.ok) {
-              const result = await response.json();
               if (result.success) {
+                console.log('API返回成功，开始处理数据');
                 const savedNode = result.data;
+                console.log('API返回的节点数据:', savedNode);
+                
                 const rootNode = {
                   id: savedNode._id || savedNode.id,
                   title: savedNode.title || '故事开始',
@@ -684,25 +1060,48 @@
                 
                 // 添加到图数据
                 graphData.nodes[rootNode.id] = rootNode;
+                console.log('根节点已添加到图数据');
                 
                 // 保存数据
                 saveGraphData();
+                console.log('数据已保存到本地存储');
                 
                 // 重新渲染
                 renderTree();
+                console.log('树状图已重新渲染');
                 updateStoryInfo();
+                console.log('故事信息已更新');
                 
                 showNotification('根节点创建成功', 'success');
+                isAPISuccess = true;
+                console.log('=== 通过API创建根节点成功 ===');
                 return;
+              } else {
+                const errorMsg = result.message || 'API创建根节点失败';
+                console.error('API创建根节点失败 - result:', result);
+                showNotification(`API创建根节点失败: ${errorMsg}，将尝试本地创建`, 'warning');
               }
+            } else {
+              const errorMsg = result.message || `HTTP错误: ${response.status}`;
+              console.error('API创建根节点失败 - HTTP错误:', response.status, responseText);
+              showNotification(`API创建根节点失败: ${errorMsg}，将尝试本地创建`, 'warning');
             }
           } catch (error) {
             console.error('通过API创建根节点失败:', error);
-            // 继续使用本地创建方式
+            console.error('错误堆栈:', error.stack);
+            showNotification(`通过API创建根节点失败: ${error.message}，将尝试本地创建`, 'warning');
           }
+          console.log('=== 通过API创建根节点结束 ===');
+        } else if (currentStoryId === 'default') {
+          console.log('当前为默认故事模式，将本地创建根节点');
+          showNotification('当前为默认故事模式，将本地创建根节点', 'info');
+        } else if (!token) {
+          console.log('未登录，将本地创建根节点');
+          showNotification('未登录，将本地创建根节点', 'info');
         }
 
-        // 本地创建根节点
+        // 本地创建根节点（API请求失败或没有token或currentStoryId为default时）
+        console.log('本地创建根节点...');
         const rootNode = {
           id: 'node-' + Date.now(),
           title: '故事开始',
@@ -723,10 +1122,10 @@
         renderTree();
         updateStoryInfo();
         
-        showNotification('根节点创建成功', 'success');
+        showNotification('根节点创建成功（本地模式）', 'success');
       } catch (error) {
         console.error('创建根节点失败:', error);
-        showNotification('创建根节点失败', 'error');
+        showNotification(`创建根节点失败: ${error.message}`, 'error');
       }
     }
 
@@ -741,9 +1140,25 @@
       nodesLayer.innerHTML = '';
       connectionLayer.innerHTML = '';
       
-      const nodeIds = Object.keys(graphData.nodes);
+      // 筛选节点
+      const filteredNodes = {};
+      for (const nodeId in graphData.nodes) {
+        const node = graphData.nodes[nodeId];
+        // 先检查类型筛选
+        const typeMatch = currentFilter === 'all' || node.type === currentFilter;
+        // 再检查搜索查询
+        const searchMatch = !currentSearchQuery || 
+                           (node.title && node.title.toLowerCase().includes(currentSearchQuery)) ||
+                           (node.content && node.content.toLowerCase().includes(currentSearchQuery));
+        // 只有同时满足类型筛选和搜索查询的节点才会被显示
+        if (typeMatch && searchMatch) {
+          filteredNodes[nodeId] = node;
+        }
+      }
       
-      if (nodeIds.length === 0) {
+      const filteredNodeIds = Object.keys(filteredNodes);
+      
+      if (filteredNodeIds.length === 0) {
         nodesLayer.appendChild(emptyState.cloneNode(true));
         // 隐藏帮助按钮
         if (helpButton) helpButton.style.display = 'none';
@@ -753,14 +1168,52 @@
       // 显示帮助按钮
       if (helpButton) helpButton.style.display = 'block';
       
+      // 筛选连接线 - 只显示两端节点都符合筛选条件的连接
+      const filteredConnections = graphData.connections.filter(conn => {
+        return filteredNodes[conn.from] && filteredNodes[conn.to];
+      });
+      
       // 绘制连接线
-      graphData.connections.forEach(conn => {
+      filteredConnections.forEach(conn => {
         drawConnection(conn);
       });
       
       // 绘制节点
-      nodeIds.forEach(nodeId => {
-        drawNode(graphData.nodes[nodeId]);
+      filteredNodeIds.forEach(nodeId => {
+        drawNode(filteredNodes[nodeId]);
+      });
+    }
+    
+    // 只重绘连接线
+    function redrawConnections() {
+      const connectionLayer = document.getElementById('connection-layer');
+      // 清空现有连接线
+      connectionLayer.innerHTML = '';
+      
+      // 筛选节点
+      const filteredNodes = {};
+      for (const nodeId in graphData.nodes) {
+        const node = graphData.nodes[nodeId];
+        // 先检查类型筛选
+        const typeMatch = currentFilter === 'all' || node.type === currentFilter;
+        // 再检查搜索查询
+        const searchMatch = !currentSearchQuery || 
+                           (node.title && node.title.toLowerCase().includes(currentSearchQuery)) ||
+                           (node.content && node.content.toLowerCase().includes(currentSearchQuery));
+        // 只有同时满足类型筛选和搜索查询的节点才会被显示
+        if (typeMatch && searchMatch) {
+          filteredNodes[nodeId] = node;
+        }
+      }
+      
+      // 筛选连接线 - 只显示两端节点都符合筛选条件的连接
+      const filteredConnections = graphData.connections.filter(conn => {
+        return filteredNodes[conn.from] && filteredNodes[conn.to];
+      });
+      
+      // 重新绘制筛选后的连接线
+      filteredConnections.forEach(conn => {
+        drawConnection(conn);
       });
     }
 
@@ -779,16 +1232,28 @@
       const nodesLayer = document.getElementById('nodes-layer');
       const nodeEl = document.createElement('div');
       
-      nodeEl.className = `tree-node absolute bg-white rounded-lg shadow-lg p-4 select-none ${getNodeClass(node.type)}`;
+      // 检查是否为根节点（depth为0或没有父节点）
+      const isRootNode = node.depth === 0;
+      
+      // 根节点添加特殊样式
+      const nodeClasses = isRootNode 
+        ? `tree-node absolute bg-white rounded-lg shadow-lg p-4 select-none ${getNodeClass(node.type)} border-2 border-primary` 
+        : `tree-node absolute bg-white rounded-lg shadow-lg p-4 select-none ${getNodeClass(node.type)}`;
+      
+      nodeEl.className = nodeClasses;
       nodeEl.id = `node-${node.id}`;
       nodeEl.style.left = `${node.position.x}px`;
       nodeEl.style.top = `${node.position.y}px`;
       nodeEl.style.width = '200px';
       
+      // 根节点添加特殊标识
+      const typeLabel = isRootNode ? '根节点' : getTypeLabel(node.type);
+      const typeBadgeClass = isRootNode ? 'bg-primary text-white' : getTypeBadgeClass(node.type);
+      
       nodeEl.innerHTML = `
         <div class="flex items-center justify-between mb-2">
-          <span class="text-xs font-medium px-2 py-1 rounded-full ${getTypeBadgeClass(node.type)}">
-            ${getTypeLabel(node.type)}
+          <span class="text-xs font-medium px-2 py-1 rounded-full ${typeBadgeClass}">
+            ${typeLabel}
           </span>
           <button class="text-gray-400 hover:text-gray-600" onclick="event.stopPropagation()">
             <i class="fa fa-ellipsis-v text-xs"></i>
@@ -932,52 +1397,172 @@
     }
 
     // 添加子节点
-    function addChildNode(parentId) {
-      const nodeId = Date.now().toString();
-      const parentNode = graphData.nodes[parentId];
-      
-      const newNode = {
-        id: nodeId,
-        title: '新章节',
-        content: '',
-        type: 'normal',
-        position: { 
-          x: parentNode.position.x + (Math.random() - 0.5) * 100,
-          y: parentNode.position.y + 120
+    async function addChildNode(parentId) {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) {
+          showNotification('请先登录', 'error');
+          return;
         }
-      };
-      
-      graphData.nodes[nodeId] = newNode;
-      graphData.connections.push({
-        from: parentId,
-        to: nodeId,
-        description: '继续'
-      });
-      
-      saveGraphData();
-      renderTree();
-      updateStoryInfo();
-      
-      showNotification('子节点添加成功', 'success');
+        
+        const parentNode = graphData.nodes[parentId];
+        if (!parentNode) {
+          showNotification('父节点不存在', 'error');
+          return;
+        }
+        
+        // 创建节点数据
+        const newNode = {
+          title: '新章节',
+          content: '',
+          type: 'normal',
+          position: { 
+            x: parentNode.position.x + (Math.random() - 0.5) * 100,
+            y: parentNode.position.y + 120
+          }
+        };
+        
+        // 显示创建中提示
+        showNotification('正在创建子节点...', 'info');
+        
+        // 如果有故事ID，通过API创建子节点
+        if (currentStoryId !== 'default') {
+          try {
+            const response = await API_CONFIG.post(API_CONFIG.NODES.createNode(currentStoryId), {
+              parentId: parentId,
+              title: newNode.title,
+              content: newNode.content,
+              type: newNode.type
+            });
+            
+            if (response.success) {
+              const savedNode = response.data;
+              newNode.id = savedNode._id || savedNode.id;
+              newNode.position = savedNode.position || newNode.position;
+              
+              // 添加到图数据
+              graphData.nodes[newNode.id] = newNode;
+              
+              // 添加连接
+              graphData.connections.push({
+                from: parentId,
+                to: newNode.id,
+                description: '继续'
+              });
+              
+              // 保存数据
+              saveGraphData();
+              
+              // 重新渲染
+              renderTree();
+              updateStoryInfo();
+              
+              showNotification('子节点添加成功', 'success');
+              return;
+            } else {
+              showNotification(`子节点添加失败: ${response.message}`, 'error');
+              return;
+            }
+          } catch (error) {
+            console.error('通过API创建子节点失败:', error);
+            showNotification(`子节点添加失败: ${error.message}`, 'error');
+            return;
+          }
+        }
+        
+        // 本地创建子节点（仅在本地模式下）
+        newNode.id = 'node-' + Date.now();
+        graphData.nodes[newNode.id] = newNode;
+        
+        // 添加连接
+        graphData.connections.push({
+          from: parentId,
+          to: newNode.id,
+          description: '继续'
+        });
+        
+        // 保存数据
+        saveGraphData();
+        
+        // 重新渲染
+        renderTree();
+        updateStoryInfo();
+        
+        showNotification('子节点添加成功（本地模式）', 'success');
+      } catch (error) {
+        console.error('添加子节点失败:', error);
+        showNotification(`子节点添加失败: ${error.message}`, 'error');
+      }
     }
 
     // 删除节点
-    function deleteNode(nodeId) {
+    async function deleteNode(nodeId) {
       if (!confirm('确定要删除这个节点吗？此操作不可恢复。')) return;
       
-      // 删除节点
-      delete graphData.nodes[nodeId];
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) {
+          showNotification('请先登录', 'error');
+          return;
+        }
+        
+        // 调用后端API删除节点
+        const response = await fetch(API_CONFIG.NODES.deleteNode(nodeId), {
+          method: 'DELETE',
+          headers: API_CONFIG.getAuthHeaders()
+        });
+        
+        if (response.ok) {
+          // 从本地删除节点
+          delete graphData.nodes[nodeId];
+          
+          // 删除相关连接
+          graphData.connections = graphData.connections.filter(
+            conn => conn.from !== nodeId && conn.to !== nodeId
+          );
+          
+          saveGraphData();
+          renderTree();
+          updateStoryInfo();
+          
+          showNotification('节点删除成功', 'success');
+        } else {
+          const error = await response.json();
+          showNotification(`节点删除失败: ${error.message}`, 'error');
+        }
+      } catch (error) {
+        console.error('删除节点失败:', error);
+        showNotification(`节点删除失败: ${error.message}`, 'error');
+      }
+    }
+    
+    // 保存节点位置到后端
+    async function saveNodePosition(nodeId) {
+      if (!nodeId) return;
       
-      // 删除相关连接
-      graphData.connections = graphData.connections.filter(
-        conn => conn.from !== nodeId && conn.to !== nodeId
-      );
-      
-      saveGraphData();
-      renderTree();
-      updateStoryInfo();
-      
-      showNotification('节点删除成功', 'success');
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) {
+          return; // 未登录时不保存到后端
+        }
+        
+        const node = graphData.nodes[nodeId];
+        if (!node) return;
+        
+        // 调用后端API更新节点位置
+        const response = await fetch(API_CONFIG.NODES.updateNode(nodeId), {
+          method: 'PUT',
+          headers: API_CONFIG.getAuthHeaders(),
+          body: JSON.stringify({ position: node.position })
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          console.error('保存节点位置失败:', error);
+        }
+      } catch (error) {
+        console.error('保存节点位置失败:', error);
+      }
     }
 
     // 自动布局
@@ -1120,7 +1705,10 @@
       draggedNodeId = nodeId;
       
       const node = graphData.nodes[nodeId];
-      const rect = e.target.getBoundingClientRect();
+      const nodeEl = document.getElementById(`node-${nodeId}`);
+      if (!nodeEl) return;
+      
+      const rect = nodeEl.getBoundingClientRect();
       const offsetX = e.clientX - rect.left;
       const offsetY = e.clientY - rect.top;
       
@@ -1132,25 +1720,32 @@
         const x = (e.clientX - canvasRect.left - canvasOffset.x - offsetX) / zoomLevel;
         const y = (e.clientY - canvasRect.top - canvasOffset.y - offsetY) / zoomLevel;
         
+        // 更新节点位置
         node.position.x = x;
         node.position.y = y;
         
-        const nodeEl = document.getElementById(`node-${nodeId}`);
-        if (nodeEl) {
-          nodeEl.style.left = `${x}px`;
-          nodeEl.style.top = `${y}px`;
-        }
+        // 更新节点DOM位置（避免频繁调用renderTree）
+        nodeEl.style.left = `${x}px`;
+        nodeEl.style.top = `${y}px`;
         
-        // 重新绘制连接线
-        renderTree();
+        // 只重绘连接线，不重绘所有节点
+        redrawConnections();
       }
       
       function handleMouseUp() {
         isNodeDragging = false;
+        const nodeId = draggedNodeId;
         draggedNodeId = null;
-        saveGraphData();
+        
+        // 清理事件监听
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
+        
+        // 最终重绘整个树，确保所有元素正确显示
+        renderTree();
+        
+        // 保存位置到后端
+        saveNodePosition(nodeId);
       }
       
       document.addEventListener('mousemove', handleMouseMove);
@@ -1212,19 +1807,22 @@
           return;
         }
         
-        const response = await fetch(`http://localhost:5000/api/v1/stories/${currentStoryId}/toggle-complete`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        // 获取当前按钮状态
+        const btn = document.getElementById('toggle-complete');
+        const text = document.getElementById('complete-text');
+        const isCurrentlyCompleted = text.textContent === '取消标记完成';
+        
+        // 使用API_CONFIG构建URL - 使用正确的端点
+        const toggleUrl = API_CONFIG.buildUrl(`/stories/${currentStoryId}/complete`);
+        const response = await fetch(toggleUrl, {
+          method: 'PATCH',
+          headers: API_CONFIG.getAuthHeaders(),
+          body: JSON.stringify({ isCompleted: !isCurrentlyCompleted })
         });
         
         if (response.ok) {
           const result = await response.json();
           const isCompleted = result.data.isCompleted;
-          
-          const btn = document.getElementById('toggle-complete');
-          const text = document.getElementById('complete-text');
           
           if (isCompleted) {
             text.textContent = '取消标记完成';
@@ -1235,19 +1833,45 @@
           }
           
           showNotification(isCompleted ? '故事已标记为完成' : '已取消完成标记', 'success');
+        } else {
+          const errorData = await response.json();
+          showNotification(`操作失败: ${errorData.message || '未知错误'}`, 'error');
         }
       } catch (error) {
         console.error('切换完成状态失败:', error);
-        showNotification('操作失败', 'error');
+        showNotification(`操作失败: ${error.message}`, 'error');
       }
     }
 
-    // 保存数据
+    // 保存数据到本地存储
     function saveGraphData() {
       localStorage.setItem('storyGraphData', JSON.stringify(graphData));
-      
-      // 异步同步到后端
-      syncToBackend();
+      console.log('数据已保存到本地存储');
+    }
+    
+    // 手动保存到后端
+    async function manualSaveToBackend() {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token || currentStoryId === 'default') {
+          showNotification('请先登录', 'error');
+          return;
+        }
+        
+        // 检查token格式是否正确
+        if (!token.includes('.')) {
+          showNotification('无效的token格式', 'error');
+          console.error('无效的token格式:', token);
+          return;
+        }
+        
+        showNotification('正在保存到服务器...', 'info');
+        await syncToBackend();
+        showNotification('保存成功', 'success');
+      } catch (error) {
+        console.error('手动保存失败:', error);
+        showNotification(`保存失败: ${error.message}`, 'error');
+      }
     }
 
     // 同步到后端

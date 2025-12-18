@@ -137,7 +137,6 @@ router.get('/stories/:storyId/favorite/status', authGuard, [
       }
     });
   } catch (error) {
-    console.error('评分详情接口错误:', error);
     next(error);
   }
 });
@@ -183,8 +182,6 @@ router.get('/user/favorites', authGuard, async (req, res, next) => {
       }
     });
   } catch (error) {
-    console.error('获取收藏列表错误:', error);
-    console.error('错误堆栈:', error.stack);
     next(error);
   }
 });
@@ -279,16 +276,6 @@ router.get('/stories/:storyId/rating', [
     return true;
   })
 ], async (req, res, next) => {
-  console.log('评分详情接口被调用，storyId:', req.params.storyId);
-  console.log('请求URL:', req.originalUrl);
-  console.log('请求方法:', req.method);
-  
-  // 强制输出错误信息
-  console.error('强制错误输出：路由被调用');
-  
-  // 添加测试错误
-  throw new Error('测试错误 - 路由被调用了');
-  
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(errorFormat(400, '参数验证失败', errors.array().map((err) => ({ field: err.param, message: err.msg })), 10001));
@@ -322,11 +309,7 @@ router.get('/stories/:storyId/rating', [
     const ratings = await UserStoryRating.find({ storyId })
       .sort({ updatedAt: -1 })
       .limit(50) // 限制返回最近50条评分记录
-      .populate('userId', 'username avatar')
-      .catch(error => {
-        console.error('获取评分数据时出错:', error);
-        throw error;
-      });
+      .populate('userId', 'username avatar');
 
     // 计算评分分布
     const ratingDistribution = {
@@ -342,12 +325,8 @@ router.get('/stories/:storyId/rating', [
 
     // 如果用户已登录，获取用户的评分
     let userRating = null;
-    console.log('检查用户登录状态:', req.user);
     if (req.user && req.user.id) {
-      console.log('用户已登录，查找用户评分');
       userRating = await UserStoryRating.findOne({ userId: req.user.id, storyId });
-    } else {
-      console.log('用户未登录');
     }
 
     return res.status(200).json({

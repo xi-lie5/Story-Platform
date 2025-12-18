@@ -144,17 +144,59 @@
   }
 
   function init(options = {}) {
-    const desktopArea = options.desktopArea || document.getElementById('auth-area-desktop');
+    // 处理desktopArea参数 - 支持DOM元素或ID字符串，兼容多种参数名
+    let desktopArea = null;
+    
+    // 检查所有可能的桌面区域参数名
+    const desktopParams = ['desktopArea', 'desktopContainer', 'container'];
+    for (const param of desktopParams) {
+      if (options[param]) {
+        desktopArea = options[param] instanceof Element
+          ? options[param]
+          : typeof options[param] === 'string'
+            ? document.getElementById(options[param])
+            : null;
+        if (desktopArea) break;
+      }
+    }
+    
+    // 如果没有找到，使用默认ID
+    if (!desktopArea) {
+      desktopArea = document.getElementById('auth-area-desktop');
+    }
+    
     if (!desktopArea) {
       return null;
     }
 
-    const mobileArea = options.hasOwnProperty('mobileArea')
-      ? options.mobileArea
-      : document.getElementById('auth-area-mobile');
+    // 处理mobileArea参数 - 支持DOM元素或ID字符串，兼容多种参数名
+    let mobileArea = null;
+    
+    // 检查所有可能的移动区域参数名
+    const mobileParams = ['mobileArea', 'mobileContainer'];
+    for (const param of mobileParams) {
+      if (options.hasOwnProperty(param)) {
+        mobileArea = options[param] instanceof Element
+          ? options[param]
+          : typeof options[param] === 'string'
+            ? document.getElementById(options[param])
+            : null;
+        break;
+      }
+    }
+    
+    // 如果没有找到，使用默认ID
+    if (!mobileArea) {
+      mobileArea = document.getElementById('auth-area-mobile');
+    }
 
+    // 处理mobileMenu参数 - 支持DOM元素或ID字符串
     const mobileMenu = options.hasOwnProperty('mobileMenu')
-      ? options.mobileMenu
+      ? (options.mobileMenu instanceof Element
+        ? options.mobileMenu
+        : typeof options.mobileMenu === 'string'
+          ? document.getElementById(options.mobileMenu)
+          : null)
       : document.getElementById('mobile-menu');
 
     const context = { desktopArea, mobileArea, mobileMenu };
