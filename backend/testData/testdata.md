@@ -23,7 +23,6 @@ Timeout duration was set to 1.
 └───────────┴─────┴──────┴─────────┴─────────┴──────────┴──────────┴────────┘
 
 Req/Bytes counts sampled once per second.
-# of samples: 40
 
 133k requests in 40.68s, 249 MB read
 267 errors (267 timeouts)
@@ -50,7 +49,6 @@ Running 40s test @ http://localhost:5000/api/v1/stories
 └───────────┴─────────┴─────────┴─────────┴─────────┴──────────┴──────────┴─────────┘
 
 Req/Bytes counts sampled once per second.
-# of samples: 40
 
 88k requests in 40.29s, 164 MB read
 PS E:\github\Story-Platform\backend> 
@@ -76,7 +74,6 @@ Running 40s test @ http://localhost:5000/api/v1/stories
 └───────────┴────────┴────────┴─────────┴─────────┴──────────┴──────────┴────────┘
 
 Req/Bytes counts sampled once per second.
-# of samples: 40
 
 135k requests in 40.21s, 252 MB read
 PS E:\github\Story-Platform\backend> 
@@ -212,3 +209,4 @@ PS E:\github\Story-Platform\backend>
 ## 总结
 
 node cache带来了一定的性能提升，但是远低于预期值
+
