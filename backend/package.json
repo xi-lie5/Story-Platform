@@ -34,7 +34,8 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.3",
     "morgan": "^1.10.1",
-    "node-cache": "^5.1.2"
+    "node-cache": "^5.1.2",
+    "zhipuai": "^2.0.0"
   },
   "devDependencies": {
     "eslint": "^9.12.0",
