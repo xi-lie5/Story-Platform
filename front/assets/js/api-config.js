@@ -98,6 +98,20 @@ const API_CONFIG = {
       // 绑定选择到目标节点
       bindChoice: (nodeId, choiceId) => API_CONFIG.buildUrl(`/storyNodes/nodes/${nodeId}/choices/${choiceId}/bind`)
     },
+
+  // AI相关API
+  AI: {
+    // 生成故事内容
+    generateContent: () => API_CONFIG.buildUrl(`/ai/generate/content`),
+    // 生成角色对话
+    generateDialogue: () => API_CONFIG.buildUrl(`/ai/generate/dialogue`),
+    // 生成故事分支建议
+    generateBranches: () => API_CONFIG.buildUrl(`/ai/generate/branches`),
+    // 转换故事风格
+    convertStyle: () => API_CONFIG.buildUrl(`/ai/convert/style`),
+    // 基于节点生成内容
+    generateNodeContent: () => API_CONFIG.buildUrl(`/ai/generate/node-content`)
+  },
   
   // 故事相关API
   STORIES: {

@@ -108,6 +108,13 @@ try {
 }
 
 try {
+  app.use(`${BASE_URL}/ai`, require('./routes/ai'));
+  console.log('✅ ai路由注册成功');
+} catch(e) {
+  console.error('❌ ai路由注册失败:', e.message);
+}
+
+try {
   app.use(`${BASE_URL}/users`, require('./routes/users'));
   console.log('✅ users路由注册成功');
 } catch(e) {

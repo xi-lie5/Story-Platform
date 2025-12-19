@@ -167,6 +167,17 @@
           <!-- 节点内容 -->
           <div class="mb-6" id="content-section">
             <label class="block text-sm font-medium text-slate-700 mb-2">节点内容</label>
+            <div class="flex items-center space-x-2 mb-2">
+              <button type="button" id="ai-generate-content" class="px-3 py-1 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm flex items-center">
+                <i class="fa fa-magic mr-1"></i> AI生成内容
+              </button>
+              <button type="button" id="ai-generate-dialogue" class="px-3 py-1 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors text-sm flex items-center">
+                <i class="fa fa-comments mr-1"></i> AI生成对话
+              </button>
+              <button type="button" id="ai-suggest-branches" class="px-3 py-1 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-sm flex items-center">
+                <i class="fa fa-code-fork mr-1"></i> AI分支建议
+              </button>
+            </div>
             <div id="content-editor" class="rich-editor border border-slate-200 rounded-lg overflow-hidden"></div>
           </div>
 
@@ -829,6 +840,130 @@
           }
         }
       });
+      
+      // AI功能按钮
+      document.getElementById('ai-generate-content').addEventListener('click', async () => {
+        await generateContentWithAI();
+      });
+      
+      document.getElementById('ai-generate-dialogue').addEventListener('click', async () => {
+        await generateDialogueWithAI();
+      });
+      
+      document.getElementById('ai-suggest-branches').addEventListener('click', async () => {
+        await suggestBranchesWithAI();
+      });
+    }
+    
+    // AI生成内容
+    async function generateContentWithAI() {
+      try {
+        showNotification('正在生成内容，请稍候...', 'info');
+        
+        // 获取当前节点信息
+        const currentContent = tinyEditor ? tinyEditor.getContent() : '';
+        const nodeTitle = document.getElementById('title-input').value;
+        
+        const response = await fetch(API_CONFIG.AI.generateContent(), {
+          method: 'POST',
+          headers: API_CONFIG.getAuthHeaders(),
+          body: JSON.stringify({
+            context: currentContent || `节点标题：${nodeTitle}\n这是一个新节点，需要生成内容。`,
+            prompt: '请为这个故事节点生成详细的内容，保持故事的连贯性和吸引力。',
+            style: 'classic',
+            length: 300
+          })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          // 将生成的内容插入到编辑器中
+          if (tinyEditor) {
+            tinyEditor.setContent(result.data.content);
+            resetAutoSaveTimer();
+          }
+          showNotification('内容生成成功！', 'success');
+        } else {
+          showNotification(`生成失败: ${result.message}`, 'error');
+        }
+      } catch (error) {
+        console.error('AI生成内容失败:', error);
+        showNotification('AI服务连接失败，请稍后重试', 'error');
+      }
+    }
+    
+    // AI生成对话
+    async function generateDialogueWithAI() {
+      try {
+        showNotification('正在生成对话，请稍候...', 'info');
+        
+        // 获取当前节点信息
+        const currentContent = tinyEditor ? tinyEditor.getContent() : '';
+        const nodeTitle = document.getElementById('title-input').value;
+        
+        const response = await fetch(API_CONFIG.AI.generateDialogue(), {
+          method: 'POST',
+          headers: API_CONFIG.getAuthHeaders(),
+          body: JSON.stringify({
+            context: currentContent || `节点标题：${nodeTitle}`,
+            prompt: '请为这个故事节点生成一段自然流畅的对话，适合故事场景。',
+            characters: ['主角', '配角'],
+            style: 'dialogue'
+          })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          // 将生成的对话插入到编辑器中
+          if (tinyEditor) {
+            const currentContent = tinyEditor.getContent();
+            tinyEditor.setContent(currentContent + '<br/><br/>' + result.data.dialogue);
+            resetAutoSaveTimer();
+          }
+          showNotification('对话生成成功！', 'success');
+        } else {
+          showNotification(`生成失败: ${result.message}`, 'error');
+        }
+      } catch (error) {
+        console.error('AI生成对话失败:', error);
+        showNotification('AI服务连接失败，请稍后重试', 'error');
+      }
+    }
+    
+    // AI生成分支建议
+    async function suggestBranchesWithAI() {
+      try {
+        showNotification('正在生成分支建议，请稍候...', 'info');
+        
+        // 获取当前节点信息
+        const currentContent = tinyEditor ? tinyEditor.getContent() : '';
+        const nodeTitle = document.getElementById('title-input').value;
+        
+        const response = await fetch(API_CONFIG.AI.generateBranches(), {
+          method: 'POST',
+          headers: API_CONFIG.getAuthHeaders(),
+          body: JSON.stringify({
+            currentContent: currentContent || `节点标题：${nodeTitle}`,
+            style: 'classic',
+            count: 4
+          })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          // 将生成的分支建议添加为选项
+          const branches = result.data.branches;
+          branches.forEach(branch => {
+            addChoiceItem({ text: branch.text, autoCreate: true });
+          });
+          showNotification(`成功生成${branches.length}个分支建议！`, 'success');
+        } else {
+          showNotification(`生成失败: ${result.message}`, 'error');
+        }
+      } catch (error) {
+        console.error('AI生成分支建议失败:', error);
+        showNotification('AI服务连接失败，请稍后重试', 'error');
+      }
     }
 
     // 通知功能
