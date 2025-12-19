@@ -94,7 +94,7 @@ PS E:\github\Story-Platform\backend>
 在不使用缓存的情况下，连接池 = 100 是最优配置——它在保持高吞吐的同时，完全避免了超时错误，系统表现最可靠。
 
 
-# 引入node cache 内存缓存
+# 引入node cache 内存缓存(cache.js)
 
 ## max 连接数为60
 连接池数量为60的数据
@@ -212,3 +212,6 @@ PS E:\github\Story-Platform\backend>
 ## 总结
 
 node cache带来了一定的性能提升，但是远低于预期值
+
+
+
