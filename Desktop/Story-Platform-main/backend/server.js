@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
 const path = require('path');
+const fs = require('fs');
 
 const errorHandler = require('./middleware/errorHandler');
 
@@ -19,32 +20,38 @@ const BASE_URL = '/api/v1';
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cors({
-  origin: process.env.CLIENT_ORIGIN ? process.env.CLIENT_ORIGIN.split(',') : true,
-  credentials: true
+  origin: process.env.CLIENT_ORIGIN === '*' ? true : (process.env.CLIENT_ORIGIN ? process.env.CLIENT_ORIGIN.split(',') : true),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range']
 }));
 
-// 全局请求日志中间件
-app.use((req, res, next) => {
-  console.log('🌐 收到请求:', req.method, req.path);
-  console.log('🌐 完整URL:', req.originalUrl);
-  next();
-});
+
 
 // 静态资源（头像、封面）
 app.use('/avatar', express.static(path.join(__dirname, 'avatar')));
 app.use('/coverImage', express.static(path.join(__dirname, 'coverImage')));
 
-// 前端静态文件服务 - 只对明确的HTML文件路径启用，避免拦截API路由
-app.use(['/index.html', '/explore.html', '/create.html', '/login.html', '/register.html', '/profile.html', '/about.html'], 
-  express.static(path.join(__dirname, '../front'), {
-    index: 'index.html',
-    extensions: ['html', 'htm']
-  })
-);
+// 前端静态文件服务 - 优化配置，处理所有静态文件请求，包括HTML文件
+// 先处理API路由，再处理静态文件请求
+// 使用更简单的静态文件服务配置
+app.use(express.static(path.join(__dirname, '../front'), {
+  index: 'index.html',
+  extensions: ['html', 'htm']
+}));
 
-// 根路径重定向到首页
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../front/index.html'));
+// 为所有HTML文件添加直接访问支持（不带.html后缀）
+app.get(/^\/([a-zA-Z0-9_\-]+)$/, (req, res, next) => {
+  const filename = req.params[0];
+  const filePath = path.join(__dirname, '../front', `${filename}.html`);
+  
+  fs.access(filePath, fs.constants.F_OK, (err) => {
+    if (err) {
+      return next();
+    }
+    res.sendFile(filePath);
+  });
 });
 
 // 健康检查
@@ -60,7 +67,6 @@ app.get(BASE_URL, (req, res) => {
     endpoints: [
       `${BASE_URL}/auth`,
       `${BASE_URL}/stories`,
-      `${BASE_URL}/sections`,
       `${BASE_URL}/storyNodes`,
       `${BASE_URL}/categories`,
       `${BASE_URL}/users`,
@@ -70,11 +76,7 @@ app.get(BASE_URL, (req, res) => {
   });
 });
 
-// 测试路由
-app.get(`${BASE_URL}/test`, (req, res) => {
-  console.log('🔥 测试路由被访问！');
-  res.json({ message: '测试路由工作正常' });
-});
+
 
 // 路由注册
 console.log('注册路由...');
@@ -92,22 +94,13 @@ try {
   console.error('❌ stories路由注册失败:', e.message);
 }
 
-try {
-  app.use(`${BASE_URL}/sections`, require('./routes/sections'));
-  console.log('✅ sections路由注册成功');
-} catch(e) {
-  console.error('❌ sections路由注册失败:', e.message);
-}
+
 
 try {
-  const storyNodesRouter = require('./routes/storyNodes');
-  console.log('🔍 storyNodes路由器类型:', typeof storyNodesRouter);
-  console.log('🔍 storyNodes路由器名称:', storyNodesRouter.name);
-  app.use(`${BASE_URL}/storyNodes`, storyNodesRouter);
+  app.use(`${BASE_URL}/storyNodes`, require('./routes/storyNodes'));
   console.log('✅ storyNodes路由注册成功');
 } catch(e) {
   console.error('❌ storyNodes路由注册失败:', e.message);
-  console.error('❌ 错误堆栈:', e.stack);
 }
 
 try {
@@ -138,14 +131,13 @@ try {
   console.error('❌ admin路由注册失败:', e.message);
 }
 
-try {
-  app.use(`${BASE_URL}/collections`, require('./routes/collections')); // 收藏功能路由
-  console.log('✅ collections路由注册成功');
-} catch(e) {
-  console.error('❌ collections路由注册失败:', e.message);
-}
+
 
 console.log('所有路由注册完成');
+
+// 前端静态文件服务 - 简化配置，使用更直接的方式处理所有静态文件请求
+// 确保API路由优先处理，静态文件服务放在最后
+app.use(express.static(path.join(__dirname, '../front')));
 
 // 错误处理
 app.use(errorHandler);

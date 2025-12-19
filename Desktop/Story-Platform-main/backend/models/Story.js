@@ -103,11 +103,32 @@ const storySchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-storySchema.virtual('sections', {
-  ref: 'StorySection',
+// 虚拟字段：获取故事的所有节点
+storySchema.virtual('nodes', {
+  ref: 'StoryNode',
   localField: '_id',
   foreignField: 'storyId'
 });
+
+// 静态方法：获取故事树
+storySchema.statics.getStoryWithTree = async function(storyId) {
+  const story = await this.findById(storyId)
+    .populate('author', 'username avatar')
+    .populate('category', 'name');
+  
+  if (!story) {
+    return null;
+  }
+  
+  // 获取故事树
+  const StoryNode = mongoose.model('StoryNode');
+  const storyTree = await StoryNode.getStoryTree(storyId);
+  
+  return {
+    ...story.toObject(),
+    tree: storyTree
+  };
+};
 
 // 添加复合索引以优化常用查询
 storySchema.index({ title: 'text', description: 'text' });

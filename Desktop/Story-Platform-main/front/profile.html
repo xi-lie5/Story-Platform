@@ -366,6 +366,9 @@
                   <a href="create.html" class="block w-full py-2 rounded-full bg-primary text-white hover:bg-primary/90 transition-colors">
                     开始新的故事
                   </a>
+                  <a href="admin.html" id="admin-console-btn" class="hidden block w-full py-2 rounded-full bg-purple-600 text-white hover:bg-purple-700 transition-colors">
+                    <i class="fa fa-cogs mr-2"></i>进入管理员控制台
+                  </a>
                   <button id="profile-logout" class="block w-full py-2 rounded-full bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors">
                     退出登录
                   </button>
@@ -1019,10 +1022,15 @@
         if (sessionElement) sessionElement.textContent = storageType;
 
         // 检查是否为管理员用户
-        if (userInfo.email === 'admin@example.com') {
+        if (userInfo.email === 'admin@example.com' || userInfo.role === 'admin') {
           const adminTabBtn = document.getElementById('admin-tab-btn');
           if (adminTabBtn) {
             adminTabBtn.classList.remove('hidden');
+          }
+          // 显示管理员控制台按钮
+          const adminConsoleBtn = document.getElementById('admin-console-btn');
+          if (adminConsoleBtn) {
+            adminConsoleBtn.classList.remove('hidden');
           }
         }
 

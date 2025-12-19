@@ -145,8 +145,6 @@ router.put('/stories/:storyId/review', adminGuard, [
       return next(errorFormat(400, '无效的ID格式', [], 10010));
     }
 
-    console.log('审核API - 接收到的storyId:', storyId); // 调试日志
-
     const story = await Story.findById(storyId)
       .populate('author', 'username email');
 
@@ -340,7 +338,6 @@ router.put('/categories/:id', adminGuard, [
   body('description').optional()
     .isLength({ max: 200 }).withMessage('分类描述不能超过200个字符')
 ], async (req, res, next) => {
-  console.log('Admin PUT categories route hit!'); // 调试日志
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(errorFormat(400, '更新分类失败', errors.array().map((err) => ({ field: err.path, message: err.msg })), 10001));
@@ -382,7 +379,6 @@ router.put('/categories/:id', adminGuard, [
         storyCount: updatedCategory.storyCount
       }
     });
-    console.log('Admin PUT response message: 编辑添加成功'); // 调试日志
   } catch (error) {
     next(error);
   }

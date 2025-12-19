@@ -3,7 +3,43 @@ node_modules/
 
 # 环境变量（包含数据库密码、API密钥等敏感信息）
 .env
+.env.local
+.env.*.local
+backend/.env
+front/.env
 
-# npm生成的日志文件
+# 日志文件
+*.log
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# 系统文件
+.DS_Store
+Thumbs.db
+.vs/
+.idea/
+*.swp
+*.swo
+*~
+
+# 临时文件
+*.tmp
+*.temp
+~$*
+.cache/
+
+# 构建输出
+dist/
+build/
+*.min.js
+*.min.css
+
+# 测试文件（可选，根据需求决定是否提交）
+# test/
+# *.test.js
+
+# 其他
+.trae/
+*.bat

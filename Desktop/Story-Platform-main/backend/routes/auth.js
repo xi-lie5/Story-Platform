@@ -95,28 +95,21 @@ router.post('/login', [
 
   try {
     const { email, password } = req.body;
-    console.log('登录请求 - 邮箱:', email, '密码长度:', password ? password.length : 0);
 
     const user = await User.findOne({ email }).select('+password +refreshToken');
-    console.log('找到用户:', !!user);
     
     if (!user) {
-      console.log('用户不存在');
       return next(errorFormat(401, '邮箱或密码错误', [{ message: '邮箱或密码错误' }], 10006));
     }
 
     // 检查用户账户是否被禁用
     if (!user.isActive) {
-      console.log('用户账户被禁用');
       return next(errorFormat(403, '账户已被禁用，请联系管理员', [{ message: '账户已被禁用，请联系管理员' }], 10020));
     }
 
-    console.log('开始验证密码...');
     const isMatch = await user.matchPassword(password);
-    console.log('密码验证结果:', isMatch);
     
     if (!isMatch) {
-      console.log('密码不匹配');
       return next(errorFormat(401, '邮箱或密码错误', [{ message: '邮箱或密码错误' }], 10006));
     }
 
