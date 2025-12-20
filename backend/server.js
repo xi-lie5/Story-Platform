@@ -1,22 +1,29 @@
+const path = require('path');
+const dotenv = require('dotenv');
+
+// 必须最先加载环境变量
+dotenv.config({ path: path.join(__dirname, '.env') });
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const dotenv = require('dotenv');
-const path = require('path');
 const fs = require('fs');
 
 const errorHandler = require('./middleware/errorHandler');
 
-// server.js从server根目录加载.env
-dotenv.config({ path: path.join(__dirname, '.env') });
-
 const app = express();
 const BASE_URL = '/api/v1';
 
-// 基础安全 & 解析中间件
-// app.use(helmet());
+// 读取环境变量
+const MAX_POOL_SIZE = parseInt(process.env.DB_POOL_SIZE) || 50;
+
+// 中间件配置
+app.use(helmet({
+  contentSecurityPolicy: false, // 如果前端有外链资源，暂时关闭 CSP 避免拦截
+}));
+app.use(morgan('dev'));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cors({
@@ -24,59 +31,13 @@ app.use(cors({
   credentials: true
 }));
 
-
-
-// 静态资源（头像、封面）
+// 静态资源
 app.use('/avatar', express.static(path.join(__dirname, 'avatar')));
 app.use('/coverImage', express.static(path.join(__dirname, 'coverImage')));
 
-// 前端静态文件服务 - 优化配置，处理所有静态文件请求，包括HTML文件
-// 先处理API路由，再处理静态文件请求
-// 使用更简单的静态文件服务配置
-app.use(express.static(path.join(__dirname, '../front'), {
-  index: 'index.html',
-  extensions: ['html', 'htm']
-}));
-
-// 为所有HTML文件添加直接访问支持（不带.html后缀）
-app.get(/^\/([a-zA-Z0-9_\-]+)$/, (req, res, next) => {
-  const filename = req.params[0];
-  const filePath = path.join(__dirname, '../front', `${filename}.html`);
-  
-  fs.access(filePath, fs.constants.F_OK, (err) => {
-    if (err) {
-      return next();
-    }
-    res.sendFile(filePath);
-  });
-});
-
-// 健康检查
-app.get('/healthz', (req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
-
-// API 根信息
-app.get(BASE_URL, (req, res) => {
-  res.status(200).json({
-    message: '欢迎使用AI故事创作平台API',
-    version: '1.0.0',
-    endpoints: [
-      `${BASE_URL}/auth`,
-      `${BASE_URL}/stories`,
-      `${BASE_URL}/storyNodes`,
-      `${BASE_URL}/categories`,
-      `${BASE_URL}/users`,
-      `${BASE_URL}/interactions`,
-      `${BASE_URL}/admin`
-    ]
-  });
-});
-
-
-
 // 路由注册
-console.log('注册路由...');
+console.log('正在注册路由...');
+
 try {
   app.use(`${BASE_URL}/auth`, require('./routes/auth'));
   console.log('✅ auth路由注册成功');
@@ -90,8 +51,6 @@ try {
 } catch(e) {
   console.error('❌ stories路由注册失败:', e.message);
 }
-
-
 
 try {
   app.use(`${BASE_URL}/storyNodes`, require('./routes/storyNodes'));
@@ -108,7 +67,7 @@ try {
 }
 
 try {
-  app.use(`${BASE_URL}/ai`, require('./routes/ai'));
+  app.use(`${BASE_URL}/ai`, require('./routes/aiRoutes'));
   console.log('✅ ai路由注册成功');
 } catch(e) {
   console.error('❌ ai路由注册失败:', e.message);
@@ -122,26 +81,61 @@ try {
 }
 
 try {
-  app.use(`${BASE_URL}/interactions`, require('./routes/interactions')); // 用户交互功能路由（收藏、评分等）
+  app.use(`${BASE_URL}/interactions`, require('./routes/interactions'));
   console.log('✅ interactions路由注册成功');
 } catch(e) {
   console.error('❌ interactions路由注册失败:', e.message);
 }
 
 try {
-  app.use(`${BASE_URL}/admin`, require('./routes/admin')); // 管理员功能路由
+  app.use(`${BASE_URL}/admin`, require('./routes/admin'));
   console.log('✅ admin路由注册成功');
 } catch(e) {
   console.error('❌ admin路由注册失败:', e.message);
 }
 
-
-
 console.log('所有路由注册完成');
 
-// 前端静态文件服务 - 简化配置，使用更直接的方式处理所有静态文件请求
-// 确保API路由优先处理，静态文件服务放在最后
-app.use(express.static(path.join(__dirname, '../front')));
+// 健康检查
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+// API 根信息
+app.get(BASE_URL, (req, res) => {
+  res.status(200).json({
+    message: '欢迎使用AI故事创作平台API',
+    version: '1.0.0',
+    endpoints: [
+      `${BASE_URL}/auth`,
+      `${BASE_URL}/stories`,
+      `${BASE_URL}/storyNodes`,
+      `${BASE_URL}/categories`,
+      `${BASE_URL}/ai`,
+      `${BASE_URL}/users`,
+      `${BASE_URL}/interactions`,
+      `${BASE_URL}/admin`
+    ]
+  });
+});
+
+// 前端静态资源处理
+
+// 处理特定 HTML 路由（如 /login 匹配 login.html）
+app.get(/^\/([a-zA-Z0-9_\-]+)$/, (req, res, next) => {
+  const filename = req.params[0];
+  const filePath = path.join(__dirname, '../front', `${filename}.html`);
+  fs.access(filePath, fs.constants.F_OK, (err) => {
+    if (err) return next();
+    res.sendFile(filePath);
+  });
+});
+
+// 托管通用静态资源 (js, css, index.html)
+app.use(express.static(path.join(__dirname, '../front'), {
+  index: 'index.html',
+  extensions: ['html', 'htm']
+}));
 
 // 错误处理
 app.use(errorHandler);
@@ -151,15 +145,21 @@ const PORT = process.env.PORT || 5000;
 async function startServer() {
   try {
     if (!process.env.MONGODB_URI) {
-      throw new Error('Missing required environment variable: MONGODB_URI');
+      throw new Error('Missing MONGODB_URI');
     }
 
+    // 数据库连接
     await mongoose.connect(process.env.MONGODB_URI, {
-      autoIndex: process.env.NODE_ENV !== 'production'
+      autoIndex: process.env.NODE_ENV !== 'production',
+      maxPoolSize: MAX_POOL_SIZE,
+      minPoolSize: 10,  
+      serverSelectionTimeoutMS: 5000,
     });
 
     app.listen(PORT, () => {
       console.log(`🚀 服务运行在 http://localhost:${PORT}${BASE_URL}`);
+      console.log(`🔌 [配置生效] 数据库连接池 Max: ${MAX_POOL_SIZE}, Min: 10`);
+      console.log(`🤖 AI 助手接口: http://localhost:${PORT}${BASE_URL}/ai/generate-story`);
     });
   } catch (error) {
     console.error('❌ 服务启动失败:', error.message);

@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员控制台 - StoryForge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#ec4899',
+                        accent: '#10b981'
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .navbar-modern {
+                background: rgba(255, 255, 255, 0.98);
+                backdrop-filter: blur(10px);
+                border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            }
+            .tab-content {
+                display: none;
+            }
+            .tab-content.active {
+                display: block;
+            }
+            .nav-tab {
+                border-color: transparent;
+                color: #6B7280;
+                transition: all 0.2s ease;
+            }
+            .nav-tab.active {
+                border-color: #6366f1;
+                color: #6366f1;
+            }
+            .nav-tab:hover {
+                color: #6366f1;
+            }
+            .status-badge {
+                padding: 4px 12px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 500;
+            }
+            .status-published {
+                background-color: #D1FAE5;
+                color: #065F46;
+            }
+            .status-pending {
+                background-color: #FEF3C7;
+                color: #92400E;
+            }
+            .status-draft {
+                background-color: #E5E7EB;
+                color: #374151;
+            }
+            .status-rejected {
+                background-color: #FEE2E2;
+                color: #991B1B;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <!-- 导航栏 -->
+    <nav class="navbar-modern" aria-label="主导航">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+                        <i class="fa fa-book text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl md:text-2xl font-bold text-gray-900">StoryForge</h1>
+                        <p class="text-xs text-slate-500 hidden md:block">管理员控制台</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-600">欢迎，<span id="adminName" class="font-semibold text-primary">管理员</span></span>
+                    <a href="index.html" class="text-sm text-gray-600 hover:text-primary transition-colors">
+                        <i class="fa fa-home mr-1"></i>返回首页
+                    </a>
+                    <button onclick="logout()" class="text-sm text-red-600 hover:text-red-800 transition-colors">
+                        <i class="fa fa-sign-out mr-1"></i>退出登录
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 标签页导航 -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="container mx-auto px-4">
+            <nav class="flex space-x-8 overflow-x-auto" aria-label="标签页导航">
+                <button onclick="showTab('overview')" class="nav-tab py-4 px-1 border-b-2 font-medium text-sm active whitespace-nowrap">
+                    <i class="fa fa-dashboard mr-2"></i>数据总览
+                </button>
+                <button onclick="showTab('stories')" class="nav-tab py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap">
+                    <i class="fa fa-book mr-2"></i>作品管理
+                </button>
+                <button onclick="showTab('users')" class="nav-tab py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap">
+                    <i class="fa fa-users mr-2"></i>管理用户
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- 内容区域 -->
+    <main class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- 数据总览标签页 -->
+        <div id="overview" class="tab-content active">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-primary">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">故事总数</p>
+                            <p class="text-3xl font-bold text-primary" id="totalStories">0</p>
+                        </div>
+                        <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                            <i class="fa fa-book text-primary text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">待审核故事</p>
+                            <p class="text-3xl font-bold text-yellow-600" id="pendingStories">0</p>
+                        </div>
+                        <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
+                            <i class="fa fa-clock-o text-yellow-600 text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">用户总数</p>
+                            <p class="text-3xl font-bold text-purple-600" id="totalUsers">0</p>
+                        </div>
+                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
+                            <i class="fa fa-users text-purple-600 text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                    <i class="fa fa-info-circle mr-2 text-primary"></i>系统概览
+                </h3>
+                <div id="overviewContent" class="text-center py-12">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <p class="mt-4 text-gray-600">加载中...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 作品管理标签页 -->
+        <div id="stories" class="tab-content">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-primary/5 to-secondary/5">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-900 flex items-center">
+                                <i class="fa fa-book mr-2 text-primary"></i>作品管理
+                            </h2>
+                            <p class="text-sm text-gray-600 mt-1">查看所有故事，审核待审核的故事</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <select id="storyStatusFilter" onchange="loadStories()" class="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+                                <option value="all">全部状态</option>
+                                <option value="pending">待审核</option>
+                                <option value="published">已发布</option>
+                                <option value="draft">草稿</option>
+                                <option value="rejected">已拒绝</option>
+                            </select>
+                            <button onclick="loadStories()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm" aria-label="刷新故事列表">
+                                <i class="fa fa-refresh mr-1"></i>刷新
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="storiesContent" class="p-6">
+                    <div class="text-center py-12">
+                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <p class="mt-4 text-gray-600">加载中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 管理用户标签页 -->
+        <div id="users" class="tab-content">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-pink-50">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <h2 class="text-xl font-bold text-gray-900 flex items-center">
+                            <i class="fa fa-users mr-2 text-purple-600"></i>用户管理
+                        </h2>
+                        <div class="flex gap-2">
+                            <input type="text" id="userSearch" placeholder="搜索用户名或邮箱..." 
+                                class="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                onkeyup="if(event.key==='Enter') loadUsers()">
+                            <button onclick="loadUsers()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm">
+                                <i class="fa fa-search mr-1"></i>搜索
+                            </button>
+                            <button onclick="loadUsers()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+                                <i class="fa fa-refresh mr-1"></i>刷新
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="usersContent" class="p-6">
+                    <div class="text-center py-12">
+                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                        <p class="mt-4 text-gray-600">加载中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 故事详情模态框 -->
+    <div id="storyModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 overflow-y-auto">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-3xl shadow-lg rounded-md bg-white mb-20">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-900" id="storyModalTitle">故事详情</h3>
+                <button onclick="closeStoryModal()" class="text-gray-400 hover:text-gray-600" aria-label="关闭">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="storyModalContent" class="max-h-96 overflow-y-auto">
+                <!-- 内容将动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 获取认证令牌
+        function getAuthToken() {
+            return localStorage.getItem('token');
+        }
+
+        // 自动登录检查
+        async function checkAuth() {
+            const token = getAuthToken();
+            if (!token) {
+                // 尝试自动登录
+                try {
+                    const loginResponse = await fetch('http://localhost:5000/api/v1/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email: 'admin@example.com',
+                            password: 'admin123'
+                        })
+                    });
+                    
+                    const loginData = await loginResponse.json();
+                    if (loginData.success) {
+                        localStorage.setItem('token', loginData.data.token);
+                        localStorage.setItem('userInfo', JSON.stringify({
+                            userId: loginData.data.userId,
+                            username: loginData.data.username,
+                            email: loginData.data.email,
+                            role: 'admin'
+                        }));
+                        return true;
+                    }
+                } catch (error) {
+                    console.error('自动登录失败:', error);
+                }
+                alert('请先登录');
+                globalThis.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // 初始化
+        async function init() {
+            if (await checkAuth()) {
+                const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+                document.getElementById('adminName').textContent = userInfo.username || '管理员';
+                loadOverview();
+            }
+        }
+
+        // 切换标签页
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            switch(tabName) {
+                case 'overview': loadOverview(); break;
+                case 'stories': loadStories(); break;
+                case 'users': loadUsers(); break;
+            }
+        }
+
+        // 加载故事列表
+        async function loadStories() {
+            const status = document.getElementById('storyStatusFilter').value;
+            document.getElementById('storiesContent').innerHTML = `
+                <div class="text-center py-12">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <p class="mt-4 text-gray-600">加载中...</p>
+                </div>
+            `;
+            
+            try {
+                const url = status === 'all' 
+                    ? 'http://localhost:5000/api/v1/admin/stories'
+                    : `http://localhost:5000/api/v1/admin/stories?status=${status}`;
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('获取故事列表失败');
+                }
+                
+                const data = await response.json();
+                const stories = data.data?.stories || [];
+                
+                if (stories.length === 0) {
+                    document.getElementById('storiesContent').innerHTML = `
+                        <div class="text-center py-12">
+                            <i class="fa fa-book text-4xl text-gray-300 mb-4"></i>
+                            <p class="text-gray-500">暂无故事</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = '<div class="space-y-4">';
+                stories.forEach(story => {
+                    const statusClass = {
+                        'published': 'status-published',
+                        'pending': 'status-pending',
+                        'draft': 'status-draft',
+                        'rejected': 'status-rejected'
+                    }[story.status] || 'status-draft';
+                    
+                    let statusText;
+                    if (story.status === 'published') {
+                        statusText = '已发布';
+                    } else if (story.status === 'pending') {
+                        statusText = '待审核';
+                    } else if (story.status === 'draft') {
+                        statusText = '草稿';
+                    } else if (story.status === 'rejected') {
+                        statusText = '已拒绝';
+                    } else {
+                        statusText = story.status || '未知';
+                    }
+                    
+                    html += `
+                        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <h3 class="text-lg font-semibold text-gray-900">${story.title || '未命名故事'}</h3>
+                                        <span class="status-badge ${statusClass}">${statusText}</span>
+                                    </div>
+                                    <div class="text-sm text-gray-600 space-y-1">
+                                        <p><i class="fa fa-user mr-1"></i>作者：${story.author?.username || '未知'}</p>
+                                        <p><i class="fa fa-calendar mr-1"></i>创建时间：${new Date(story.createdAt).toLocaleString('zh-CN')}</p>
+                                        ${story.status === 'published' ? `<p><i class="fa fa-check-circle mr-1"></i>完成状态：${story.isCompleted ? '已完成' : '未完成'}</p>` : ''}
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 ml-4">
+                                    <button onclick="viewStoryDetail('${story._id}')" class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm">
+                                        <i class="fa fa-eye mr-1"></i>查看
+                                    </button>
+                                    ${story.status === 'pending' ? `
+                                        <button onclick="approveStory('${story._id}')" class="px-3 py-1 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors text-sm">
+                                            <i class="fa fa-check mr-1"></i>通过
+                                        </button>
+                                        <button onclick="rejectStory('${story._id}')" class="px-3 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm">
+                                            <i class="fa fa-times mr-1"></i>拒绝
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                document.getElementById('storiesContent').innerHTML = html;
+            } catch (error) {
+                console.error('加载故事列表失败:', error);
+                document.getElementById('storiesContent').innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fa fa-exclamation-circle text-4xl text-red-500 mb-4"></i>
+                        <p class="text-red-600">加载失败</p>
+                        <p class="text-sm text-gray-500 mt-2">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 加载数据总览
+        async function loadOverview() {
+            document.getElementById('overviewContent').innerHTML = `
+                <div class="text-center py-12">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <p class="mt-4 text-gray-600">加载中...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/v1/admin/stats', {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('获取统计数据失败');
+                }
+                
+                const data = await response.json();
+                const stats = data.data || {};
+                
+                // 更新统计卡片
+                document.getElementById('totalStories').textContent = stats.stories?.total || 0;
+                document.getElementById('pendingStories').textContent = stats.stories?.pending || 0;
+                document.getElementById('totalUsers').textContent = stats.users?.total || 0;
+                
+                // 显示详细统计信息
+                let html = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6">
+                            <h4 class="font-semibold text-gray-700 mb-4 flex items-center">
+                                <i class="fa fa-book mr-2 text-blue-600"></i>故事统计
+                            </h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">已发布</span>
+                                    <span class="font-bold text-blue-600">${stats.stories?.published || 0}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">待审核</span>
+                                    <span class="font-bold text-yellow-600">${stats.stories?.pending || 0}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">草稿</span>
+                                    <span class="font-bold text-gray-600">${stats.stories?.draft || 0}</span>
+                                </div>
+                                ${stats.stories?.rejected ? `
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">已拒绝</span>
+                                    <span class="font-bold text-red-600">${stats.stories.rejected}</span>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6">
+                            <h4 class="font-semibold text-gray-700 mb-4 flex items-center">
+                                <i class="fa fa-users mr-2 text-purple-600"></i>用户统计
+                            </h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">用户总数</span>
+                                    <span class="font-bold text-purple-600">${stats.users?.total || 0}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">分类总数</span>
+                                    <span class="font-bold text-indigo-600">${stats.categories?.total || 0}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fa fa-exclamation-triangle text-yellow-600 mr-2"></i>
+                            <p class="text-sm text-yellow-800">
+                                <strong>待审核故事：</strong>当前有 <strong class="text-yellow-700">${stats.stories?.pending || 0}</strong> 个故事等待审核，请及时处理。
+                            </p>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('overviewContent').innerHTML = html;
+            } catch (error) {
+                console.error('加载数据总览失败:', error);
+                document.getElementById('overviewContent').innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fa fa-exclamation-circle text-4xl text-red-500 mb-4"></i>
+                        <p class="text-red-600">加载失败</p>
+                        <p class="text-sm text-gray-500 mt-2">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 查看故事详情
+        async function viewStoryDetail(storyId) {
+            try {
+                const response = await fetch(`http://localhost:5000/api/v1/stories/${storyId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('获取故事详情失败');
+                }
+                
+                const data = await response.json();
+                const story = data.data;
+                
+                document.getElementById('storyModalTitle').textContent = story.title || '故事详情';
+                document.getElementById('storyModalContent').innerHTML = `
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2">基本信息</h4>
+                            <div class="bg-gray-50 rounded-lg p-4 space-y-2">
+                                <p><span class="font-medium">标题：</span>${story.title || '未命名'}</p>
+                                <p><span class="font-medium">作者：</span>${story.author?.username || '未知'}</p>
+                                <p><span class="font-medium">状态：</span>
+                                    <span class="status-badge ${getStatusClass(story.status)}">${getStatusText(story.status)}</span>
+                                </p>
+                                <p><span class="font-medium">创建时间：</span>${new Date(story.createdAt).toLocaleString('zh-CN')}</p>
+                                ${story.updatedAt ? `<p><span class="font-medium">更新时间：</span>${new Date(story.updatedAt).toLocaleString('zh-CN')}</p>` : ''}
+                            </div>
+                        </div>
+                        ${story.content ? `
+                            <div>
+                                <h4 class="font-semibold text-gray-700 mb-2">故事内容</h4>
+                                <div class="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                                    <p class="whitespace-pre-wrap text-gray-700">${story.content}</p>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                document.getElementById('storyModal').classList.remove('hidden');
+            } catch (error) {
+                console.error('获取故事详情失败:', error);
+                alert('获取故事详情失败：' + error.message);
+            }
+        }
+
+        // 获取状态样式类
+        function getStatusClass(status) {
+            if (status === 'published') return 'status-published';
+            if (status === 'pending') return 'status-pending';
+            if (status === 'rejected') return 'status-rejected';
+            return 'status-draft';
+        }
+
+        // 获取状态文本
+        function getStatusText(status) {
+            if (status === 'published') return '已发布';
+            if (status === 'pending') return '待审核';
+            if (status === 'rejected') return '已拒绝';
+            return '草稿';
+        }
+
+        // 关闭故事详情模态框
+        function closeStoryModal() {
+            document.getElementById('storyModal').classList.add('hidden');
+        }
+
+        // 审核通过
+        async function approveStory(storyId) {
+            if (!confirm('确定要通过这个故事的审核吗？')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`http://localhost:5000/api/v1/admin/stories/${storyId}/review`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    },
+                    body: JSON.stringify({ action: 'approve' })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || '审核失败');
+                }
+                
+                await response.json();
+                alert('审核通过！故事已发布');
+                loadStories();
+                loadOverview();
+            } catch (error) {
+                console.error('审核失败:', error);
+                alert('审核失败：' + error.message);
+            }
+        }
+
+        // 审核拒绝
+        async function rejectStory(storyId) {
+            const reason = prompt('请输入拒绝理由（可选）：');
+            if (reason === null) {
+                return; // 用户取消
+            }
+            
+            try {
+                const response = await fetch(`http://localhost:5000/api/v1/admin/stories/${storyId}/review`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    },
+                    body: JSON.stringify({ 
+                        action: 'reject',
+                        reason: reason || ''
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || '拒绝失败');
+                }
+                
+                await response.json();
+                alert('故事已拒绝');
+                loadStories();
+                loadOverview();
+            } catch (error) {
+                console.error('拒绝失败:', error);
+                alert('拒绝失败：' + error.message);
+            }
+        }
+
+        // 加载用户列表
+        async function loadUsers() {
+            document.getElementById('usersContent').innerHTML = `
+                <div class="text-center py-12">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                    <p class="mt-4 text-gray-600">加载中...</p>
+                </div>
+            `;
+            
+            try {
+                const search = document.getElementById('userSearch').value.trim();
+                const url = search 
+                    ? `http://localhost:5000/api/v1/admin/users?search=${encodeURIComponent(search)}`
+                    : 'http://localhost:5000/api/v1/admin/users';
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('获取用户列表失败');
+                }
+                
+                const data = await response.json();
+                const users = data.data?.users || [];
+                
+                if (users.length === 0) {
+                    document.getElementById('usersContent').innerHTML = `
+                        <div class="text-center py-12">
+                            <i class="fa fa-users text-4xl text-gray-300 mb-4"></i>
+                            <p class="text-gray-500">暂无用户</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = '<div class="overflow-x-auto"><table class="w-full border-collapse">';
+                html += `
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-700">用户名</th>
+                            <th class="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-700">邮箱</th>
+                            <th class="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-700">角色</th>
+                            <th class="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-700">状态</th>
+                            <th class="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-700">注册时间</th>
+                            <th class="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-700">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                `;
+                
+                users.forEach(user => {
+                    let roleBadge = '<span class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">普通用户</span>';
+                    if (user.role === 'admin') {
+                        roleBadge = '<span class="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">管理员</span>';
+                    }
+                    
+                    let statusBadge = '<span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">禁用</span>';
+                    if (user.isActive) {
+                        statusBadge = '<span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">活跃</span>';
+                    }
+                    
+                    html += `
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="border border-gray-200 px-4 py-3 text-sm">${user.username || '未知'}</td>
+                            <td class="border border-gray-200 px-4 py-3 text-sm">${user.email || '-'}</td>
+                            <td class="border border-gray-200 px-4 py-3 text-sm">${roleBadge}</td>
+                            <td class="border border-gray-200 px-4 py-3 text-sm">${statusBadge}</td>
+                            <td class="border border-gray-200 px-4 py-3 text-sm">${new Date(user.createdAt).toLocaleDateString('zh-CN')}</td>
+                            <td class="border border-gray-200 px-4 py-3 text-sm">
+                                <div class="flex gap-2">
+                                    <button onclick="toggleUserStatus('${user.id}', ${user.isActive})" 
+                                        class="px-3 py-1 ${user.isActive ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'} rounded-lg transition-colors text-xs">
+                                        <i class="fa fa-${user.isActive ? 'ban' : 'check'} mr-1"></i>${user.isActive ? '禁用' : '启用'}
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table></div>';
+                document.getElementById('usersContent').innerHTML = html;
+            } catch (error) {
+                console.error('加载用户列表失败:', error);
+                document.getElementById('usersContent').innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fa fa-exclamation-circle text-4xl text-red-500 mb-4"></i>
+                        <p class="text-red-600">加载失败</p>
+                        <p class="text-sm text-gray-500 mt-2">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 切换用户状态
+        async function toggleUserStatus(userId, currentStatus) {
+            const action = currentStatus ? '禁用' : '启用';
+            if (!confirm(`确定要${action}这个用户吗？`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`http://localhost:5000/api/v1/admin/users/${userId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    },
+                    body: JSON.stringify({ isActive: !currentStatus })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || '操作失败');
+                }
+                
+                await response.json();
+                alert(`用户${action}成功`);
+                loadUsers();
+            } catch (error) {
+                console.error('操作失败:', error);
+                alert('操作失败：' + error.message);
+            }
+        }
+
+        // 退出登录
+        function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('userInfo');
+                globalThis.location.href = 'login.html';
+            }
+        }
+
+        // 页面加载时初始化
+        globalThis.addEventListener('load', init);
+
+        // 点击模态框外部关闭
+        document.getElementById('storyModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeStoryModal();
+            }
+        });
+    </script>
+</body>
+</html>
+
