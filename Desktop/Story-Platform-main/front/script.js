@@ -1496,7 +1496,8 @@ async function saveStory() {
         // 获取分类ID（使用第一个可用分类作为默认分类）
         const categoryId = await getDefaultCategoryId();
         if (!categoryId) {
-            showSaveStatus('保存失败：无法获取分类信息，请稍后重试', 'error');
+            showSaveStatus('保存失败：无法获取分类信息。请确保：1) 后端服务器正在运行 2) 数据库中至少有一个分类（可通过管理员界面创建）', 'error');
+            console.error('无法获取分类ID，无法保存故事');
             return;
         }
         
@@ -1541,6 +1542,8 @@ async function getDefaultCategoryId() {
         const categoriesUrl = 'http://localhost:5000/api/v1/categories';
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         
+        console.log('正在获取分类列表...', { url: categoriesUrl, hasToken: !!token });
+        
         const response = await fetch(categoriesUrl, {
             method: 'GET',
             headers: {
@@ -1549,17 +1552,79 @@ async function getDefaultCategoryId() {
             }
         });
         
-        if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data && data.data.length > 0) {
-                // 返回第一个分类的ID
-                return data.data[0]._id;
-            }
+        console.log('分类API响应状态:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('分类API请求失败:', response.status, errorText);
+            throw new Error(`获取分类失败: ${response.status} ${response.statusText}`);
         }
-        console.warn('无法获取分类列表，使用默认分类ID');
-        return null;
+        
+        const data = await response.json();
+        console.log('分类API响应数据:', data);
+        
+        if (data.success && data.data && Array.isArray(data.data)) {
+            if (data.data.length > 0) {
+                // 返回第一个分类的ID
+                const categoryId = data.data[0]._id;
+                console.log('找到分类ID:', categoryId);
+                return categoryId;
+            } else {
+                console.warn('分类列表为空，尝试创建默认分类');
+                // 如果分类列表为空，尝试创建一个默认分类
+                return await createDefaultCategory();
+            }
+        } else {
+            console.error('分类API响应格式错误:', data);
+            throw new Error('分类API响应格式错误');
+        }
     } catch (error) {
         console.error('获取分类失败:', error);
+        // 如果获取失败，尝试创建默认分类
+        try {
+            return await createDefaultCategory();
+        } catch (createError) {
+            console.error('创建默认分类也失败:', createError);
+            return null;
+        }
+    }
+}
+
+// 创建默认分类（如果分类列表为空）
+async function createDefaultCategory() {
+    try {
+        console.log('尝试创建默认分类...');
+        const createCategoryUrl = 'http://localhost:5000/api/v1/categories';
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        
+        // 注意：创建分类需要管理员权限，这里只是尝试
+        // 如果失败，会返回null，让用户知道需要先创建分类
+        const response = await fetch(createCategoryUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({
+                name: '默认分类',
+                description: '系统默认分类'
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data && data.data._id) {
+                console.log('默认分类创建成功:', data.data._id);
+                return data.data._id;
+            }
+        } else {
+            const errorData = await response.json().catch(() => ({}));
+            console.warn('创建默认分类失败:', response.status, errorData);
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('创建默认分类异常:', error);
         return null;
     }
 }
