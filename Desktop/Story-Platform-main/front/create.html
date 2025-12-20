@@ -1,475 +1,197 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>创建新故事 - StoryForge</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#6366f1',
-            secondary: '#ec4899',
-          }
-        }
-      }
-    }
-  </script>
-  <!-- 自定义样式 -->
-  <style type="text/tailwindcss">
-    @layer utilities {
-      .backdrop-blur {
-        backdrop-filter: blur(8px);
-      }
-      .navbar-modern {
-        background: rgba(255,255,255,0.98);
-        backdrop-filter: blur(10px);
-        border-bottom: 1px solid rgba(0,0,0,0.08);
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-      }
-      .navbar-link {
-        transition: color 0.2s ease;
-      }
-      .btn-primary-modern {
-        background: #6366f1;
-        transition: background-color 0.2s ease;
-      }
-      .btn-primary-modern:hover {
-        background: #5558e3;
-      }
-      .btn-secondary-modern {
-        background: transparent;
-        border: 1px solid #e5e7eb;
-        color: #6b7280;
-        transition: all 0.2s ease;
-      }
-      .btn-secondary-modern:hover {
-        background: #f9fafb;
-        border-color: #d1d5db;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互动故事创建工具</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-  <!-- 导航栏 -->
-  <nav class="navbar-modern">
-    <div class="container mx-auto px-4 py-3">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-2">
-          <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
-            <i class="fa fa-book text-white text-lg"></i>
-          </div>
-          <h1 class="text-xl md:text-2xl font-display font-bold text-gray-900">StoryForge</h1>
+<body>
+    <div class="app-container">
+        <!-- 顶部导航栏 -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1><i class="fas fa-book-open"></i> 互动故事创建工具</h1>
+            </div>
+            <div class="header-right">
+                <button id="saveBtn" class="btn btn-primary"><i class="fas fa-save"></i> 保存</button>
+                <button id="exportBtn" class="btn btn-secondary"><i class="fas fa-download"></i> 导出</button>
+                <button id="previewToggle" class="btn btn-outline"><i class="fas fa-eye"></i> 切换预览</button>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 左侧面板 - 故事信息和角色管理 -->
+            <aside class="left-panel">
+                <!-- 故事信息设置面板 -->
+                <section class="panel-section" id="storyInfoSection">
+                    <h2><i class="fas fa-info-circle"></i> 故事信息</h2>
+                    <form id="storyInfoForm" class="story-info-form">
+                        <div class="form-group">
+                            <label for="storyTitle">故事标题 <span class="required">*</span></label>
+                            <input 
+                                type="text" 
+                                id="storyTitle" 
+                                placeholder="输入故事标题" 
+                                class="form-control"
+                                maxlength="50"
+                                required
+                            >
+                            <div class="form-hint">最多50个字符</div>
+                            <div class="error-message" id="titleError"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="storyDescription">故事简介 <span class="required">*</span></label>
+                            <textarea 
+                                id="storyDescription" 
+                                placeholder="输入故事简介" 
+                                class="form-control"
+                                maxlength="500"
+                                rows="3"
+                                required
+                            ></textarea>
+                            <div class="form-hint">最多500个字符</div>
+                            <div class="error-message" id="descriptionError"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="coverImage">封面图片</label>
+                            <input 
+                                type="file" 
+                                id="coverImage" 
+                                accept="image/*"
+                                class="form-control"
+                            >
+                            <div id="coverPreview" class="cover-preview"></div>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- 角色管理面板 -->
+                <section class="panel-section" id="characterSection">
+                    <h2><i class="fas fa-users"></i> 角色管理</h2>
+                    <button id="addCharacterBtn" class="btn btn-primary btn-block mb-2">
+                        <i class="fas fa-plus"></i> 添加角色
+                    </button>
+                    <div id="charactersList" class="characters-list"></div>
+                </section>
+            </aside>
+
+            <!-- 中间面板 - 分支创建 -->
+            <section class="middle-panel">
+                <!-- 分支剧情创建工具 -->
+                <section class="panel-section" id="branchSection">
+                    <div class="section-header">
+                        <h2><i class="fas fa-project-diagram"></i> 分支管理</h2>
+                        <div class="branch-controls">
+                            <button id="addBranchBtn" class="btn btn-primary"><i class="fas fa-code-branch"></i> 添加分支</button>
+                        </div>
+                    </div>
+                    <div id="branchEditor" class="branch-editor">
+                    <div id="nodesCanvas" class="nodes-canvas"></div>
+                    <div class="branch-properties">
+                            <h3>分支属性</h3>
+                            <div class="form-group">
+                                <label for="branchText">分支文本</label>
+                                <input type="text" id="branchText" placeholder="输入分支选项文本" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="newNodeType">后继节点类型</label>
+                                <select id="newNodeType" class="form-control">
+                                    <option value="regular">普通节点</option>
+                                    <option value="branch">分支节点</option>
+                                    <option value="end">结束节点</option>
+                                </select>
+                            </div>
+                            <!-- 整合节点标题和内容到分支属性 -->
+                            <h3>节点编辑</h3>
+                            <div class="form-group">
+                                <label for="branchNodeTitle">节点标题</label>
+                                <input type="text" id="branchNodeTitle" placeholder="输入新节点标题" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="branchNodeContent">节点内容</label>
+                                <textarea id="branchNodeContent" placeholder="输入新节点内容" class="form-control" rows="4"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </section>
+
+            <!-- 右侧面板 - 实时预览窗口 -->
+            <aside class="right-panel" id="previewPanel">
+                <section class="panel-section">
+                    <h2><i class="fas fa-eye"></i> 实时预览</h2>
+                    <div id="previewContent" class="preview-content">
+                        <div class="preview-placeholder">
+                            <h3>故事预览</h3>
+                            <p>选择一个节点开始预览你的故事</p>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+        </main>
+
+        <!-- 角色创建/编辑模态框 -->
+        <div id="characterModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="characterModalTitle"><i class="fas fa-user-plus"></i> 创建角色</h3>
+                    <button class="close-btn" id="closeCharacterModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <!-- 隐藏的角色ID字段，用于编辑模式 -->
+                    <input type="hidden" id="characterId" value="">
+                    
+                    <div class="form-group">
+                        <label for="characterName">角色名称</label>
+                        <input type="text" id="characterName" placeholder="输入角色名称" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="characterDescription">角色描述</label>
+                        <textarea id="characterDescription" placeholder="输入角色描述" class="form-control" rows="3"></textarea>
+                    </div>
+
+
+                    
+                    <div class="error-message" id="characterError" style="display: none; color: #ef4444; margin-top: 1rem;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button id="cancelCharacterBtn" class="btn btn-secondary">取消</button>
+                    <button id="saveCharacterBtn" class="btn btn-primary">保存角色</button>
+                </div>
+            </div>
         </div>
         
-        <div class="hidden md:flex items-center space-x-6">
-          <a href="index.html" class="navbar-link font-medium hover:text-primary transition-colors">首页</a>
-          <a href="browse.html" class="navbar-link font-medium hover:text-primary transition-colors">故事阅览</a>
-          <a href="explore.html" class="navbar-link font-medium hover:text-primary transition-colors">探索故事</a>
-          <a href="create.html" class="navbar-link active font-medium text-primary">创建故事</a>
-          <a href="my_stories.html" class="navbar-link font-medium hover:text-primary transition-colors">我的作品</a>
-          <a href="favorites.html" class="navbar-link font-medium hover:text-primary transition-colors">我的收藏</a>
-          <a href="profile.html" class="navbar-link font-medium hover:text-primary transition-colors">个人中心</a>
-          <a href="about.html" class="navbar-link font-medium hover:text-primary transition-colors">关于</a>
+        <!-- 节点编辑模态框 -->
+        <div id="nodeEditModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-edit"></i> 编辑节点</h3>
+                    <button class="close-btn" id="closeNodeEditModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="nodeEditTitle">节点标题</label>
+                        <input type="text" id="nodeEditTitle" placeholder="输入节点标题" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="nodeEditContent">节点内容</label>
+                        <textarea id="nodeEditContent" placeholder="输入节点内容" class="form-control rich-text" rows="8"></textarea>
+                    </div>
+                    <div class="error-message" id="nodeEditError" style="display: none; color: #ef4444; margin-top: 1rem;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button id="cancelNodeEditBtn" class="btn btn-secondary">取消</button>
+                    <button id="saveNodeEditBtn" class="btn btn-primary">保存</button>
+                </div>
+            </div>
         </div>
-        
-        <!-- 认证区域 -->
-        <div id="auth-area-desktop" class="flex items-center space-x-3"></div>
-        
-        <!-- 移动端菜单按钮 -->
-        <button id="mobile-menu-button" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors">
-            <i class="fa fa-bars text-slate-600 text-xl"></i>
-        </button>
-      </div>
     </div>
-    
-    <!-- 移动端菜单 -->
-    <div class="md:hidden hidden bg-white/95 backdrop-blur-md border-t border-slate-200" id="mobile-menu">
-      <div class="container mx-auto px-4 py-4 space-y-3">
-        <a href="index.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">首页</a>
-        <a href="browse.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">故事阅览</a>
-        <a href="explore.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">探索故事</a>
-        <a href="create.html" class="block py-3 px-4 rounded-lg font-medium text-primary bg-primary/5">创建故事</a>
-        <a href="my_stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">我的作品</a>
-        <a href="favorites.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">我的收藏</a>
-        <a href="profile.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">个人中心</a>
-        <a href="about.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">关于</a>
-        <div class="flex flex-col space-y-3 pt-3 border-t border-slate-200">
-          <div id="auth-area-mobile">
-            <!-- AuthUI会动态渲染移动端登录状态或用户信息 -->
-          </div>
-        </div>
-      </div>
-    </div>
-  </nav>
 
-  <!-- 主要内容区 -->
-  <section class="pb-20 px-4">
-    <div class="container mx-auto max-w-3xl">
-      <h2 class="text-2xl md:text-3xl font-bold mb-8">创建新故事</h2>
-      
-      <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8">
-        <form id="story-form">
-          <div class="mb-6">
-            <label for="story-title" class="block text-sm font-medium text-slate-700 mb-1">故事标题 <span class="text-red-500">*</span></label>
-            <input type="text" id="story-title" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" placeholder="给你的故事起个名字" required>
-          </div>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <label for="story-category" class="block text-sm font-medium text-slate-700 mb-1">故事分类 <span class="text-red-500">*</span></label>
-              <select id="story-category" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" required>
-                <option value="">正在加载分类...</option>
-              </select>
-            </div>
-            
-            <div>
-              <label for="story-style" class="block text-sm font-medium text-slate-700 mb-1">故事风格</label>
-              <select id="story-style" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors">
-                <option value="">选择风格</option>
-                <option value="classic">经典文学风</option>
-                <option value="modern">现代简约风</option>
-                <option value="humor">幽默搞笑风</option>
-                <option value="poetic">诗意优美风</option>
-                <option value="fast">快节奏叙事</option>
-              </select>
-            </div>
-          </div>
-          
-          <div class="mb-6">
-            <label for="story-desc" class="block text-sm font-medium text-slate-700 mb-1">故事简介</label>
-            <textarea id="story-desc" rows="4" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" placeholder="简单描述你的故事核心创意..."></textarea>
-          </div>
-          
-          <div class="mb-8">
-            <label class="block text-sm font-medium text-slate-700 mb-3">AI 辅助设置</label>
-            <div class="space-y-3">
-              <div class="flex items-center">
-                <input type="checkbox" id="ai-plot" class="w-4 h-4 text-primary focus:ring-primary border-slate-300 rounded" checked>
-                <label for="ai-plot" class="ml-2 text-sm text-slate-700">自动生成剧情分支建议</label>
-              </div>
-              <div class="flex items-center">
-                <input type="checkbox" id="ai-character" class="w-4 h-4 text-primary focus:ring-primary border-slate-300 rounded" checked>
-                <label for="ai-character" class="ml-2 text-sm text-slate-700">生成角色性格与对话示例</label>
-              </div>
-              <div class="flex items-center">
-                <input type="checkbox" id="ai-writing" class="w-4 h-4 text-primary focus:ring-primary border-slate-300 rounded">
-                <label for="ai-writing" class="ml-2 text-sm text-slate-700">AI 辅助续写内容</label>
-              </div>
-            </div>
-          </div>
-          
-          <div class="flex gap-4">
-            <button type="button" id="cancel-btn" class="flex-1 px-6 py-3 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-              取消
-            </button>
-            <button type="submit" id="create-story-btn" class="flex-1 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
-              创建故事 <i class="fa fa-arrow-right ml-2"></i>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </section>
 
-  <script src="assets/js/api-config.js"></script>
-  <script src="assets/js/auth.js"></script>
-  <script>
-    const mobileMenuButton = document.getElementById('mobile-menu-button');
-    const mobileMenu = document.getElementById('mobile-menu');
-    if (mobileMenuButton && mobileMenu) {
-      mobileMenuButton.addEventListener('click', () => {
-        mobileMenu.classList.toggle('hidden');
-      });
-    }
 
-    AuthUI.init();
-
-    // 显示登录提示模态框
-    function showLoginPrompt() {
-      // 创建模态框元素
-      const modalHtml = `
-        <div id="login-prompt-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
-          <div class="bg-white rounded-lg p-6 max-w-md mx-4 transform transition-transform">
-            <div class="text-center">
-              <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-primary/20 mb-4">
-                <i class="fa fa-lock text-primary text-xl"></i>
-              </div>
-              <h3 class="text-lg font-medium text-gray-900 mb-2">需要登录</h3>
-              <p class="text-sm text-gray-500 mb-6">请先登录后再创建故事，登录后即可使用完整的创作功能。</p>
-              <div class="flex space-x-3">
-                <button onclick="closeLoginPrompt()" class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  返回首页
-                </button>
-                <button onclick="goToLogin()" class="flex-1 px-4 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary/90">
-                  去登录
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-      
-      // 将模态框添加到页面
-      document.body.insertAdjacentHTML('beforeend', modalHtml);
-      
-      // 显示模态框
-      const modal = document.getElementById('login-prompt-modal');
-      modal.style.display = 'flex';
-      
-      // 3秒后自动跳转到登录页面
-      window.loginRedirectTimer = setTimeout(() => {
-        goToLogin();
-      }, 3000);
-    }
-
-    // 关闭登录提示模态框并返回首页
-    function closeLoginPrompt() {
-      const modal = document.getElementById('login-prompt-modal');
-      if (modal) {
-        // 清除自动跳转的定时器
-        if (window.loginRedirectTimer) {
-          clearTimeout(window.loginRedirectTimer);
-          window.loginRedirectTimer = null;
-        }
-        modal.remove();
-      }
-      // 跳转到首页
-      window.location.href = 'index.html';
-    }
-
-    // 跳转到登录页面
-    function goToLogin() {
-      // 获取当前页面的URL作为重定向参数
-      const currentUrl = encodeURIComponent(window.location.href);
-      window.location.href = `login.html?redirect=${currentUrl}`;
-    }
-
-    // 页面加载时检查登录状态并加载分类
-    document.addEventListener('DOMContentLoaded', function() {
-      // 初始化AuthUI
-      AuthUI.init();
-      
-      // 等待一小段时间确保auth.js完全加载
-      setTimeout(() => {
-        // 先加载分类数据（不需要登录）
-        loadCategories();
-        
-        // 然后检查登录状态
-        const authState = AuthUI.getAuthState();
-        
-        if (!authState) {
-          // 用户未登录，显示登录提示
-          showLoginPrompt();
-          return;
-        }
-      }, 100);
-    });
-
-    // 加载分类数据
-    async function loadCategories() {
-      const categorySelect = document.getElementById('story-category');
-      if (categorySelect) {
-        try {
-          // 显示加载状态
-          categorySelect.innerHTML = '<option value="">加载分类中...</option>';
-          
-          await window.CategoriesAPI.populateCategorySelect(categorySelect, {
-            includeEmpty: true,
-            emptyText: '选择分类'
-          });
-          console.log('分类数据加载成功');
-        } catch (error) {
-          console.error('分类数据加载失败:', error);
-          // 如果加载失败，显示错误提示并提供备用选项
-          categorySelect.innerHTML = '<option value="local">本地分类（加载失败时使用）</option>';
-          showNotification('分类数据加载失败，使用本地分类', 'warning');
-        }
-      }
-    }
-
-    // 表单提交
-    document.getElementById('story-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      // 检查登录状态
-      const authState = AuthUI.getAuthState();
-      if (!authState) {
-        showNotification('请先登录后再创建故事', 'error');
-        goToLogin();
-        return;
-      }
-      
-      const submitBtn = document.getElementById('create-story-btn');
-      const originalText = submitBtn.innerHTML;
-      
-      // 禁用按钮防止重复提交
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 创建中...';
-      
-      // 获取表单数据
-      const title = document.getElementById('story-title').value.trim();
-      const categoryId = document.getElementById('story-category').value;
-      const storyStyle = document.getElementById('story-style').value;
-      const description = document.getElementById('story-desc').value.trim();
-      
-      // 验证必填字段
-      if (!title) {
-        showNotification('请输入故事标题', 'error');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-        return;
-      }
-      
-      // 验证标题长度（1-100字符）
-      if (title.length < 1 || title.length > 100) {
-        showNotification('故事标题长度必须在1-100字符之间', 'error');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-        return;
-      }
-      
-      if (!categoryId) {
-        showNotification('请选择故事分类', 'error');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-        return;
-      }
-      
-      // 验证分类ID格式
-      if (!/^[0-9a-fA-F]{24}$/.test(categoryId) && categoryId !== 'local') {
-        showNotification('无效的分类ID格式', 'error');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-        return;
-      }
-      
-      // 验证描述长度（0-500字符）
-      if (description.length > 500) {
-        showNotification('故事描述长度不能超过500字符', 'error');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-        return;
-      }
-      
-      // 显示创建中提示
-      showNotification(`正在创建故事「${title}」...`, 'info');
-      
-      try {
-        // 尝试向后端API提交创建故事
-        let storyId = null;
-        
-        try {
-          // 调用后端创建故事API
-          const data = await API_CONFIG.post(API_CONFIG.STORIES.createStory(), {
-            title: title,
-            description: description,
-            categoryId: categoryId // 使用正确的分类ID字段
-          });
-          
-          if (data.success) {
-            storyId = data.data.id;
-          } else {
-            throw new Error(data.message || '创建故事失败');
-          }
-        } catch (error) {
-          console.error('创建故事失败:', error);
-          // 显示具体错误信息并停止执行
-          showNotification(`创建失败: ${error.message}`, 'error');
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = originalText;
-          return; // 停止执行，不跳转
-        }
-        
-        // 延迟一下确保用户看到创建成功的提示
-        setTimeout(() => {
-          showNotification(`故事「${title}」创建成功！`, 'success');
-          // 延迟一小段时间再显示跳转选项
-          setTimeout(() => {
-            // 创建跳转选项模态框
-            showStoryOptionsModal(title, storyId);
-          }, 500);
-        }, 800);
-      } catch (error) {
-        console.error('创建故事过程中发生错误:', error);
-        showNotification('创建故事失败，请重试', 'error');
-        
-        // 恢复按钮状态
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-      }
-    });
-
-    // 故事创建成功后显示选项模态框
-    function showStoryOptionsModal(title, storyId) {
-      // 创建模态框元素
-      const modalHtml = `
-        <div id="story-options-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div class="bg-white rounded-lg p-6 max-w-md mx-4 transform transition-transform">
-            <div class="text-center">
-              <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-primary/20 mb-4">
-                <i class="fa fa-check text-primary text-xl"></i>
-              </div>
-              <h3 class="text-lg font-medium text-gray-900 mb-2">故事创建成功</h3>
-              <p class="text-sm text-gray-500 mb-6">选择您想要进行的操作</p>
-              <div class="flex flex-col space-y-3">
-                <button onclick="window.location.href='story_tree_new.html?story=${storyId}'" class="w-full px-4 py-3 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary/90 flex items-center justify-center">
-                  <i class="fa fa-sitemap mr-2"></i> 前往故事节点图谱
-                </button>
-                <button onclick="closeStoryOptionsModal()" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-md text-sm font-medium hover:bg-gray-100 flex items-center justify-center">
-                  <i class="fa fa-times mr-2"></i> 稍后再说
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-      
-      // 将模态框添加到页面
-      document.body.insertAdjacentHTML('beforeend', modalHtml);
-    }
-    
-    // 关闭故事选项模态框
-    function closeStoryOptionsModal() {
-      const modal = document.getElementById('story-options-modal');
-      if (modal) {
-        modal.remove();
-      }
-    }
-    
-    // 取消按钮
-    document.getElementById('cancel-btn').addEventListener('click', function() {
-      if (confirm('确定要取消创建吗？已填写的内容将不会保存')) {
-        window.location.href = 'index.html';
-      }
-    });
-
-    // 通知功能（复用通用逻辑）
-    function showNotification(message, type = 'info') {
-      const notification = document.createElement('div');
-      notification.className = `fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center transition-all duration-300 transform translate-y-10 opacity-0`;
-      
-      if (type === 'success') {
-        notification.classList.add('bg-green-50', 'border', 'border-green-200', 'text-green-700');
-        notification.innerHTML = `<i class="fa fa-check-circle mr-2"></i>${message}`;
-      } else if (type === 'error') {
-        notification.classList.add('bg-red-50', 'border', 'border-red-200', 'text-red-700');
-        notification.innerHTML = `<i class="fa fa-exclamation-circle mr-2"></i>${message}`;
-      } else {
-        notification.classList.add('bg-blue-50', 'border', 'border-blue-200', 'text-blue-700');
-        notification.innerHTML = `<i class="fa fa-info-circle mr-2"></i>${message}`;
-      }
-      
-      document.body.appendChild(notification);
-      setTimeout(() => notification.classList.remove('translate-y-10', 'opacity-0'), 10);
-      setTimeout(() => {
-        notification.classList.add('translate-y-10', 'opacity-0');
-        setTimeout(() => notification.remove(), 300);
-      }, 3000);
-    }
-  </script>
+    <script src="script.js"></script>
 </body>
 </html>
