@@ -1480,7 +1480,7 @@ function updatePreview() {
 }
 
 // 保存故事到数据库
-function saveStory() {
+async function saveStory() {
     // 显示保存中状态
     showSaveStatus('保存中...', 'pending');
     
@@ -1492,82 +1492,90 @@ function saveStory() {
         return;
     }
     
-    // 准备保存的数据格式，转换为后端需要的格式
-    const saveData = prepareSaveData(storyData);
-    
-    // 发送请求到后端API（通过Vite代理）
-    fetch('/api/stories', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(saveData)
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => {
-                throw new Error(err.message || '保存失败');
-            });
+    try {
+        // 获取分类ID（使用第一个可用分类作为默认分类）
+        const categoryId = await getDefaultCategoryId();
+        if (!categoryId) {
+            showSaveStatus('保存失败：无法获取分类信息，请稍后重试', 'error');
+            return;
         }
-        return response.json();
-    })
-    .then(data => {
+        
+        // 准备保存的数据格式，转换为后端需要的格式
+        const saveData = prepareSaveData(storyData, categoryId);
+        
+        // 发送请求到后端API
+        const apiUrl = window.API_CONFIG ? window.API_CONFIG.STORIES.createStory() : 'http://localhost:5000/api/v1/stories';
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify(saveData)
+        });
+        if (!response.ok) {
+            const err = await response.json();
+            // 提取详细错误信息
+            const errorMsg = err.message || '保存失败';
+            const fieldErrors = err.errors ? err.errors.map(e => e.message).join(', ') : '';
+            throw new Error(fieldErrors || errorMsg);
+        }
+        
+        const data = await response.json();
         showSaveStatus('保存成功', 'success');
         // 更新本地故事ID
         if (data.data && data.data.id) {
             storyData.id = data.data.id;
         }
-    })
-    .catch(error => {
+    } catch (error) {
         console.error('保存失败:', error);
         showSaveStatus('保存失败：' + error.message, 'error');
-    });
+    }
+}
+
+// 获取默认分类ID
+async function getDefaultCategoryId() {
+    try {
+        const categoriesUrl = 'http://localhost:5000/api/v1/categories';
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        
+        const response = await fetch(categoriesUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data && data.data.length > 0) {
+                // 返回第一个分类的ID
+                return data.data[0]._id;
+            }
+        }
+        console.warn('无法获取分类列表，使用默认分类ID');
+        return null;
+    } catch (error) {
+        console.error('获取分类失败:', error);
+        return null;
+    }
 }
 
 // 准备保存到后端的数据格式
-function prepareSaveData(storyData) {
-    // 转换为后端需要的格式
+function prepareSaveData(storyData, categoryId) {
+    // 转换为后端需要的格式（只发送后端API需要的字段）
     const saveData = {
         title: storyData.title,
         description: storyData.description,
-        cover_image: storyData.coverImage || null,
-        nodes: [],
-        characters: [],
-        branches: []
+        categoryId: categoryId,
+        coverImage: storyData.coverImage || undefined  // 后端使用coverImage，不是cover_image
     };
     
-    // 转换节点数据
-    storyData.nodes.forEach(node => {
-        saveData.nodes.push({
-            id: node.id,
-            title: node.title,
-            content: node.content,
-            type: node.type || 'regular',
-            x: node.x,
-            y: node.y,
-            is_root: node.isRoot || false,
-            media: node.media || []
-        });
-        
-        // 转换分支数据
-        node.branches.forEach(branch => {
-            saveData.branches.push({
-                id: branch.id,
-                source_node_id: node.id,
-                target_node_id: branch.targetId,
-                context: branch.text
-            });
-        });
-    });
-    
-    // 转换角色数据
-    storyData.characters.forEach(character => {
-        saveData.characters.push({
-            id: character.id,
-            name: character.name,
-            description: character.description || ''
-        });
-    });
+    // 注意：后端会自动创建根节点，不需要在这里发送nodes/branches/characters
+    // 这些数据应该在创建故事后通过其他API单独保存
     
     return saveData;
 }
