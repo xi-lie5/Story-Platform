@@ -268,12 +268,9 @@
       <nav class="hidden md:flex items-center space-x-8">
         <a href="index.html" id="nav-home-link" class="navbar-link font-medium transition-colors">首页</a>
         <a href="browse.html" id="nav-browse-link" class="navbar-link font-medium transition-colors">故事阅览</a>
-        <a href="explore.html" id="nav-explore-link" class="navbar-link font-medium transition-colors">探索故事</a>
         <a href="create.html" id="nav-create-link" class="navbar-link font-medium transition-colors">创建故事</a>
         <a href="my_stories.html" id="nav-stories-link" class="navbar-link font-medium transition-colors">我的作品</a>
-        <a href="favorites.html" id="nav-favorites-link" class="navbar-link font-medium transition-colors">我的收藏</a>
         <a href="profile.html" id="nav-profile-link" class="navbar-link font-medium text-primary transition-colors">个人中心</a>
-        <a href="about.html" id="nav-about-link" class="navbar-link font-medium transition-colors">关于</a>
       </nav>
 
       <div class="flex items-center space-x-4" id="auth-area-desktop">
@@ -321,12 +318,9 @@
       <div class="p-4 space-y-3">
         <a href="index.html" id="mobile-nav-home-link" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors">首页</a>
         <a href="browse.html" id="mobile-nav-browse-link" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors">故事阅览</a>
-        <a href="explore.html" id="mobile-nav-explore-link" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors">探索故事</a>
         <a href="create.html" id="mobile-nav-create-link" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors">创建故事</a>
         <a href="my_stories.html" id="mobile-nav-stories-link" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors">我的作品</a>
-        <a href="favorites.html" id="mobile-nav-favorites-link" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors">我的收藏</a>
         <a href="profile.html" id="mobile-nav-profile-link" class="navbar-link block font-medium py-2 text-primary transition-colors">个人中心</a>
-        <a href="about.html" id="mobile-nav-about-link" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors">关于</a>
         <div id="auth-area-mobile" class="pt-3 border-t border-gray-200 space-y-3"></div>
       </div>
     </div>
@@ -1075,9 +1069,6 @@
         case '':
           activeLinkId = 'nav-home-link';
           break;
-        case 'explore.html':
-          activeLinkId = 'nav-explore-link';
-          break;
         case 'create.html':
           activeLinkId = 'nav-create-link';
           break;
@@ -1086,9 +1077,6 @@
           break;
         case 'profile.html':
           activeLinkId = 'nav-profile-link';
-          break;
-        case 'about.html':
-          activeLinkId = 'nav-about-link';
           break;
       }
       

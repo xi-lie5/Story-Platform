@@ -1,4 +1,4 @@
-const { pool } = require('../config/database');
+const { pool } = require('../backend/config/database');
 const { v4: uuidv4 } = require('uuid');
 
 class StoryNode {
@@ -11,7 +11,6 @@ class StoryNode {
     const connection = await pool.getConnection();
     try {
       const {
-        storyId,
         story_id,
         title,
         content,
@@ -21,10 +20,8 @@ class StoryNode {
         y = 0
       } = nodeData;
       
-      const storyIdValue = storyId || story_id;
-      
       // 验证必填字段
-      if (!storyIdValue || !title || !content) {
+      if (!story_id || !title || !content) {
         throw new Error('故事ID、节点标题和内容必填');
       }
       
@@ -38,7 +35,7 @@ class StoryNode {
       if (is_root) {
         const [existing] = await connection.execute(
           'SELECT id FROM story_nodes WHERE story_id = ? AND is_root = TRUE',
-          [storyIdValue]
+          [story_id]
         );
         if (existing.length > 0) {
           throw new Error('该故事已存在根节点');
@@ -48,7 +45,7 @@ class StoryNode {
       // 验证故事是否存在
       const [stories] = await connection.execute(
         'SELECT id FROM stories WHERE id = ?',
-        [storyIdValue]
+        [story_id]
       );
       if (stories.length === 0) {
         throw new Error('故事不存在');
@@ -59,7 +56,7 @@ class StoryNode {
       await connection.execute(
         `INSERT INTO story_nodes (id, story_id, title, content, is_root, type, x, y) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [nodeId, storyIdValue, title.trim(), content.trim(), is_root, type, x, y]
+        [nodeId, story_id, title.trim(), content.trim(), is_root, type, x, y]
       );
       
       return await this.findById(nodeId);
@@ -237,12 +234,12 @@ class StoryNode {
               results.updated.push(updated);
             } else {
               throw new Error(`节点不存在或不属于该故事: ${nodeData.id}`);
-    }
-  } else {
+            }
+          } else {
             // 创建新节点
             const newNode = await this.create({
               ...nodeData,
-              storyId
+              story_id: storyId
             });
             results.created.push(newNode);
           }
@@ -295,9 +292,9 @@ class StoryNode {
       let sql = 'SELECT * FROM story_nodes WHERE 1=1';
       const params = [];
       
-      if (query.storyId || query.story_id) {
+      if (query.story_id) {
         sql += ' AND story_id = ?';
-        params.push(query.storyId || query.story_id);
+        params.push(query.story_id);
       }
       
       if (query.type) {
@@ -314,118 +311,6 @@ class StoryNode {
       
       const [nodes] = await connection.execute(sql, params);
       return nodes;
-    } finally {
-      connection.release();
-    }
-  }
-
-  /**
-   * 处理节点关系（批量保存节点和分支）
-   * @param {Array} nodes - 节点数据数组，每个节点包含branches数组
-   * @param {Number} storyId - 故事ID
-   * @returns {Promise<Object>} 处理结果
-   */
-  static async processNodeRelations(nodes, storyId) {
-    const connection = await pool.getConnection();
-    const Branch = require('./Branch');
-    const { v4: uuidv4 } = require('uuid');
-    
-    try {
-      await connection.beginTransaction();
-      
-      // 节点ID映射：前端临时ID -> 数据库ID
-      const nodeIdMap = new Map();
-      const savedNodes = [];
-      
-      // 第一步：先保存所有节点
-      for (const nodeData of nodes) {
-        try {
-          const nodeInfo = {
-            storyId: storyId,
-            title: nodeData.title,
-            content: nodeData.content,
-            type: nodeData.type || 'regular',
-            x: nodeData.x || 0,
-            y: nodeData.y || 0,
-            is_root: nodeData.isRoot || false
-          };
-          
-          // 直接在事务中创建节点
-          const nodeId = uuidv4();
-          await connection.execute(
-            `INSERT INTO story_nodes (id, story_id, title, content, is_root, type, x, y) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-              nodeId,
-              storyId,
-              nodeInfo.title.trim(),
-              nodeInfo.content.trim(),
-              nodeInfo.is_root,
-              nodeInfo.type,
-              nodeInfo.x,
-              nodeInfo.y
-            ]
-          );
-          
-          const [savedNodeRows] = await connection.execute(
-            'SELECT * FROM story_nodes WHERE id = ?',
-            [nodeId]
-          );
-          const savedNode = savedNodeRows[0];
-          
-          // 保存ID映射
-          nodeIdMap.set(nodeData.id, savedNode.id);
-          savedNodes.push(savedNode);
-        } catch (error) {
-          console.error(`保存节点失败 ${nodeData.id}:`, error.message);
-          throw error;
-        }
-      }
-      
-      // 第二步：保存所有分支
-      let branchesCreated = 0;
-      for (const nodeData of nodes) {
-        const sourceNodeId = nodeIdMap.get(nodeData.id);
-        if (!sourceNodeId) continue;
-        
-        if (nodeData.branches && Array.isArray(nodeData.branches)) {
-          for (const branch of nodeData.branches) {
-            const targetNodeId = nodeIdMap.get(branch.targetId);
-            if (targetNodeId && branch.text) {
-              try {
-                // 检查是否已存在相同的连接
-                const [existing] = await connection.execute(
-                  'SELECT id FROM branches WHERE source_node_id = ? AND target_node_id = ?',
-                  [sourceNodeId, targetNodeId]
-                );
-                
-                if (existing.length === 0) {
-                  const branchId = uuidv4();
-                  await connection.execute(
-                    `INSERT INTO branches (id, source_node_id, target_node_id, context) 
-                     VALUES (?, ?, ?, ?)`,
-                    [branchId, sourceNodeId, targetNodeId, branch.text.trim()]
-                  );
-                  branchesCreated++;
-                }
-              } catch (error) {
-                console.warn(`创建分支失败 (${sourceNodeId} -> ${targetNodeId}):`, error.message);
-              }
-            }
-          }
-        }
-      }
-      
-      await connection.commit();
-      console.log(`批量保存完成: ${savedNodes.length} 个节点, ${branchesCreated} 个分支`);
-      
-      return {
-        nodes: savedNodes,
-        nodeIdMap: Object.fromEntries(nodeIdMap)
-      };
-    } catch (error) {
-      await connection.rollback();
-      throw error;
     } finally {
       connection.release();
     }

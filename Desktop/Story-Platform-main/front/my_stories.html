@@ -71,12 +71,9 @@
                 <div class="hidden md:flex items-center space-x-6">
                     <a href="index.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">首页</a>
                     <a href="browse.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">故事阅览</a>
-                    <a href="explore.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">探索故事</a>
                     <a href="create.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">创建故事</a>
                     <a href="my_stories.html" class="navbar-link active font-medium text-primary">我的作品</a>
-                    <a href="favorites.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">我的收藏</a>
                     <a href="profile.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">个人中心</a>
-                    <a href="about.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">关于</a>
                 </div>
                 
                 <div class="flex items-center space-x-4" id="auth-buttons">
@@ -119,12 +116,9 @@
             <div class="container mx-auto px-4 py-3 space-y-2">
                 <a href="index.html" class="navbar-link block py-2 text-gray-600 hover:text-primary transition-colors">首页</a>
                 <a href="browse.html" class="navbar-link block py-2 text-gray-600 hover:text-primary transition-colors">故事阅览</a>
-                <a href="explore.html" class="navbar-link block py-2 text-gray-600 hover:text-primary transition-colors">探索故事</a>
                 <a href="create.html" class="navbar-link block py-2 text-gray-600 hover:text-primary transition-colors">创建故事</a>
                 <a href="my_stories.html" class="navbar-link active block py-2 text-primary">我的作品</a>
-                <a href="favorites.html" class="navbar-link block py-2 text-gray-600 hover:text-primary transition-colors">我的收藏</a>
                 <a href="profile.html" class="navbar-link block py-2 text-gray-600 hover:text-primary transition-colors">个人中心</a>
-                <a href="about.html" class="navbar-link block py-2 text-gray-600 hover:text-primary transition-colors">关于</a>
                 <div class="flex flex-col space-y-2 pt-2 border-t border-gray-200">
                     <a href="login.html" class="block py-2 hover:text-primary transition-colors">登录</a>
                     <a href="register.html" class="block py-2 hover:text-primary transition-colors">注册</a>
@@ -155,7 +149,6 @@
                     <button onclick="filterStories('unpublished')" class="filter-btn px-4 py-2 bg-orange-100 text-orange-700 border border-orange-200 rounded-lg text-sm hover:bg-orange-200 transition-colors">
                         <i class="fa fa-arrow-down mr-1"></i> 下架作品
                     </button>
-                    <button onclick="filterStories('archived')" class="filter-btn px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition-colors">已归档</button>
                 </div>
                 
 
@@ -237,28 +230,72 @@
 
         // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', async function() {
+            console.log('[my_stories] DOMContentLoaded 触发');
+            
+            // 检查AuthUI是否已加载
+            if (typeof AuthUI === 'undefined') {
+                console.error('[my_stories] AuthUI未定义，等待auth.js加载...');
+                // 等待一下再重试
+                setTimeout(() => {
+                    if (typeof AuthUI !== 'undefined') {
+                        console.log('[my_stories] AuthUI已加载，重新初始化');
+                        initializePage();
+                    } else {
+                        console.error('[my_stories] AuthUI仍未加载，请检查assets/js/auth.js文件');
+                    }
+                }, 500);
+                return;
+            }
+            
+            initializePage();
+        });
+        
+        async function initializePage() {
+            console.log('[my_stories] 开始初始化页面');
+            
             // 初始化认证UI
-            AuthUI.init();
+            if (typeof AuthUI.init === 'function') {
+                AuthUI.init();
+                console.log('[my_stories] AuthUI.init() 调用完成');
+            } else {
+                console.warn('[my_stories] AuthUI.init 不是函数');
+            }
             
             // 更新认证UI显示
             const authState = AuthUI.getAuthState();
+            console.log('[my_stories] 获取到的认证状态:', authState);
             updateAuthUI(authState);
             
             // 监听认证状态变化
             document.addEventListener('authStateChanged', function(event) {
+                console.log('[my_stories] 认证状态变化事件:', event.detail);
                 const { isLoggedIn, userInfo } = event.detail;
-                console.log('认证状态变化:', { isLoggedIn, userInfo });
                 
                 // 更新UI显示
                 updateAuthUI({ isLoggedIn, userInfo });
                 
-                // 重新加载故事数据
-                loadUserStories();
+                // 如果用户已登录，重新加载故事数据
+                if (isLoggedIn) {
+                    console.log('[my_stories] 用户已登录，重新加载故事列表');
+                    loadUserStories();
+                }
             });
             
-            // 初始加载用户故事数据
-            await loadUserStories();
-        });
+            // AuthUI.getAuthState() 返回 { storage, userInfo, token } 或 null
+            // 检查用户是否已登录（有 authState 且 userInfo 存在）
+            if (authState && authState.userInfo) {
+                console.log('[my_stories] 用户已登录，开始加载故事列表');
+                console.log('[my_stories] 用户信息:', authState.userInfo);
+                await loadUserStories();
+            } else {
+                console.log('[my_stories] 用户未登录，显示未登录状态');
+                console.log('[my_stories] authState:', authState);
+                const loadingState = document.getElementById('loading-state');
+                const notLoggedInState = document.getElementById('not-logged-in');
+                if (loadingState) loadingState.classList.add('hidden');
+                if (notLoggedInState) notLoggedInState.classList.remove('hidden');
+            }
+        }
 
         // 更新认证UI显示
         function updateAuthUI(authState) {
@@ -506,9 +543,6 @@
                         story.wasPublished === true
                     );
                     break;
-                case 'archived':
-                    filteredStories = allStories.filter(story => story.status === 'archived');
-                    break;
                 case 'completed':
                     filteredStories = allStories.filter(story => story.isCompleted);
                     break;
@@ -583,6 +617,7 @@
             }
         }
         async function loadUserStories() {
+            console.log('[my_stories] loadUserStories 函数被调用');
             const loadingState = document.getElementById('loading-state');
             const emptyState = document.getElementById('empty-state');
             const notLoggedInState = document.getElementById('not-logged-in');
@@ -678,9 +713,12 @@
 
                 // 调用正确的API：获取用户的故事列表，添加时间戳防止缓存
                 const timestamp = Date.now();
-                console.log('发起请求到:', `${AuthUI.BACKEND_BASE_URL}/api/v1/users/${userId}/stories?t=${timestamp}`);
+                const apiUrl = `${AuthUI.BACKEND_BASE_URL}/api/v1/users/${userId}/stories?t=${timestamp}`;
+                console.log('[my_stories] 发起请求到:', apiUrl);
+                console.log('[my_stories] AuthUI.BACKEND_BASE_URL:', AuthUI.BACKEND_BASE_URL);
+                console.log('[my_stories] userId:', userId);
                 
-                const response = await fetch(`${AuthUI.BACKEND_BASE_URL}/api/v1/users/${userId}/stories?t=${timestamp}`, {
+                const response = await fetch(apiUrl, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${cleanToken}`,
@@ -702,8 +740,25 @@
                 }
 
                 const result = await response.json();
-                console.log('故事数据加载成功:', result);
-                allStories = result.data || []; // 存储到全局变量
+                console.log('API响应数据:', result);
+                console.log('响应格式检查:', {
+                    success: result.success,
+                    hasData: !!result.data,
+                    dataType: Array.isArray(result.data) ? 'array' : typeof result.data,
+                    dataLength: Array.isArray(result.data) ? result.data.length : 'N/A',
+                    keys: Object.keys(result)
+                });
+                
+                if (!result.success) {
+                    throw new Error(result.message || 'API返回失败状态');
+                }
+                
+                // 确保data是数组（后端返回格式：{ success: true, data: [...] }）
+                allStories = Array.isArray(result.data) ? result.data : [];
+                console.log('解析后的故事列表:', allStories.length, '个故事');
+                if (allStories.length > 0) {
+                    console.log('第一个故事示例:', JSON.stringify(allStories[0], null, 2));
+                }
                 
                 // 隐藏加载状态
                 loadingState.classList.add('hidden');
@@ -713,10 +768,19 @@
 
             } catch (error) {
                 console.error('加载故事失败:', error);
+                console.error('错误详情:', {
+                    message: error.message,
+                    stack: error.stack,
+                    userId: userId,
+                    url: `${AuthUI.BACKEND_BASE_URL}/api/v1/users/${userId}/stories`
+                });
+                
                 loadingState.classList.add('hidden');
                 
-                // 显示错误提示
-                showNotification('加载作品失败，请刷新页面重试', 'error');
+                // 显示更详细的错误提示
+                const errorMessage = error.message || '未知错误';
+                console.error('显示错误:', errorMessage);
+                showNotification(`加载作品失败: ${errorMessage}。请检查：1) 后端服务器是否运行 2) 是否已登录 3) 查看浏览器控制台`, 'error');
                 
                 // 显示空状态作为后备
                 emptyState.classList.remove('hidden');
@@ -729,7 +793,7 @@
             const title = story.title || '未命名故事';
             const description = story.description || '暂无描述';
             const category = story.category?.name || story.category || '未分类';
-            const updatedAt = new Date(story.updatedAt).toLocaleDateString('zh-CN');
+            const updatedAt = story.updatedAt ? new Date(story.updatedAt).toLocaleDateString('zh-CN') : '未知';
             const progress = story.progress || 0;
             const status = story.status || 'draft';
             
@@ -762,10 +826,6 @@
                                         `<span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
                                             <i class="fa fa-times-circle mr-1"></i>已拒绝
                                         </span>` :
-                                        status === 'archived' ?
-                                        `<span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                                            <i class="fa fa-archive mr-1"></i>已归档
-                                        </span>` :
                                         `<span class="px-2 py-1 bg-progress/10 text-progress text-xs rounded-full">草稿</span>`
                                     }
                                 </div>
@@ -792,11 +852,6 @@
                                         <i class="fa fa-clock-o mr-2"></i> 审核中
                                     </button>` :
                                     status === 'rejected' ?
-                                    `<button onclick="submitStory('${storyId}', '${title}')" 
-                                        class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center text-sm">
-                                        <i class="fa fa-paper-plane mr-2"></i> 重新提交
-                                    </button>` :
-                                    status === 'archived' ?
                                     `<button onclick="submitStory('${storyId}', '${title}')" 
                                         class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center text-sm">
                                         <i class="fa fa-paper-plane mr-2"></i> 重新提交

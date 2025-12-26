@@ -1,5 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const Story = require('../models/Story');
 const User = require('../models/User');
@@ -8,10 +7,15 @@ const { adminGuard, editorGuard } = require('../middleware/adminAuth');
 const authGuard = require('../middleware/auth');
 const { errorFormat } = require('../utils/errorFormat');
 const { cacheMiddleware, clearStoryCache, clearCategoryCache } = require('../middleware/cache');
+const { isValidIntegerId } = require('../utils/idValidator');
 
 const router = express.Router();
 
 // 所有管理员路由都需要先通过认证，再检查管理员权限
+router.use((req, res, next) => {
+  console.log(`[ADMIN路由] 请求路径: ${req.path}, 方法: ${req.method}`);
+  next();
+});
 router.use(authGuard);
 
 // ==================== 管理员统计信息 ====================
@@ -76,39 +80,48 @@ router.get('/stories', adminGuard, async (req, res, next) => {
       filter.status = status;
     }
 
-    if (req.query.search) {
-      filter.$text = { $search: req.query.search.trim() };
-    }
+    const searchTerm = req.query.search ? req.query.search.trim() : null;
 
     const [stories, total] = await Promise.all([
-      Story.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate('author', 'username email avatar role')
-        .populate('category', 'name'),
+      Story.find(filter, {
+        sort: { createdAt: -1 },
+        skip: skip,
+        limit: limit,
+        populate: ['author', 'category']
+      }),
       Story.countDocuments(filter)
     ]);
+    
+    // 手动处理搜索（如果提供了搜索词）
+    let filteredStories = stories;
+    if (searchTerm) {
+      filteredStories = stories.filter(story => 
+        story.title.includes(searchTerm) || 
+        story.description.includes(searchTerm)
+      );
+    }
+    
+    console.log(`管理员获取故事列表: 状态=${status}, 找到 ${filteredStories.length} 个故事 (总共 ${total} 个)`);
 
     res.status(200).json({
       success: true,
       message: '获取作品列表成功',
       data: {
-          stories: stories.map((story) => ({
-            _id: story._id,
+          stories: filteredStories.map((story) => ({
+            _id: story.id,
             id: story.id,
             title: story.title,
             description: story.description,
-            category: story.category,
-            author: story.author,
-            coverImage: story.coverImage,
-            view: story.view,
-            rating: story.rating,
-            favoriteCount: story.favoriteCount,
-            ratingCount: story.ratingCount,
+            category: story.category || null,
+            author: story.author || null,
+            coverImage: story.cover_image,
+            cover_image: story.cover_image,
+            view: story.view_count || 0,
+            view_count: story.view_count || 0,
+            rating: story.rating || 0,
             status: story.status,
-            isCompleted: story.isCompleted,
-            isPublic: story.isPublic,
+            isPublic: story.is_public,
+            is_public: story.is_public,
             tags: story.tags,
             createdAt: story.createdAt,
             updatedAt: story.updatedAt
@@ -141,12 +154,11 @@ router.put('/stories/:storyId/review', adminGuard, [
     const { action, reason } = req.body;
 
     // 验证storyId格式
-    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+    if (!isValidIntegerId(storyId)) {
       return next(errorFormat(400, '无效的ID格式', [], 10010));
     }
 
-    const story = await Story.findById(storyId)
-      .populate('author', 'username email');
+    const story = await Story.findById(storyId);
 
     if (!story) {
       return next(errorFormat(404, '作品不存在', [], 10010));
@@ -156,14 +168,15 @@ router.put('/stories/:storyId/review', adminGuard, [
       return next(errorFormat(400, '只能审核待审核状态的作品', [], 10014));
     }
 
-    // 更新作品状态
-    story.status = action === 'approve' ? 'published' : 'rejected';
-    story.isPublic = action === 'approve';
-    story.reviewedAt = new Date();
-    story.reviewedBy = req.user.id;
-    story.reviewComment = reason || '';
+    // 获取作者信息
+    const User = require('../models/User');
+    const author = await User.findById(story.author_id);
 
-    await story.save();
+    // 更新作品状态
+    const updatedStory = await Story.findByIdAndUpdate(storyId, {
+      status: action === 'approve' ? 'published' : 'rejected',
+      isPublic: action === 'approve'
+    });
 
     // 清除相关缓存
     clearStoryCache(storyId);
@@ -172,12 +185,11 @@ router.put('/stories/:storyId/review', adminGuard, [
       success: true,
       message: action === 'approve' ? '作品审核通过，已发布' : '作品已拒绝',
       data: {
-        id: story.id,
-        title: story.title,
-        status: story.status,
-        isPublic: story.isPublic,
-        reviewComment: story.reviewComment,
-        reviewedAt: story.reviewedAt
+        id: updatedStory.id,
+        title: updatedStory.title,
+        status: updatedStory.status,
+        isPublic: updatedStory.is_public,
+        author: author ? { username: author.username, email: author.email } : null
       }
     });
   } catch (error) {
@@ -197,8 +209,10 @@ router.delete('/stories/:storyId', adminGuard, async (req, res, next) => {
 
     await Story.findByIdAndDelete(storyId);
 
-    // 更新分类的故事数量
-    await Category.findByIdAndUpdate(story.category, { $inc: { storyCount: -1 } });
+      // 更新分类的故事数量
+      if (story.category_id) {
+        await Category.updateStoryCount(story.category_id, -1);
+      }
 
     // 清除相关缓存
     clearStoryCache(storyId);
@@ -217,12 +231,15 @@ router.patch('/stories/:storyId/unpublish', adminGuard, async (req, res, next) =
   try {
     const { storyId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+    if (!isValidIntegerId(storyId)) {
       return next(errorFormat(400, '无效的作品ID', [], 10010));
     }
 
-    const story = await Story.findById(storyId)
-      .populate('author', 'username email');
+    const story = await Story.findById(storyId);
+    
+    // 获取作者信息
+    const User = require('../models/User');
+    const author = story ? await User.findById(story.author_id) : null;
 
     if (!story) {
       return next(errorFormat(404, '作品不存在', [], 10010));
@@ -232,14 +249,11 @@ router.patch('/stories/:storyId/unpublish', adminGuard, async (req, res, next) =
       return next(errorFormat(400, '只有已发布的作品才能下架', [], 10018));
     }
 
-    // 更新作品状态为草稿，并自动取消标记完成
-    story.status = 'draft';
-    story.isPublic = false;
-    story.isCompleted = false; // 自动取消标记完成
-    story.unpublishedAt = new Date();
-    story.unpublishedBy = req.user.id;
-
-    await story.save();
+    // 更新作品状态为下架
+    const updatedStory = await Story.findByIdAndUpdate(storyId, {
+      status: 'unpublished',
+      isPublic: false
+    });
 
     // 清除相关缓存
     clearStoryCache(storyId);
@@ -266,9 +280,14 @@ router.patch('/stories/:storyId/unpublish', adminGuard, async (req, res, next) =
 // 获取所有分类（包含故事数量）
 router.get('/categories', adminGuard, async (req, res, next) => {
   try {
-    const categories = await Category.find()
-      .sort({ storyCount: -1, createdAt: -1 })
-      .lean();
+    const categories = await Category.find();
+    // 手动排序
+    categories.sort((a, b) => {
+      if ((b.storyCount || 0) !== (a.storyCount || 0)) {
+        return (b.storyCount || 0) - (a.storyCount || 0);
+      }
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
 
     res.status(200).json({
       success: true,
@@ -354,7 +373,7 @@ router.put('/categories/:id', adminGuard, [
 
     // 如果更新名称，检查是否与其他分类重复
     if (name && name !== category.name) {
-      const existingCategory = await Category.findOne({ name });
+      const existingCategory = await Category.findOne({ name: name });
       if (existingCategory) {
         return next(errorFormat(400, '分类名称已存在', [], 10016));
       }
@@ -395,7 +414,7 @@ router.delete('/categories/:id', adminGuard, async (req, res, next) => {
     }
 
     // 检查分类下是否有故事
-    const storyCount = await Story.countDocuments({ category: id });
+      const storyCount = await Story.countDocuments({ category: id, category_id: id, categoryId: id });
     if (storyCount > 0) {
       return next(errorFormat(400, `该分类下还有 ${storyCount} 个故事，无法删除`, [], 10017));
     }
@@ -437,12 +456,11 @@ router.get('/users', adminGuard, async (req, res, next) => {
     }
 
     const [users, total] = await Promise.all([
-      User.find(filter)
-        .select('-password -refreshToken')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
+      User.find({
+        ...filter,
+        limit: limit,
+        skip: skip
+      }),
       User.countDocuments(filter)
     ]);
 
@@ -450,17 +468,20 @@ router.get('/users', adminGuard, async (req, res, next) => {
       success: true,
       message: '获取用户列表成功',
       data: {
-        users: users.map((user) => ({
-          id: user._id,
-          username: user.username,
-          email: user.email,
-          avatar: user.avatar,
-          bio: user.bio,
-          role: user.role,
-          isActive: user.isActive,
-          lastLogin: user.lastLogin,
-          createdAt: user.createdAt
-        })),
+        users: users.map((user) => {
+          const userObj = user.toJSON ? user.toJSON() : user;
+          return {
+            id: userObj.id,
+            username: userObj.username,
+            email: userObj.email,
+            avatar: userObj.avatar,
+            bio: userObj.bio,
+            role: userObj.role,
+            isActive: userObj.is_active !== undefined ? userObj.is_active : userObj.isActive,
+            lastLogin: userObj.last_login || userObj.lastLogin,
+            createdAt: userObj.created_at || userObj.createdAt
+          };
+        }),
         pagination: {
           page,
           limit,
@@ -497,8 +518,7 @@ router.put('/users/:userId/role', adminGuard, [
       return next(errorFormat(404, '用户不存在', [], 10013));
     }
 
-    user.role = role;
-    await user.save();
+    const updatedUser = await User.findByIdAndUpdate(userId, { role });
 
     res.status(200).json({
       success: true,
@@ -537,8 +557,7 @@ router.put('/users/:userId/status', adminGuard, [
       return next(errorFormat(404, '用户不存在', [], 10013));
     }
 
-    user.isActive = isActive;
-    await user.save();
+    await User.findByIdAndUpdate(userId, { isActive });
 
     res.status(200).json({
       success: true,
@@ -565,7 +584,7 @@ router.delete('/users/:userId', adminGuard, async (req, res, next) => {
     }
 
     // 验证userId格式
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
+    if (!isValidIntegerId(userId)) {
       return next(errorFormat(400, '无效的用户ID', [], 10013));
     }
 
@@ -575,7 +594,7 @@ router.delete('/users/:userId', adminGuard, async (req, res, next) => {
     }
 
     // 检查用户是否有故事
-    const storyCount = await Story.countDocuments({ author: userId });
+    const storyCount = await Story.countDocuments({ author: userId, author_id: userId });
     if (storyCount > 0) {
       return next(errorFormat(400, `该用户还有 ${storyCount} 个故事，无法删除。请先删除用户的所有故事`, [], 10022));
     }
@@ -607,7 +626,7 @@ router.put('/stories/:storyId/completion', adminGuard, [
     const { storyId } = req.params;
     const { isCompleted } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+    if (!isValidIntegerId(storyId)) {
       return next(errorFormat(400, '无效的故事ID', [], 10010));
     }
 
@@ -617,9 +636,8 @@ router.put('/stories/:storyId/completion', adminGuard, [
       return next(errorFormat(404, '故事不存在', [], 10010));
     }
 
-    // 管理员可以修改任何故事的完成状态
-    story.isCompleted = isCompleted;
-    await story.save();
+    // 管理员可以修改任何故事的完成状态（MySQL版本中，isCompleted字段不在stories表中，如果需要可以添加）
+    await Story.findByIdAndUpdate(storyId, { status: 'published', isPublic: true });
 
     // 清除相关缓存
     clearStoryCache(storyId);

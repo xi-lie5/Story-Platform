@@ -1,5 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const Story = require('../models/Story');
 const Category = require('../models/Category');
@@ -7,6 +6,7 @@ const StoryNode = require('../models/StoryNode');
 const authGuard = require('../middleware/auth');
 const { errorFormat } = require('../utils/errorFormat');
 const { cacheMiddleware, clearStoryCache } = require('../middleware/cache');
+const { isValidIntegerId } = require('../utils/idValidator');
 
 const router = express.Router();
 
@@ -25,13 +25,19 @@ function buildSortOption(sort = 'latest') {
 }
 
 // 使用缓存中间件，缓存故事列表，TTL设为5分钟
+// 注意：这个端点返回所有已发布的故事（不需要认证）
 router.get('/', cacheMiddleware(300), async (req, res, next) => {
   try {
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 9, 1), 50);
     const skip = (page - 1) * limit;
 
-    const filter = {};
+    // 构建过滤条件：只返回已发布的公开故事
+    const filter = {
+      status: 'published',
+      isPublic: true
+    };
+
     if (req.query.category) {
       const category = await Category.findOne({ name: req.query.category });
       if (!category) {
@@ -53,6 +59,8 @@ router.get('/', cacheMiddleware(300), async (req, res, next) => {
         .populate('category', 'name'),
       Story.countDocuments(filter)
     ]);
+    
+    console.log(`获取故事列表: 找到 ${stories.length} 个已发布的故事 (总共 ${total} 个)`);
 
     res.status(200).json({
       success: true,
@@ -62,8 +70,8 @@ router.get('/', cacheMiddleware(300), async (req, res, next) => {
           id: story.id,
           title: story.title,
           description: story.description,
-          category: story.category,
-          author: story.author,
+          categoryId: story.category_id,
+          authorId: story.author_id,
           coverImage: story.coverImage,
           view: story.view,
           rating: story.rating,
@@ -124,8 +132,8 @@ router.get('/public', async (req, res, next) => {
           id: story.id,
           title: story.title,
           description: story.description,
-          category: story.category,
-          author: story.author,
+          categoryId: story.category_id,
+          authorId: story.author_id,
           coverImage: story.coverImage,
           view: story.view,
           rating: story.rating,
@@ -171,7 +179,7 @@ router.get('/:storyId', cacheMiddleware(180), async (req, res, next) => {
       });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+    if (!isValidIntegerId(storyId)) {
       return next(errorFormat(400, '无效的故事ID', [], 10010));
     }
 
@@ -181,8 +189,11 @@ router.get('/:storyId', cacheMiddleware(180), async (req, res, next) => {
       .populate('category', 'name');
 
     if (!story) {
+      console.log(`故事不存在: ${storyId}`);
       return next(errorFormat(404, '故事不存在', [], 10010));
     }
+    
+    console.log(`获取故事详情: ${story.title} (ID: ${story.id}, Status: ${story.status})`);
 
     // 获取故事所有节点
     const nodes = await StoryNode.find({ storyId })
@@ -202,8 +213,8 @@ router.get('/:storyId', cacheMiddleware(180), async (req, res, next) => {
       data: {
         id: story.id,
         title: story.title,
-        author: story.author,
-        category: story.category,
+        authorId: story.author_id,
+        categoryId: story.category_id,
         coverImage: story.coverImage,
         description: story.description,
         nodes: nodes.map((node) => ({
@@ -238,69 +249,82 @@ router.post('/', authGuard, [
   body('title').trim().notEmpty().withMessage('故事标题必填').isLength({ max: 100 }).withMessage('标题不能超过100个字符'),
   body('categoryId').notEmpty().withMessage('分类ID必填'),
   body('description').trim().notEmpty().withMessage('故事简介必填').isLength({ max: 500 }).withMessage('简介不能超过500个字符'),
-  body('coverImage').optional().isURL().withMessage('封面必须是有效的URL')
+  body('coverImage').optional({ nullable: true, checkFalsy: true }).custom((value) => {
+    if (value && value.trim() !== '') {
+      // 如果提供了coverImage，验证它是否是有效的URL或路径
+      const urlPattern = /^https?:\/\//;
+      const pathPattern = /^\/[^\s]*$/;
+      if (!urlPattern.test(value) && !pathPattern.test(value)) {
+        throw new Error('封面必须是有效的URL或路径');
+      }
+    }
+    return true;
+  })
 ], async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(errorFormat(400, '创建故事失败', errors.array().map((err) => ({ field: err.path, message: err.msg })), 10001));
   }
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { title, categoryId, description, coverImage } = req.body;
-    const category = await Category.findById(categoryId).session(session);
+    
+    console.log('创建故事请求:', { title, categoryId, author: req.user.id });
+    
+    // 检查分类是否存在
+    const category = await Category.findById(categoryId);
     if (!category) {
-      await session.abortTransaction();
       return next(errorFormat(404, '分类不存在', [], 10012));
     }
 
-    const story = await Story.create([{
+    // 创建故事（默认状态为 draft）
+    const story = await Story.create({
       title,
       category: categoryId,
       description,
       coverImage: coverImage || undefined,
-      author: req.user.id
-    }], { session });
-
-    await Category.updateOne({ _id: categoryId }, { $inc: { storyCount: 1 } }).session(session);
-
-    // 创建故事根节点
-    const rootNode = new StoryNode({
-      storyId: story[0].id,
-      parentId: null,
-      title: '故事开始',
-      content: '这是故事的开始...',
-      type: 'normal',
-      order: 0,
-      depth: 0,
-      path: '',
-      position: { x: 400, y: 50 }  // 默认位置居中偏上
+      author: req.user.id,
+      status: 'draft', // 明确设置为草稿状态
+      isPublic: false // 草稿默认不公开
     });
-    
-    await rootNode.save({ session });
 
-    await session.commitTransaction();
+    // story是数据库原始行对象，字段名是下划线格式
+    const storyId = story.id || story.story_id;
+    const storyStatus = story.status || 'draft';
+    
+    console.log('故事创建成功:', { 
+      id: storyId, 
+      title: story.title, 
+      status: storyStatus, 
+      author: story.author_id 
+    });
+
+    // 更新分类的故事数量
+    await Category.updateStoryCount(categoryId, 1);
+    
+    // 注意：不再自动创建根节点，节点和分支由前端通过批量保存API保存
     
     // 清除相关缓存
-    clearStoryCache(story[0].id);
+    clearStoryCache(storyId);
     
     res.status(201).json({
       success: true,
       message: '创建故事成功',
       data: {
-        id: story[0].id,
-        title: story[0].title,
-        rootNodeId: rootNode._id,
+        id: storyId,
+        title: story.title,
+        status: storyStatus,
         isTemporary: false
       }
     });
   } catch (error) {
-    await session.abortTransaction();
+    console.error('创建故事失败:', error);
+    console.error('错误堆栈:', error.stack);
+    // 如果创建过程中出错，尝试清理已创建的数据
+    if (error.name === 'ValidationError' || error.code === 11000) {
+      return next(errorFormat(400, error.message || '创建故事失败', [], 10001));
+    }
     next(error);
-  } finally {
-    session.endSession();
   }
 });
 
@@ -315,20 +339,15 @@ router.put('/:storyId', authGuard, [
     return next(errorFormat(400, '更新故事失败', errors.array().map((err) => ({ field: err.path, message: err.msg })), 10001));
   }
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { storyId } = req.params;
-    const story = await Story.findById(storyId).session(session);
+    const story = await Story.findById(parseInt(storyId));
 
     if (!story) {
-      await session.abortTransaction();
       return next(errorFormat(404, '故事不存在', [], 10010));
     }
 
-    if (story.author.toString() !== req.user.id) {
-      await session.abortTransaction();
+    if (story.author_id.toString() !== req.user.id.toString()) {
       return next(errorFormat(403, '没有权限修改此故事', [], 10011));
     }
 
@@ -338,66 +357,58 @@ router.put('/:storyId', authGuard, [
     if (req.body.description) updateData.description = req.body.description;
     if (req.body.coverImage) updateData.coverImage = req.body.coverImage;
 
-    if (req.body.categoryId && req.body.categoryId !== story.category.toString()) {
-      const newCategory = await Category.findById(req.body.categoryId).session(session);
+    if (req.body.categoryId && req.body.categoryId !== story.category_id?.toString()) {
+      const newCategory = await Category.findById(req.body.categoryId);
       if (!newCategory) {
-        await session.abortTransaction();
         return next(errorFormat(404, '分类不存在', [], 10012));
       }
 
-      await Category.updateOne({ _id: story.category }, { $inc: { storyCount: -1 } }).session(session);
-      await Category.updateOne({ _id: newCategory.id }, { $inc: { storyCount: 1 } }).session(session);
-      updateData.category = newCategory.id;
+      // 更新分类的故事数量
+      if (story.category_id) {
+        await Category.updateStoryCount(story.category_id, -1);
+      }
+      await Category.updateStoryCount(newCategory.id, 1);
+      updateData.categoryId = newCategory.id;
     }
 
-    await Story.updateOne({ _id: storyId }, updateData).session(session);
-
-    await session.commitTransaction();
+    await Story.findByIdAndUpdate(parseInt(storyId), updateData);
       
-      // 清除相关缓存
-      clearStoryCache(storyId);
+    // 清除相关缓存
+    clearStoryCache(storyId);
       
-      res.status(200).json({ success: true, message: '故事更新成功' });
+    res.status(200).json({ success: true, message: '故事更新成功' });
   } catch (error) {
-    await session.abortTransaction();
     next(error);
-  } finally {
-    session.endSession();
   }
 });
 
 router.delete('/:storyId', authGuard, async (req, res, next) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { storyId } = req.params;
-    const story = await Story.findById(storyId).session(session);
+    const story = await Story.findById(parseInt(storyId));
 
     if (!story) {
-      await session.abortTransaction();
       return next(errorFormat(404, '故事不存在', [], 10010));
     }
 
-    if (story.author.toString() !== req.user.id) {
-      await session.abortTransaction();
+    if (story.author_id.toString() !== req.user.id.toString()) {
       return next(errorFormat(403, '没有权限删除此故事', [], 10011));
     }
 
-    await Story.deleteOne({ _id: storyId }).session(session);
-    await Category.updateOne({ _id: story.category }, { $inc: { storyCount: -1 } }).session(session);
-
-    await session.commitTransaction();
+    // 删除故事（会触发级联删除节点、分支、角色）
+    await Story.findByIdAndDelete(parseInt(storyId));
+    
+    // 更新分类的故事数量
+    if (story.category_id) {
+      await Category.updateStoryCount(story.category_id, -1);
+    }
     
     // 清除相关缓存
     clearStoryCache(storyId);
     
     res.status(200).json({ success: true, message: '故事及关联章节已删除' });
   } catch (error) {
-    await session.abortTransaction();
     next(error);
-  } finally {
-    session.endSession();
   }
 });
 
@@ -410,7 +421,7 @@ router.patch('/:storyId/submit', authGuard, async (req, res, next) => {
   try {
     const { storyId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+    if (!isValidIntegerId(storyId)) {
       return next(errorFormat(400, '无效的故事ID', [], 10010));
     }
 
@@ -420,7 +431,7 @@ router.patch('/:storyId/submit', authGuard, async (req, res, next) => {
       return next(errorFormat(404, '故事不存在', [], 10010));
     }
 
-    if (story.author.toString() !== req.user.id) {
+    if (story.author_id.toString() !== req.user.id.toString()) {
       return next(errorFormat(403, '没有权限提交此故事', [], 10011));
     }
 
@@ -457,7 +468,7 @@ router.patch('/:storyId/complete', authGuard, async (req, res, next) => {
     const { storyId } = req.params;
     const { isCompleted } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+    if (!isValidIntegerId(storyId)) {
       return next(errorFormat(400, '无效的故事ID', [], 10010));
     }
 
@@ -471,7 +482,7 @@ router.patch('/:storyId/complete', authGuard, async (req, res, next) => {
       return next(errorFormat(404, '故事不存在', [], 10010));
     }
 
-    if (story.author.toString() !== req.user.id) {
+    if (story.author_id.toString() !== req.user.id.toString()) {
       return next(errorFormat(403, '没有权限修改此故事', [], 10011));
     }
 
@@ -506,7 +517,7 @@ router.patch('/:storyId/unpublish', authGuard, async (req, res, next) => {
   try {
     const { storyId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+    if (!isValidIntegerId(storyId)) {
       return next(errorFormat(400, '无效的故事ID', [], 10010));
     }
 
@@ -516,7 +527,7 @@ router.patch('/:storyId/unpublish', authGuard, async (req, res, next) => {
       return next(errorFormat(404, '故事不存在', [], 10010));
     }
 
-    if (story.author.toString() !== req.user.id) {
+    if (story.author_id.toString() !== req.user.id.toString()) {
       return next(errorFormat(403, '没有权限取消发布此故事', [], 10011));
     }
 

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+// 移除mongoose依赖，使用MySQL后不再需要
 
 module.exports = (err, req, res, next) => {
     console.log('!!!!!!!!!! ERROR HANDLER CALLED !!!!!!!!!!');
@@ -42,10 +42,11 @@ module.exports = (err, req, res, next) => {
         code = 10001;
     }
 
-    // 2. MongoDB 重复键错误
-    if (err.code === 11000 && err.name === 'MongoError') {
+    // 2. MySQL 重复键错误
+    if (err.code === 'ER_DUP_ENTRY') {
         statusCode = 400;
-        const duplicateField = Object.keys(err.keyValue)[0];
+        const match = err.message.match(/Duplicate entry .+ for key '(.+)'/);
+        const duplicateField = match ? match[1] : 'unknown';
         message = `数据冲突：${duplicateField} 字段的值已存在`;
         errors = [{ field: duplicateField, message: `${duplicateField} 字段的值已存在` }];
         code = 10003;
@@ -64,12 +65,24 @@ module.exports = (err, req, res, next) => {
         code = 10007;
     }
 
-    // 4. 数据库错误
-    if (err.name === 'MongoError' || err.name === 'MongoNetworkError') {
+    // 4. MySQL 数据库错误
+    if (err.code && err.code.startsWith('ER_')) {
+        statusCode = 500;
+        message = '数据库操作错误';
+        code = 10004;
+        // 生产环境不暴露具体数据库错误
+        if (process.env.NODE_ENV === 'production') {
+            errors = [];
+        } else {
+            errors = [{ message: err.message }];
+        }
+    }
+    
+    // MySQL连接错误
+    if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT' || err.fatal) {
         statusCode = 500;
         message = '数据库连接错误';
         code = 10004;
-        // 生产环境不暴露具体数据库错误
         if (process.env.NODE_ENV === 'production') {
             errors = [];
         }
@@ -82,10 +95,10 @@ module.exports = (err, req, res, next) => {
         code = 10008;
     }
 
-    // 6. 无效的MongoDB ID
-    if (err.name === 'CastError' && err.kind === 'ObjectId') {
+    // 6. 无效的ID格式
+    if (err.name === 'CastError' || (err.message && err.message.includes('无效的ID'))) {
         statusCode = 400;
-        message = `无效的ID格式：${err.value}`;
+        message = err.message || '无效的ID格式';
         code = 10002;
     }
 

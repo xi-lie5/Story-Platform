@@ -5,6 +5,8 @@ const { errorFormat } = require('../utils/errorFormat');
 module.exports = async function authGuard(req, res, next) {
   console.log('=== AuthGuard middleware hit ==='); // 调试日志
   console.log('Path:', req.path);
+  console.log('Original URL:', req.originalUrl);
+  console.log('Base URL:', req.baseUrl);
   console.log('Method:', req.method);
   console.log('Auth header:', req.headers.authorization ? 'Present' : 'Missing');
   
@@ -47,8 +49,8 @@ module.exports = async function authGuard(req, res, next) {
     //   return next(errorFormat(401, '令牌已被吊销', [], 10007));
     // }
 
-    // 获取用户并检查状态
-    const user = await User.findById(decoded.id).select('-password -__v');
+    // 获取用户并检查状态（不包含密码）
+    const user = await User.findById(decoded.id);
 
     if (!user) {
       console.warn('令牌关联的用户不存在:', { ...clientInfo, userId: decoded.id });

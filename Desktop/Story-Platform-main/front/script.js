@@ -168,12 +168,6 @@ function getElements() {
         previewToggle: document.getElementById('previewToggle'),
         previewContent: document.getElementById('previewContent'),
         
-        // 故事统计
-        nodesCount: document.getElementById('nodesCount'),
-        branchesCount: document.getElementById('branchesCount'),
-        charactersCount: document.getElementById('charactersCount'),
-        totalWords: document.getElementById('totalWords'),
-        
         // 工具栏
         exportBtn: document.getElementById('exportBtn'),
         saveBtn: document.getElementById('saveBtn'),
@@ -197,13 +191,12 @@ function bindEvents() {
         elements.storyDescription.addEventListener('input', validateStoryDescription);
     }
     
-    // 故事信息表单提交事件
-    if (elements.storyInfoForm) {
-        elements.storyInfoForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            validateStoryInfoForm();
-        });
-    }
+    // 故事信息表单提交事件（已禁用，使用实时验证）
+    // if (elements.storyInfoForm) {
+    //     elements.storyInfoForm.addEventListener('submit', (e) => {
+    //         e.preventDefault();
+    //     });
+    // }
     
     if (elements.coverImage) {
         elements.coverImage.addEventListener('change', handleCoverImageUpload);
@@ -269,48 +262,6 @@ function bindEvents() {
     // 保存按钮事件
     if (elements.saveBtn) {
         elements.saveBtn.addEventListener('click', saveStory);
-    }
-}
-
-// 更新故事信息表单
-function updateStoryInfoForm() {
-    if (elements.storyTitle) {
-        elements.storyTitle.value = storyData.title;
-    }
-    
-    if (elements.storyDescription) {
-        elements.storyDescription.value = storyData.description;
-    }
-    
-    // 更新封面预览
-    if (elements.coverPreview && storyData.coverImage) {
-        elements.coverPreview.innerHTML = `<img src="${storyData.coverImage}" alt="封面预览">`;
-    }
-}
-
-// 更新故事统计信息
-function updateStoryStats() {
-    // 计算总分支数
-    const totalBranches = storyData.nodes.reduce((count, node) => count + node.branches.length, 0);
-    
-    // 计算总字数
-    const totalWords = storyData.nodes.reduce((count, node) => count + node.content.trim().split(/\s+/).length, 0);
-    
-    // 更新统计显示
-    if (elements.nodesCount) {
-        elements.nodesCount.textContent = storyData.nodes.length;
-    }
-    
-    if (elements.branchesCount) {
-        elements.branchesCount.textContent = totalBranches;
-    }
-    
-    if (elements.charactersCount) {
-        elements.charactersCount.textContent = storyData.characters.length;
-    }
-    
-    if (elements.totalWords) {
-        elements.totalWords.textContent = totalWords;
     }
 }
 
@@ -390,14 +341,6 @@ function validateStoryDescription() {
     return true;
 }
 
-// 验证整个故事信息表单
-function validateStoryInfoForm() {
-    // const isTitleValid = validateStoryTitle();
-    // const isDescriptionValid = validateStoryDescription();
-    
-    // return isTitleValid && isDescriptionValid;
-}
-
 // 更新故事数据
 function updateStoryData() {
     if (elements.storyTitle && elements.storyDescription) {
@@ -420,30 +363,6 @@ function handleCoverImageUpload(e) {
         };
         reader.readAsDataURL(file);
     }
-}
-
-// 删除节点的所有后续分支和节点
-function deleteNodeBranches(node) {
-    // 递归删除所有后续节点
-    function deleteDescendants(targetNodeId) {
-        const targetNode = storyData.nodes.find(n => n.id === targetNodeId);
-        if (targetNode) {
-            // 递归删除所有子节点
-            targetNode.branches.forEach(branch => {
-                deleteDescendants(branch.targetId);
-            });
-            // 从节点列表中删除
-            storyData.nodes = storyData.nodes.filter(n => n.id !== targetNodeId);
-        }
-    }
-    
-    // 删除所有分支引用
-    node.branches.forEach(branch => {
-        deleteDescendants(branch.targetId);
-    });
-    
-    // 清空分支
-    node.branches = [];
 }
 
 // 渲染节点画布
@@ -1232,17 +1151,6 @@ function openCharacterModal() {
     // 清空表单
     document.getElementById('characterName').value = '';
     document.getElementById('characterDescription').value = '';
-    
-    // 重置属性列表
-    elements.characterAttributes.innerHTML = `
-        <div class="attribute-item">
-            <input type="text" placeholder="属性名称" class="form-control attribute-name">
-            <input type="number" placeholder="值" class="form-control attribute-value">
-            <button class="btn btn-remove" onclick="removeAttributeField(this)">
-                <i class="fas fa-trash"></i>
-            </button>
-        </div>
-    `;
 }
 
 // 关闭角色创建/编辑模态框
@@ -1428,7 +1336,6 @@ function deleteCharacter(characterId) {
         storyData.characters = storyData.characters.filter(char => char.id !== characterId);
         renderCharactersList();
         updatePreview();
-        scheduleAutoSave();
     }
 }
 
@@ -1494,10 +1401,26 @@ async function saveStory() {
     
     try {
         // 获取分类ID（使用第一个可用分类作为默认分类）
-        const categoryId = await getDefaultCategoryId();
+        let categoryId;
+        try {
+            categoryId = await getDefaultCategoryId();
+        } catch (error) {
+            // 处理获取分类时的错误
+            const errorMessage = error.message || '获取分类失败';
+            showSaveStatus('保存失败：' + errorMessage, 'error');
+            console.error('获取分类ID失败:', error);
+            return;
+        }
+        
         if (!categoryId) {
-            showSaveStatus('保存失败：无法获取分类信息。请确保：1) 后端服务器正在运行 2) 数据库中至少有一个分类（可通过管理员界面创建）', 'error');
-            console.error('无法获取分类ID，无法保存故事');
+            showSaveStatus('保存失败：数据库中没有任何分类。请先通过管理员界面创建一个分类，然后再保存故事。', 'error');
+            console.error('无法获取分类ID：分类列表为空');
+            
+            // 提供帮助提示
+            setTimeout(() => {
+                const helpMsg = '提示：如果这是首次使用，请联系管理员创建分类，或者访问管理员界面 (http://localhost:8000/admin-easy.html) 创建分类。';
+                alert(helpMsg);
+            }, 1000);
             return;
         }
         
@@ -1516,8 +1439,17 @@ async function saveStory() {
             },
             body: JSON.stringify(saveData)
         });
+        
+        // 检查响应内容类型
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('非JSON响应:', text);
+            throw new Error(`服务器返回了非JSON响应 (${response.status}): ${text.substring(0, 100)}`);
+        }
+        
         if (!response.ok) {
-            const err = await response.json();
+            const err = await response.json().catch(() => ({ message: '保存失败' }));
             // 提取详细错误信息
             const errorMsg = err.message || '保存失败';
             const fieldErrors = err.errors ? err.errors.map(e => e.message).join(', ') : '';
@@ -1525,11 +1457,21 @@ async function saveStory() {
         }
         
         const data = await response.json();
-        showSaveStatus('保存成功', 'success');
+        
         // 更新本地故事ID
         if (data.data && data.data.id) {
             storyData.id = data.data.id;
+            
+            // 创建故事成功后，保存节点和分支
+            try {
+                await saveNodesAndBranches(data.data.id);
+            } catch (error) {
+                console.error('保存节点和分支失败:', error);
+                // 不阻止主流程，只记录错误
+            }
         }
+        
+        showSaveStatus('保存成功', 'success');
     } catch (error) {
         console.error('保存失败:', error);
         showSaveStatus('保存失败：' + error.message, 'error');
@@ -1557,7 +1499,13 @@ async function getDefaultCategoryId() {
         if (!response.ok) {
             const errorText = await response.text();
             console.error('分类API请求失败:', response.status, errorText);
-            throw new Error(`获取分类失败: ${response.status} ${response.statusText}`);
+            
+            // 提供更详细的错误信息
+            if (response.status === 0 || response.status === 500 || response.status === 503) {
+                throw new Error(`无法连接到后端服务器。请确保：1) 后端服务器正在运行 (http://localhost:5000) 2) 检查浏览器控制台的网络错误`);
+            }
+            
+            throw new Error(`获取分类失败: HTTP ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();
@@ -1566,68 +1514,33 @@ async function getDefaultCategoryId() {
         if (data.success && data.data && Array.isArray(data.data)) {
             if (data.data.length > 0) {
                 // 返回第一个分类的ID
-                const categoryId = data.data[0]._id;
+                const categoryId = data.data[0]._id || data.data[0].id;
                 console.log('找到分类ID:', categoryId);
                 return categoryId;
             } else {
-                console.warn('分类列表为空，尝试创建默认分类');
-                // 如果分类列表为空，尝试创建一个默认分类
-                return await createDefaultCategory();
+                console.warn('分类列表为空，数据库中没有任何分类');
+                // 分类列表为空，返回null，让调用者处理
+                return null;
             }
         } else {
             console.error('分类API响应格式错误:', data);
-            throw new Error('分类API响应格式错误');
+            throw new Error('分类API响应格式错误: 期望 { success: true, data: [] }');
         }
     } catch (error) {
         console.error('获取分类失败:', error);
-        // 如果获取失败，尝试创建默认分类
-        try {
-            return await createDefaultCategory();
-        } catch (createError) {
-            console.error('创建默认分类也失败:', createError);
-            return null;
+        
+        // 如果是网络错误，提供更友好的提示
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+            throw new Error('无法连接到后端服务器。请检查：\n1. 后端服务器是否在运行 (http://localhost:5000)\n2. 网络连接是否正常\n3. 查看浏览器控制台的网络错误详情');
         }
+        
+        // 重新抛出错误，让调用者处理
+        throw error;
     }
 }
 
-// 创建默认分类（如果分类列表为空）
-async function createDefaultCategory() {
-    try {
-        console.log('尝试创建默认分类...');
-        const createCategoryUrl = 'http://localhost:5000/api/v1/categories';
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        
-        // 注意：创建分类需要管理员权限，这里只是尝试
-        // 如果失败，会返回null，让用户知道需要先创建分类
-        const response = await fetch(createCategoryUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-            },
-            body: JSON.stringify({
-                name: '默认分类',
-                description: '系统默认分类'
-            })
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data && data.data._id) {
-                console.log('默认分类创建成功:', data.data._id);
-                return data.data._id;
-            }
-        } else {
-            const errorData = await response.json().catch(() => ({}));
-            console.warn('创建默认分类失败:', response.status, errorData);
-        }
-        
-        return null;
-    } catch (error) {
-        console.error('创建默认分类异常:', error);
-        return null;
-    }
-}
+// 注意：此函数已不再使用，因为创建分类需要管理员权限
+// 如果数据库中没有分类，用户需要先通过管理员界面创建分类
 
 // 准备保存到后端的数据格式
 function prepareSaveData(storyData, categoryId) {
@@ -1643,6 +1556,59 @@ function prepareSaveData(storyData, categoryId) {
     // 这些数据应该在创建故事后通过其他API单独保存
     
     return saveData;
+}
+
+// 保存节点和分支到数据库
+async function saveNodesAndBranches(storyId) {
+    try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) {
+            console.error('未找到认证令牌');
+            return;
+        }
+        
+        // 准备节点数据（包含分支信息）
+        const nodesData = storyData.nodes.map(node => ({
+            id: node.id, // 前端临时ID，后端会生成新ID
+            title: node.title,
+            content: node.content,
+            type: node.type || 'regular',
+            x: node.x || 0,
+            y: node.y || 0,
+            isRoot: node.isRoot || false,
+            branches: node.branches || [] // 包含 { text, targetId }
+        }));
+        
+        console.log('准备保存节点和分支:', {
+            storyId,
+            nodeCount: nodesData.length,
+            nodes: nodesData
+        });
+        
+        // 调用批量保存节点API（会自动处理分支）
+        const apiUrl = window.API_CONFIG ? window.API_CONFIG.NODES.batchSave(storyId) : `http://localhost:5000/api/v1/storyNodes/stories/${storyId}/nodes/batch`;
+        
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ nodes: nodesData })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || '保存节点和分支失败');
+        }
+        
+        const result = await response.json();
+        console.log('节点和分支保存成功:', result);
+        
+    } catch (error) {
+        console.error('保存节点和分支失败:', error);
+        // 不抛出错误，避免影响主流程，只在控制台输出
+    }
 }
 
 // 验证故事数据

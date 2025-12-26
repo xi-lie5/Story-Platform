@@ -1,5 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -8,6 +7,8 @@ const path = require('path');
 const fs = require('fs');
 
 const errorHandler = require('./middleware/errorHandler');
+const { testConnection, initTables } = require('./config/database');
+const Category = require('./models/Category');
 
 // server.js从server根目录加载.env
 dotenv.config({ path: path.join(__dirname, '.env') });
@@ -71,7 +72,9 @@ app.get(BASE_URL, (req, res) => {
       `${BASE_URL}/categories`,
       `${BASE_URL}/users`,
       `${BASE_URL}/interactions`,
-      `${BASE_URL}/admin`
+      `${BASE_URL}/admin`,
+      `${BASE_URL}/branches`,
+      `${BASE_URL}/characters`
     ]
   });
 });
@@ -131,7 +134,19 @@ try {
   console.error('❌ admin路由注册失败:', e.message);
 }
 
+try {
+  app.use(`${BASE_URL}/branches`, require('./routes/branches')); // 分支路由
+  console.log('✅ branches路由注册成功');
+} catch(e) {
+  console.error('❌ branches路由注册失败:', e.message);
+}
 
+try {
+  app.use(`${BASE_URL}/characters`, require('./routes/characters')); // 角色路由
+  console.log('✅ characters路由注册成功');
+} catch(e) {
+  console.error('❌ characters路由注册失败:', e.message);
+}
 
 console.log('所有路由注册完成');
 
@@ -144,15 +159,53 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
+// 初始化默认分类（如果数据库中没有任何分类）
+async function initializeDefaultCategories() {
+  try {
+    const categoryCount = await Category.countDocuments();
+    
+    if (categoryCount === 0) {
+      console.log('📦 检测到数据库中没有分类，正在创建默认分类...');
+      
+      const defaultCategories = [
+        { name: '默认分类', description: '系统默认分类' },
+        { name: '奇幻冒险', description: '奇幻冒险类故事' },
+        { name: '科幻未来', description: '科幻未来类故事' },
+        { name: '悬疑推理', description: '悬疑推理类故事' },
+        { name: '爱情故事', description: '爱情类故事' },
+        { name: '恐怖惊悚', description: '恐怖惊悚类故事' },
+        { name: '其他类型', description: '其他类型的故事' }
+      ];
+      
+      const createdCategories = await Category.insertMany(defaultCategories);
+      console.log(`✅ 成功创建 ${createdCategories.length} 个默认分类`);
+      
+      return createdCategories;
+    } else {
+      console.log(`✅ 数据库中已有 ${categoryCount} 个分类`);
+      return [];
+    }
+  } catch (error) {
+    // 如果创建失败（例如分类已存在），不影响服务器启动
+    console.warn('⚠️ 初始化默认分类时出现问题:', error.message);
+    return [];
+  }
+}
+
 async function startServer() {
   try {
-    if (!process.env.MONGODB_URI) {
-      throw new Error('Missing required environment variable: MONGODB_URI');
+    // 测试MySQL连接
+    const connected = await testConnection();
+    if (!connected) {
+      throw new Error('MySQL数据库连接失败');
     }
 
-    await mongoose.connect(process.env.MONGODB_URI, {
-      autoIndex: process.env.NODE_ENV !== 'production'
-    });
+    // 初始化数据库表结构
+    await initTables();
+    console.log('✅ 数据库表初始化完成');
+
+    // 初始化默认分类
+    await initializeDefaultCategories();
 
     app.listen(PORT, () => {
       console.log(`🚀 服务运行在 http://localhost:${PORT}${BASE_URL}`);

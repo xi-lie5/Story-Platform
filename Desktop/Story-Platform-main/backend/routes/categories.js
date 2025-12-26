@@ -1,11 +1,11 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const Category = require('../models/Category');
 const Story = require('../models/Story');
 const { body, validationResult } = require('express-validator');
 const authGuard = require('../middleware/auth');
 const { adminGuard } = require('../middleware/adminAuth');
 const { errorFormat } = require('../utils/errorFormat');
+const { isValidIntegerId } = require('../utils/idValidator');
 
 const router = express.Router();
 
@@ -18,16 +18,15 @@ router.get('/', async (req, res, next) => {
   try {
     const { sort = 'storyCount' } = req.query;
     
-    // 构建排序对象
-    const sortObject = {};
-    if (sort === 'storyCount') {
-      sortObject.storyCount = -1; // 按故事数量降序
-    } else if (sort === 'createdAt') {
-      sortObject.createdAt = -1; // 按创建时间降序
-    }
-    
     // 查询分类列表
-    const categories = await Category.find().sort(sortObject);
+    const categories = await Category.find();
+    
+    // 手动排序
+    if (sort === 'storyCount') {
+      categories.sort((a, b) => (b.storyCount || 0) - (a.storyCount || 0));
+    } else if (sort === 'createdAt') {
+      categories.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
     
     const responseData = {
       success: true,
@@ -50,7 +49,7 @@ router.get('/:id', async (req, res, next) => {
     const { id } = req.params;
     
     // 验证分类ID格式
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!isValidIntegerId(id)) {
       return next(errorFormat(400, '无效的分类ID', [], 10030));
     }
     
@@ -137,7 +136,7 @@ router.put('/:id',
       const { id } = req.params;
       
       // 验证分类ID格式
-      if (!mongoose.Types.ObjectId.isValid(id)) {
+      if (!isValidIntegerId(id)) {
         return next(errorFormat(400, '无效的分类ID', [], 10030));
       }
       
@@ -156,8 +155,7 @@ router.put('/:id',
       // 更新分类
       const updatedCategory = await Category.findByIdAndUpdate(
         id,
-        req.body,
-        { new: true, runValidators: true }
+        req.body
       );
       
       res.status(200).json({
@@ -184,7 +182,7 @@ router.delete('/:id',
       const { id } = req.params;
       
       // 验证分类ID格式
-      if (!mongoose.Types.ObjectId.isValid(id)) {
+      if (!isValidIntegerId(id)) {
         return next(errorFormat(400, '无效的分类ID', [], 10030));
       }
       
@@ -195,7 +193,7 @@ router.delete('/:id',
       }
       
       // 检查是否有故事使用此分类
-      const storiesCount = await Story.countDocuments({ category: id });
+      const storiesCount = await Story.countDocuments({ category: id, category_id: id, categoryId: id });
       if (storiesCount > 0) {
         return next(errorFormat(400, `无法删除分类，该分类下还有${storiesCount}个故事`, [], 10033));
       }

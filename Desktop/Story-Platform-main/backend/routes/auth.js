@@ -65,7 +65,7 @@ router.post('/register', [
 
     const { accessToken, refreshToken } = await generateTokens(user.id, user.tokenVersion || 0);
     user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
+    await user.save();
 
     res.status(201).json({
       success: true,
@@ -96,7 +96,7 @@ router.post('/login', [
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email }).select('+password +refreshToken');
+    const user = await User.findOne({ email }, { includePassword: true });
     
     if (!user) {
       return next(errorFormat(401, '邮箱或密码错误', [{ message: '邮箱或密码错误' }], 10006));
@@ -115,7 +115,7 @@ router.post('/login', [
 
     const { accessToken, refreshToken } = await generateTokens(user.id, user.tokenVersion || 0);
     user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
+    await user.save();
 
     res.status(200).json({
       success: true,
@@ -156,7 +156,7 @@ router.post('/refresh', [
 
     const { accessToken, refreshToken } = await generateTokens(user.id, user.tokenVersion || 0);
     user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
+    await user.save();
 
     res.status(200).json({
       success: true,

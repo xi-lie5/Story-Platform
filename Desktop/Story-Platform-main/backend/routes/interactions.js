@@ -1,11 +1,11 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const { body, validationResult, param } = require('express-validator');
 const authGuard = require('../middleware/auth');
 const Story = require('../models/Story');
 const UserStoryFavorite = require('../models/UserStoryFavorite');
 const UserStoryRating = require('../models/UserStoryRating');
 const { errorFormat } = require('../utils/errorFormat');
+const { isValidIntegerId } = require('../utils/idValidator');
 
 const router = express.Router();
 
@@ -16,7 +16,7 @@ const router = express.Router();
  */
 router.post('/stories/:storyId/favorite', authGuard, [
   param('storyId').custom(value => {
-    if (!mongoose.Types.ObjectId.isValid(value) && !value.startsWith('local_')) {
+    if (!isValidIntegerId(value) && !value.startsWith('local_')) {
       throw new Error('无效的故事ID');
     }
     return true;
@@ -54,8 +54,8 @@ router.post('/stories/:storyId/favorite', authGuard, [
       // 取消收藏
       await UserStoryFavorite.findByIdAndDelete(existingFavorite.id);
       
-      // 减少故事的收藏计数
-      await Story.findByIdAndUpdate(storyId, { $inc: { favoriteCount: -1 } });
+      // 减少故事的收藏计数（如果需要，可以在Story模型中添加favoriteCount字段）
+      // await Story.findByIdAndUpdate(storyId, { favoriteCount: (story.favoriteCount || 0) - 1 });
       
       return res.status(200).json({
         success: true,
@@ -67,8 +67,8 @@ router.post('/stories/:storyId/favorite', authGuard, [
       // 添加收藏
       await UserStoryFavorite.create({ userId, storyId });
       
-      // 增加故事的收藏计数
-      await Story.findByIdAndUpdate(storyId, { $inc: { favoriteCount: 1 } });
+      // 增加故事的收藏计数（如果需要，可以在Story模型中添加favoriteCount字段）
+      // await Story.findByIdAndUpdate(storyId, { favoriteCount: (story.favoriteCount || 0) + 1 });
       
       return res.status(200).json({
         success: true,
@@ -92,7 +92,7 @@ router.post('/stories/:storyId/favorite', authGuard, [
  */
 router.get('/stories/:storyId/favorite/status', authGuard, [
   param('storyId').custom(value => {
-    if (!mongoose.Types.ObjectId.isValid(value) && !value.startsWith('local_')) {
+    if (!isValidIntegerId(value) && !value.startsWith('local_')) {
       throw new Error('无效的故事ID');
     }
     return true;
@@ -193,7 +193,7 @@ router.get('/user/favorites', authGuard, async (req, res, next) => {
  */
 router.post('/stories/:storyId/rate', authGuard, [
   param('storyId').custom(value => {
-    if (!mongoose.Types.ObjectId.isValid(value) && !value.startsWith('local_')) {
+    if (!isValidIntegerId(value) && !value.startsWith('local_')) {
       throw new Error('无效的故事ID');
     }
     return true;
@@ -270,7 +270,7 @@ router.post('/stories/:storyId/rate', authGuard, [
  */
 router.get('/stories/:storyId/rating', [
   param('storyId').custom(value => {
-    if (!mongoose.Types.ObjectId.isValid(value) && !value.startsWith('local_')) {
+    if (!isValidIntegerId(value) && !value.startsWith('local_')) {
       throw new Error('无效的故事ID');
     }
     return true;
@@ -362,7 +362,7 @@ router.get('/stories/:storyId/rating', [
  */
 router.delete('/stories/:storyId/rate', authGuard, [
   param('storyId').custom(value => {
-    if (!mongoose.Types.ObjectId.isValid(value) && !value.startsWith('local_')) {
+    if (!isValidIntegerId(value) && !value.startsWith('local_')) {
       throw new Error('无效的故事ID');
     }
     return true;
