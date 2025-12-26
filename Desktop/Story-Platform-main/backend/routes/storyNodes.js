@@ -339,15 +339,34 @@ router.post('/stories/:storyId/nodes/batch', authGuard, storyAuth, async (req, r
     const { storyId } = req.params;
     const { nodes } = req.body;
     
-    if (!nodes || !Array.isArray(nodes)) {
+    // 验证storyId格式
+    if (!isValidIntegerId(storyId)) {
       return res.status(400).json({
         success: false,
-        message: '节点数据格式错误'
+        message: '无效的故事ID格式'
       });
     }
     
+    if (!nodes || !Array.isArray(nodes)) {
+      return res.status(400).json({
+        success: false,
+        message: '节点数据格式错误：nodes必须是数组'
+      });
+    }
+    
+    if (nodes.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '节点数据不能为空'
+      });
+    }
+    
+    console.log(`开始批量保存节点: 故事ID=${storyId}, 节点数量=${nodes.length}`);
+    
     // 使用新的批量处理方法
-    const savedNodes = await StoryNode.processNodeRelations(nodes, storyId);
+    const savedNodes = await StoryNode.processNodeRelations(nodes, parseInt(storyId));
+    
+    console.log(`批量保存成功: 保存了 ${savedNodes.nodes?.length || 0} 个节点, ${savedNodes.branchesCreated || 0} 个分支`);
     
     res.status(201).json({
       success: true,
@@ -356,10 +375,11 @@ router.post('/stories/:storyId/nodes/batch', authGuard, storyAuth, async (req, r
     });
   } catch (error) {
     console.error('批量保存节点失败:', error);
+    console.error('错误堆栈:', error.stack);
     res.status(500).json({
       success: false,
       message: '批量保存节点失败',
-      error: error.message
+      error: error.message || '未知错误'
     });
   }
 });

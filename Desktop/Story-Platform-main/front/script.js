@@ -1465,13 +1465,15 @@ async function saveStory() {
             // 创建故事成功后，保存节点和分支
             try {
                 await saveNodesAndBranches(data.data.id);
+                showSaveStatus('保存成功：故事、节点和分支已全部保存', 'success');
             } catch (error) {
                 console.error('保存节点和分支失败:', error);
-                // 不阻止主流程，只记录错误
+                // 显示错误信息，但不阻止主流程（故事已创建）
+                showSaveStatus('故事已创建，但节点和分支保存失败：' + error.message, 'error');
             }
+        } else {
+            showSaveStatus('保存成功', 'success');
         }
-        
-        showSaveStatus('保存成功', 'success');
     } catch (error) {
         console.error('保存失败:', error);
         showSaveStatus('保存失败：' + error.message, 'error');
@@ -1564,7 +1566,7 @@ async function saveNodesAndBranches(storyId) {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if (!token) {
             console.error('未找到认证令牌');
-            return;
+            throw new Error('未找到认证令牌，请先登录');
         }
         
         // 准备节点数据（包含分支信息）
@@ -1576,17 +1578,34 @@ async function saveNodesAndBranches(storyId) {
             x: node.x || 0,
             y: node.y || 0,
             isRoot: node.isRoot || false,
-            branches: node.branches || [] // 包含 { text, targetId }
+            branches: (node.branches || []).map(branch => ({
+                text: branch.text,
+                targetId: branch.targetId // 确保使用 targetId 字段
+            }))
         }));
         
+        // 验证数据完整性
+        const totalBranches = nodesData.reduce((sum, node) => sum + (node.branches?.length || 0), 0);
         console.log('准备保存节点和分支:', {
             storyId,
             nodeCount: nodesData.length,
-            nodes: nodesData
+            totalBranches: totalBranches,
+            nodes: nodesData.map(node => ({
+                id: node.id,
+                title: node.title,
+                branchCount: node.branches?.length || 0,
+                branches: node.branches
+            }))
         });
         
         // 调用批量保存节点API（会自动处理分支）
         const apiUrl = window.API_CONFIG ? window.API_CONFIG.NODES.batchSave(storyId) : `http://localhost:5000/api/v1/storyNodes/stories/${storyId}/nodes/batch`;
+        
+        console.log('发送批量保存请求:', {
+            url: apiUrl,
+            storyId: storyId,
+            nodeCount: nodesData.length
+        });
         
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -1597,17 +1616,43 @@ async function saveNodesAndBranches(storyId) {
             body: JSON.stringify({ nodes: nodesData })
         });
         
+        console.log('批量保存响应状态:', response.status, response.statusText);
+        
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || '保存节点和分支失败');
+            let errorData;
+            try {
+                const text = await response.text();
+                console.error('批量保存失败响应内容:', text);
+                errorData = JSON.parse(text);
+            } catch (e) {
+                errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
+            }
+            
+            const errorMessage = errorData.message || errorData.error || `保存节点和分支失败 (HTTP ${response.status})`;
+            console.error('保存节点和分支失败:', {
+                status: response.status,
+                statusText: response.statusText,
+                error: errorData,
+                message: errorMessage
+            });
+            throw new Error(errorMessage);
         }
         
         const result = await response.json();
         console.log('节点和分支保存成功:', result);
         
+        // 显示保存成功的详细信息
+        if (result.data) {
+            const savedCount = result.data.nodes?.length || 0;
+            const branchesCreated = result.data.branchesCreated || 0;
+            console.log(`成功保存 ${savedCount} 个节点和 ${branchesCreated} 个分支`);
+        }
+        
+        return result;
     } catch (error) {
         console.error('保存节点和分支失败:', error);
-        // 不抛出错误，避免影响主流程，只在控制台输出
+        // 重新抛出错误，让调用者知道保存失败
+        throw error;
     }
 }
 

@@ -331,17 +331,50 @@ class StoryNode {
     const { v4: uuidv4 } = require('uuid');
     
     try {
+      // 确保storyId是整数类型
+      const storyIdInt = parseInt(storyId);
+      if (isNaN(storyIdInt)) {
+        throw new Error(`无效的故事ID: ${storyId}`);
+      }
+      
       await connection.beginTransaction();
+      
+      // 第零步：先删除故事的所有旧节点和分支（由于外键约束，删除节点会自动删除分支）
+      console.log(`开始保存故事 ${storyIdInt} 的节点和分支，先删除旧数据...`);
+      const [existingNodes] = await connection.execute(
+        'SELECT id FROM story_nodes WHERE story_id = ?',
+        [storyIdInt]
+      );
+      
+      if (existingNodes.length > 0) {
+        const nodeIds = existingNodes.map(n => n.id);
+        const placeholders = nodeIds.map(() => '?').join(',');
+        
+        // 先删除分支（虽然外键会自动删除，但显式删除更清晰）
+        await connection.execute(
+          `DELETE FROM branches WHERE source_node_id IN (${placeholders}) OR target_node_id IN (${placeholders})`,
+          [...nodeIds, ...nodeIds]
+        );
+        
+        // 再删除节点
+        await connection.execute(
+          `DELETE FROM story_nodes WHERE story_id = ?`,
+          [storyIdInt]
+        );
+        
+        console.log(`已删除 ${existingNodes.length} 个旧节点及其分支`);
+      }
       
       // 节点ID映射：前端临时ID -> 数据库ID
       const nodeIdMap = new Map();
       const savedNodes = [];
       
       // 第一步：先保存所有节点
+      console.log(`开始保存 ${nodes.length} 个节点...`);
       for (const nodeData of nodes) {
         try {
           const nodeInfo = {
-            storyId: storyId,
+            storyId: storyIdInt,
             title: nodeData.title,
             content: nodeData.content,
             type: nodeData.type || 'regular',
@@ -357,7 +390,7 @@ class StoryNode {
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               nodeId,
-              storyId,
+              storyIdInt,
               nodeInfo.title.trim(),
               nodeInfo.content.trim(),
               nodeInfo.is_root,
@@ -373,9 +406,11 @@ class StoryNode {
           );
           const savedNode = savedNodeRows[0];
           
-          // 保存ID映射
+          // 保存ID映射：前端临时ID -> 数据库ID
           nodeIdMap.set(nodeData.id, savedNode.id);
           savedNodes.push(savedNode);
+          
+          console.log(`节点保存成功: 前端ID=${nodeData.id} -> 数据库ID=${savedNode.id}, 标题="${nodeInfo.title}"`);
         } catch (error) {
           console.error(`保存节点失败 ${nodeData.id}:`, error.message);
           throw error;
@@ -383,48 +418,119 @@ class StoryNode {
       }
       
       // 第二步：保存所有分支
+      console.log(`开始保存分支...`);
       let branchesCreated = 0;
+      let branchesSkipped = 0;
+      
       for (const nodeData of nodes) {
         const sourceNodeId = nodeIdMap.get(nodeData.id);
-        if (!sourceNodeId) continue;
+        if (!sourceNodeId) {
+          console.warn(`跳过节点 ${nodeData.id} 的分支：源节点ID映射不存在`);
+          continue;
+        }
         
         if (nodeData.branches && Array.isArray(nodeData.branches)) {
+          console.log(`节点 ${nodeData.id} (${nodeData.title}) 有 ${nodeData.branches.length} 个分支`);
+          
           for (const branch of nodeData.branches) {
-            const targetNodeId = nodeIdMap.get(branch.targetId);
-            if (targetNodeId && branch.text) {
-              try {
-                // 检查是否已存在相同的连接
-                const [existing] = await connection.execute(
-                  'SELECT id FROM branches WHERE source_node_id = ? AND target_node_id = ?',
-                  [sourceNodeId, targetNodeId]
+            // 支持多种字段名：targetId 或 targetNodeId
+            const targetId = branch.targetId || branch.targetNodeId;
+            
+            if (!targetId) {
+              console.warn(`分支缺少目标节点ID:`, branch);
+              branchesSkipped++;
+              continue;
+            }
+            
+            const targetNodeId = nodeIdMap.get(targetId);
+            if (!targetNodeId) {
+              console.warn(`分支目标节点ID映射不存在: 前端ID=${targetId}, 分支文本="${branch.text}"`);
+              branchesSkipped++;
+              continue;
+            }
+            
+            if (!branch.text || branch.text.trim() === '') {
+              console.warn(`分支文本为空，跳过: 源节点=${sourceNodeId}, 目标节点=${targetNodeId}`);
+              branchesSkipped++;
+              continue;
+            }
+            
+            try {
+              // 检查是否已存在相同的连接（虽然已经删除了旧数据，但为了安全还是检查一下）
+              const [existing] = await connection.execute(
+                'SELECT id FROM branches WHERE source_node_id = ? AND target_node_id = ?',
+                [sourceNodeId, targetNodeId]
+              );
+              
+              if (existing.length === 0) {
+                const branchId = uuidv4();
+                // 验证UUID格式
+                if (typeof branchId !== 'string' || branchId.length !== 36) {
+                  console.error(`无效的UUID格式: ${branchId}, 类型: ${typeof branchId}`);
+                  throw new Error(`生成的UUID格式无效: ${branchId}`);
+                }
+                
+                // 验证节点ID格式
+                if (typeof sourceNodeId !== 'string' || sourceNodeId.length !== 36) {
+                  console.error(`无效的源节点ID格式: ${sourceNodeId}, 类型: ${typeof sourceNodeId}`);
+                }
+                if (typeof targetNodeId !== 'string' || targetNodeId.length !== 36) {
+                  console.error(`无效的目标节点ID格式: ${targetNodeId}, 类型: ${typeof targetNodeId}`);
+                }
+                
+                console.log(`准备插入分支: id=${branchId}, source=${sourceNodeId}, target=${targetNodeId}`);
+                
+                await connection.execute(
+                  `INSERT INTO branches (id, source_node_id, target_node_id, context) 
+                   VALUES (?, ?, ?, ?)`,
+                  [branchId, sourceNodeId, targetNodeId, branch.text.trim()]
                 );
                 
-                if (existing.length === 0) {
-                  const branchId = uuidv4();
-                  await connection.execute(
-                    `INSERT INTO branches (id, source_node_id, target_node_id, context) 
-                     VALUES (?, ?, ?, ?)`,
-                    [branchId, sourceNodeId, targetNodeId, branch.text.trim()]
-                  );
-                  branchesCreated++;
+                // 验证插入的数据
+                const [verifyRows] = await connection.execute(
+                  'SELECT id, source_node_id, target_node_id FROM branches WHERE id = ?',
+                  [branchId]
+                );
+                if (verifyRows.length > 0) {
+                  const saved = verifyRows[0];
+                  console.log(`分支保存验证: id=${saved.id}, source=${saved.source_node_id}, target=${saved.target_node_id}`);
+                  
+                  // 检查是否有乱码
+                  if (saved.id !== branchId || saved.source_node_id !== sourceNodeId || saved.target_node_id !== targetNodeId) {
+                    console.error(`⚠️ 警告：保存的分支数据与原始数据不匹配！`);
+                    console.error(`原始: id=${branchId}, source=${sourceNodeId}, target=${targetNodeId}`);
+                    console.error(`保存: id=${saved.id}, source=${saved.source_node_id}, target=${saved.target_node_id}`);
+                  }
                 }
-              } catch (error) {
-                console.warn(`创建分支失败 (${sourceNodeId} -> ${targetNodeId}):`, error.message);
+                
+                branchesCreated++;
+                console.log(`分支创建成功: ${sourceNodeId} -> ${targetNodeId}, 文本="${branch.text}"`);
+              } else {
+                console.log(`分支已存在，跳过: ${sourceNodeId} -> ${targetNodeId}`);
+                branchesSkipped++;
               }
+            } catch (error) {
+              console.error(`创建分支失败 (${sourceNodeId} -> ${targetNodeId}):`, error.message);
+              branchesSkipped++;
             }
           }
+        } else {
+          console.log(`节点 ${nodeData.id} (${nodeData.title}) 没有分支`);
         }
       }
       
       await connection.commit();
-      console.log(`批量保存完成: ${savedNodes.length} 个节点, ${branchesCreated} 个分支`);
+      console.log(`批量保存完成: ${savedNodes.length} 个节点, ${branchesCreated} 个分支创建成功, ${branchesSkipped} 个分支跳过`);
       
       return {
         nodes: savedNodes,
-        nodeIdMap: Object.fromEntries(nodeIdMap)
+        nodeIdMap: Object.fromEntries(nodeIdMap),
+        branchesCreated: branchesCreated,
+        branchesSkipped: branchesSkipped
       };
     } catch (error) {
       await connection.rollback();
+      console.error('批量保存节点和分支失败，已回滚:', error);
       throw error;
     } finally {
       connection.release();
