@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "dotenv": "^17.2.3",
     "zhipuai": "^2.0.0"
   }
 }
