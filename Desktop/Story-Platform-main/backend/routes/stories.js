@@ -110,19 +110,60 @@ router.get('/public', async (req, res, next) => {
       filter.category = category.id;
     }
 
-    if (req.query.search) {
-      filter.$text = { $search: req.query.search.trim() };
+    // 处理搜索：使用search参数（Story.find会在SQL中使用LIKE查询）
+    if (req.query.search && req.query.search.trim()) {
+      filter.search = req.query.search.trim();
     }
 
-    const [stories, total] = await Promise.all([
-      Story.find(filter)
-        .sort(buildSortOption(req.query.sort))
-        .skip(skip)
-        .limit(limit)
-        .populate('author', 'username avatar')
-        .populate('category', 'name'),
-      Story.countDocuments(filter)
-    ]);
+    // 获取故事列表（带populate）
+    const sortOption = buildSortOption(req.query.sort);
+    console.log('查询公共故事列表，过滤条件:', filter);
+    console.log('排序选项:', sortOption);
+    console.log('分页参数: page=', page, 'limit=', limit, 'skip=', skip);
+    
+    const stories = await Story.find(filter, {
+      sort: sortOption,
+      skip: skip,
+      limit: limit,
+      populate: ['author', 'category']
+    });
+
+    const total = await Story.countDocuments(filter);
+    
+    console.log(`查询结果: 找到 ${stories.length} 个故事，总共 ${total} 个`);
+    
+    // 如果有搜索，显示排序后的故事标题（用于验证排序是否正确）
+    if (filter.search) {
+      console.log('搜索结果排序（标题匹配优先于描述匹配）:');
+      stories.forEach((story, index) => {
+        const titleMatch = story.title && story.title.toLowerCase().includes(filter.search.toLowerCase());
+        const descMatch = story.description && story.description.toLowerCase().includes(filter.search.toLowerCase());
+        console.log(`  [${index + 1}] ${story.title} - 标题匹配: ${titleMatch}, 描述匹配: ${descMatch}`);
+      });
+    }
+    
+    // 检查数据库中所有故事的状态分布（用于调试）
+    try {
+      const { pool } = require('../config/database');
+      const connection = await pool.getConnection();
+      try {
+        const [statusCounts] = await connection.execute(
+          'SELECT status, is_public, COUNT(*) as count FROM stories GROUP BY status, is_public ORDER BY status, is_public'
+        );
+        console.log('数据库中故事状态分布:', statusCounts);
+        
+        // 检查是否有已发布且公开的故事
+        const [publishedCount] = await connection.execute(
+          'SELECT COUNT(*) as count FROM stories WHERE status = ? AND is_public = ?',
+          ['published', 1]
+        );
+        console.log('已发布且公开的故事数量:', publishedCount[0].count);
+      } finally {
+        connection.release();
+      }
+    } catch (error) {
+      console.error('获取故事状态分布失败:', error.message);
+    }
 
     res.status(200).json({
       success: true,
@@ -134,10 +175,20 @@ router.get('/public', async (req, res, next) => {
           description: story.description,
           categoryId: story.category_id,
           authorId: story.author_id,
-          coverImage: story.coverImage,
-          view: story.view,
-          rating: story.rating,
-          createdAt: story.createdAt
+          coverImage: story.cover_image || story.coverImage || '/coverImage/1.png',
+          view: story.view_count || story.view || 0,
+          rating: story.rating || 0,
+          createdAt: story.created_at || story.createdAt,
+          // 包含author和category的完整信息
+          author: story.author ? {
+            id: story.author.id,
+            username: story.author.username || '未知作者',
+            avatar: story.author.avatar || '/avatar/default.png'
+          } : { id: null, username: '未知作者', avatar: '/avatar/default.png' },
+          category: story.category ? {
+            id: story.category.id,
+            name: story.category.name || '未分类'
+          } : { id: null, name: '未分类' }
         })),
         pagination: {
           page,
@@ -183,29 +234,46 @@ router.get('/:storyId', cacheMiddleware(180), async (req, res, next) => {
       return next(errorFormat(400, '无效的故事ID', [], 10010));
     }
 
+    // 验证storyId格式
+    const storyIdInt = parseInt(storyId, 10);
+    if (isNaN(storyIdInt)) {
+      return next(errorFormat(400, '无效的故事ID', [], 10010));
+    }
+
     // 获取故事基本信息
-    const story = await Story.findById(storyId)
-      .populate('author', 'username avatar')
-      .populate('category', 'name');
+    const story = await Story.findById(storyIdInt);
 
     if (!story) {
-      console.log(`故事不存在: ${storyId}`);
+      console.log(`故事不存在: ${storyIdInt}`);
       return next(errorFormat(404, '故事不存在', [], 10010));
     }
     
     console.log(`获取故事详情: ${story.title} (ID: ${story.id}, Status: ${story.status})`);
 
-    // 获取故事所有节点
-    const nodes = await StoryNode.find({ storyId })
-      .sort({ depth: 1, order: 1 })
-      .populate('parentId', 'title')
-      .populate('choices.targetNodeId', 'title');
+    // 获取作者和分类信息
+    const User = require('../models/User');
+    const Category = require('../models/Category');
+    const author = story.author_id ? await User.findById(story.author_id) : null;
+    const category = story.category_id ? await Category.findById(story.category_id) : null;
 
-    // 获取故事树
-    const tree = await StoryNode.getStoryTree(storyId);
+    // 获取故事所有节点（用于统计总节点数）
+    const StoryNode = require('../models/StoryNode');
+    const allNodes = await StoryNode.getStoryNodes(storyIdInt);
 
-    // 更新浏览量
-    await Story.findByIdAndUpdate(storyId, { $inc: { view: 1 } });
+    // 更新浏览量（增加1）- 直接使用SQL更新
+    const { pool } = require('../config/database');
+    const connection = await pool.getConnection();
+    try {
+      await connection.execute(
+        'UPDATE stories SET view_count = view_count + 1 WHERE id = ?',
+        [storyIdInt]
+      );
+    } finally {
+      connection.release();
+    }
+    
+    // 重新获取故事以获取更新后的view_count
+    const updatedStory = await Story.findById(storyIdInt);
 
     res.status(200).json({
       success: true,
@@ -215,28 +283,26 @@ router.get('/:storyId', cacheMiddleware(180), async (req, res, next) => {
         title: story.title,
         authorId: story.author_id,
         categoryId: story.category_id,
-        coverImage: story.coverImage,
+        coverImage: story.cover_image || story.coverImage || '/coverImage/1.png',
         description: story.description,
-        nodes: nodes.map((node) => ({
-          id: node.id,
-          parentId: node.parentId,
-          title: node.title,
-          content: node.content,
-          type: node.type,
-          description: node.description,
-          choices: node.choices,
-          position: node.position,
-          depth: node.depth,
-          path: node.path,
-          order: node.order
-        })),
-        tree: tree,
-        view: story.view + 1,
-        rating: story.rating,
-        createdAt: story.createdAt,
-        updatedAt: story.updatedAt,
-        isCompleted: story.isCompleted,
+        view: updatedStory?.view_count || story.view_count || 0,
+        rating: story.rating || 0,
+        createdAt: story.created_at || story.createdAt,
+        updatedAt: story.updated_at || story.updatedAt,
         status: story.status,
+        isPublic: story.is_public || false,
+        // 包含author和category的完整信息
+        author: author ? {
+          id: author.id,
+          username: author.username || '未知作者',
+          avatar: author.avatar || '/avatar/default.png'
+        } : { id: null, username: '未知作者', avatar: '/avatar/default.png' },
+        category: category ? {
+          id: category.id,
+          name: category.name || '未分类'
+        } : { id: null, name: '未分类' },
+        // 节点总数（用于进度计算）
+        totalNodes: allNodes.length,
         isTemporary: false
       }
     });
@@ -278,9 +344,16 @@ router.post('/', authGuard, [
     }
 
     // 创建故事（默认状态为 draft）
+    // 确保categoryId是数字类型
+    const categoryIdNum = parseInt(categoryId, 10);
+    if (isNaN(categoryIdNum)) {
+      return next(errorFormat(400, '无效的分类ID', [], 10012));
+    }
+    
     const story = await Story.create({
       title,
-      category: categoryId,
+      category: categoryIdNum,  // 使用数字类型的categoryId
+      categoryId: categoryIdNum,  // 同时支持两种字段名
       description,
       coverImage: coverImage || undefined,
       author: req.user.id,

@@ -339,6 +339,14 @@
             body: JSON.stringify({ email, password })
           });
 
+          // 检查响应类型
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('服务器返回了非JSON响应:', text.substring(0, 200));
+            throw new Error(`服务器返回了非JSON响应 (${response.status}): ${text.substring(0, 100)}`);
+          }
+
           const result = await response.json();
 
           if (!response.ok || !result.success) {

@@ -212,10 +212,12 @@ class Story {
       );
       const total = countResult[0].total;
       
-      // 查询列表
+      // 查询列表 - LIMIT和OFFSET直接拼接，因为它们已经通过parseInt验证为整数，是安全的
+      const limitValue = parseInt(limit, 10);
+      const offsetValue = parseInt(offset, 10);
       const [stories] = await connection.execute(
-        `SELECT * FROM stories WHERE author_id = ? ORDER BY ${sort} LIMIT ? OFFSET ?`,
-        [authorId, limit, offset]
+        `SELECT * FROM stories WHERE author_id = ? ORDER BY ${sort} LIMIT ${limitValue} OFFSET ${offsetValue}`,
+        [authorId]
       );
       
       return {
@@ -257,14 +259,26 @@ class Story {
         params.push(query.status);
       }
 
+      // 处理isPublic（只处理一次，优先使用isPublic）
       if (query.isPublic !== undefined) {
         sql += ' AND s.is_public = ?';
-        params.push(query.isPublic);
+        params.push(query.isPublic ? 1 : 0);
+      } else if (query.is_public !== undefined) {
+        sql += ' AND s.is_public = ?';
+        params.push(query.is_public ? 1 : 0);
       }
 
-      if (query.is_public !== undefined) {
-        sql += ' AND s.is_public = ?';
-        params.push(query.is_public);
+      // 处理搜索查询（使用LIKE）
+      let searchPattern = null;
+      if (query.search || query.$text) {
+        const searchTerm = query.search || (query.$text && query.$text.$search);
+        if (searchTerm && searchTerm.trim()) {
+          // 转义搜索模式中的特殊字符，防止SQL注入
+          const escapedTerm = searchTerm.trim().replace(/[%_\\]/g, '\\$&');
+          searchPattern = `%${escapedTerm}%`;
+          sql += ' AND (s.title LIKE ? OR s.description LIKE ?)';
+          params.push(searchPattern, searchPattern);
+        }
       }
 
       // 处理日期范围查询
@@ -280,32 +294,79 @@ class Story {
       }
 
       // 排序
-      if (options.sort) {
-        const sortMap = {
-          'createdAt': 's.created_at',
-          'created_at': 's.created_at',
-          'updatedAt': 's.updated_at',
-          'updated_at': 's.updated_at',
-          'view': 's.view_count',
-          'view_count': 's.view_count',
-          'rating': 's.rating'
-        };
-        const sortField = sortMap[Object.keys(options.sort)[0]] || 's.created_at';
-        const sortOrder = options.sort[Object.keys(options.sort)[0]] === -1 ? 'DESC' : 'ASC';
-        sql += ` ORDER BY ${sortField} ${sortOrder}`;
+      // 如果有搜索，优先按搜索相关性排序（标题匹配优先于描述匹配）
+      if (searchPattern) {
+        // 使用CASE WHEN实现优先级排序：
+        // 1. 标题匹配（优先级最高，值为1）- 即使描述也匹配，标题匹配优先级更高
+        // 2. 描述匹配但标题不匹配（优先级次之，值为2）
+        // 注意：ORDER BY的CASE WHEN中的参数占位符会按照顺序使用params数组中的值
+        // 我们需要使用转义后的搜索模式作为字符串直接嵌入SQL（因为已经转义，是安全的）
+        // 但为了更好的性能和参数化查询，我们仍然使用参数占位符
+        sql += ` ORDER BY 
+          CASE 
+            WHEN s.title LIKE ? THEN 1 
+            WHEN s.description LIKE ? AND s.title NOT LIKE ? THEN 2 
+            ELSE 2 
+          END ASC`;
+        // 添加搜索模式参数用于ORDER BY的CASE WHEN
+        // 第一个?：检查标题是否匹配
+        // 第二个?：检查描述是否匹配  
+        // 第三个?：确保标题不匹配（与第二个条件一起，确保只有描述匹配但标题不匹配的情况）
+        params.push(searchPattern, searchPattern, searchPattern);
+        
+        // 在搜索优先级排序后，按照原始排序字段排序
+        if (options.sort && typeof options.sort === 'object' && Object.keys(options.sort).length > 0) {
+          const sortMap = {
+            'createdAt': 's.created_at',
+            'created_at': 's.created_at',
+            'updatedAt': 's.updated_at',
+            'updated_at': 's.updated_at',
+            'view': 's.view_count',
+            'view_count': 's.view_count',
+            'rating': 's.rating'
+          };
+          const sortKey = Object.keys(options.sort)[0];
+          const sortField = sortMap[sortKey] || 's.created_at';
+          const sortOrder = options.sort[sortKey] === -1 ? 'DESC' : 'ASC';
+          sql += `, ${sortField} ${sortOrder}`;
+        } else {
+          // 默认按创建时间倒序
+          sql += ', s.created_at DESC';
+        }
       } else {
-        sql += ' ORDER BY s.created_at DESC';
+        // 没有搜索时，按照原始排序
+        if (options.sort && typeof options.sort === 'object' && Object.keys(options.sort).length > 0) {
+          const sortMap = {
+            'createdAt': 's.created_at',
+            'created_at': 's.created_at',
+            'updatedAt': 's.updated_at',
+            'updated_at': 's.updated_at',
+            'view': 's.view_count',
+            'view_count': 's.view_count',
+            'rating': 's.rating'
+          };
+          const sortKey = Object.keys(options.sort)[0];
+          const sortField = sortMap[sortKey] || 's.created_at';
+          const sortOrder = options.sort[sortKey] === -1 ? 'DESC' : 'ASC';
+          sql += ` ORDER BY ${sortField} ${sortOrder}`;
+        } else {
+          sql += ' ORDER BY s.created_at DESC';
+        }
       }
 
-      // 分页
-      if (options.limit) {
-        sql += ' LIMIT ?';
-        params.push(options.limit);
+      // 分页 - LIMIT和OFFSET使用字符串拼接，因为它们已经通过parseInt验证，是安全的
+      if (options.limit !== undefined && options.limit !== null) {
+        const limitValue = parseInt(options.limit, 10);
+        if (!isNaN(limitValue) && limitValue > 0) {
+          sql += ` LIMIT ${limitValue}`;
+        }
       }
 
-      if (options.skip) {
-        sql += ' OFFSET ?';
-        params.push(options.skip);
+      if (options.skip !== undefined && options.skip !== null) {
+        const skipValue = parseInt(options.skip, 10);
+        if (!isNaN(skipValue) && skipValue >= 0) {
+          sql += ` OFFSET ${skipValue}`;
+        }
       }
 
       const [stories] = await connection.execute(sql, params);
@@ -357,14 +418,23 @@ class Story {
         params.push(query.status);
       }
 
+      // 处理isPublic（只处理一次，优先使用isPublic）
       if (query.isPublic !== undefined) {
         sql += ' AND is_public = ?';
-        params.push(query.isPublic);
+        params.push(query.isPublic ? 1 : 0);
+      } else if (query.is_public !== undefined) {
+        sql += ' AND is_public = ?';
+        params.push(query.is_public ? 1 : 0);
       }
 
-      if (query.is_public !== undefined) {
-        sql += ' AND is_public = ?';
-        params.push(query.is_public);
+      // 处理搜索查询（使用LIKE）
+      if (query.search || query.$text) {
+        const searchTerm = query.search || (query.$text && query.$text.$search);
+        if (searchTerm && searchTerm.trim()) {
+          const searchPattern = `%${searchTerm.trim()}%`;
+          sql += ' AND (title LIKE ? OR description LIKE ?)';
+          params.push(searchPattern, searchPattern);
+        }
       }
 
       if (query.createdAt) {

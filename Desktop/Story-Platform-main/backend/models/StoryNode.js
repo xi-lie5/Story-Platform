@@ -455,15 +455,15 @@ class StoryNode {
               continue;
             }
             
-            try {
+              try {
               // 检查是否已存在相同的连接（虽然已经删除了旧数据，但为了安全还是检查一下）
-              const [existing] = await connection.execute(
-                'SELECT id FROM branches WHERE source_node_id = ? AND target_node_id = ?',
-                [sourceNodeId, targetNodeId]
-              );
-              
-              if (existing.length === 0) {
-                const branchId = uuidv4();
+                const [existing] = await connection.execute(
+                  'SELECT id FROM branches WHERE source_node_id = ? AND target_node_id = ?',
+                  [sourceNodeId, targetNodeId]
+                );
+                
+                if (existing.length === 0) {
+                  const branchId = uuidv4();
                 // 验证UUID格式
                 if (typeof branchId !== 'string' || branchId.length !== 36) {
                   console.error(`无效的UUID格式: ${branchId}, 类型: ${typeof branchId}`);
@@ -480,11 +480,11 @@ class StoryNode {
                 
                 console.log(`准备插入分支: id=${branchId}, source=${sourceNodeId}, target=${targetNodeId}`);
                 
-                await connection.execute(
-                  `INSERT INTO branches (id, source_node_id, target_node_id, context) 
-                   VALUES (?, ?, ?, ?)`,
-                  [branchId, sourceNodeId, targetNodeId, branch.text.trim()]
-                );
+                  await connection.execute(
+                    `INSERT INTO branches (id, source_node_id, target_node_id, context) 
+                     VALUES (?, ?, ?, ?)`,
+                    [branchId, sourceNodeId, targetNodeId, branch.text.trim()]
+                  );
                 
                 // 验证插入的数据
                 const [verifyRows] = await connection.execute(
@@ -512,8 +512,8 @@ class StoryNode {
             } catch (error) {
               console.error(`创建分支失败 (${sourceNodeId} -> ${targetNodeId}):`, error.message);
               branchesSkipped++;
+              }
             }
-          }
         } else {
           console.log(`节点 ${nodeData.id} (${nodeData.title}) 没有分支`);
         }

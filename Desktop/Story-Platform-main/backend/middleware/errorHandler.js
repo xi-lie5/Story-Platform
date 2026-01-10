@@ -1,11 +1,18 @@
 // 移除mongoose依赖，使用MySQL后不再需要
 
 module.exports = (err, req, res, next) => {
+    // 确保响应头还没有发送
+    if (res.headersSent) {
+        return next(err);
+    }
+    
     console.log('!!!!!!!!!! ERROR HANDLER CALLED !!!!!!!!!!');
     console.log('Error message:', err.message);
+    console.log('Error name:', err.name);
+    console.log('Error stack:', err.stack);
     
     // 默认错误配置
-    let statusCode = err.statusCode || 500;
+    let statusCode = err.statusCode || err.status || 500;
     let message = err.message || '服务器内部错误';
     let errors = err.errors || [];
     let code = err.code || null;
@@ -66,7 +73,9 @@ module.exports = (err, req, res, next) => {
     }
 
     // 4. MySQL 数据库错误
-    if (err.code && err.code.startsWith('ER_')) {
+    // 注意：err.code 可能是数字（业务错误码，如10006）或字符串（MySQL错误码，如'ER_DUP_ENTRY'）
+    // 只有当它是字符串且以 'ER_' 开头时，才是MySQL数据库错误
+    if (err.code && typeof err.code === 'string' && err.code.indexOf('ER_') === 0) {
         statusCode = 500;
         message = '数据库操作错误';
         code = 10004;
@@ -78,8 +87,18 @@ module.exports = (err, req, res, next) => {
         }
     }
     
-    // MySQL连接错误
-    if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT' || err.fatal) {
+    // MySQL连接错误（err.code 可能是字符串类型的错误码）
+    if (err.code && typeof err.code === 'string' && (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT')) {
+        statusCode = 500;
+        message = '数据库连接错误';
+        code = 10004;
+        if (process.env.NODE_ENV === 'production') {
+            errors = [];
+        }
+    }
+    
+    // MySQL fatal 错误
+    if (err.fatal === true) {
         statusCode = 500;
         message = '数据库连接错误';
         code = 10004;

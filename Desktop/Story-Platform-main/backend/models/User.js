@@ -310,9 +310,12 @@ class User {
           values.push(this.tokenVersion);
         }
 
-        if (this.refreshToken !== undefined) {
+        if (this.refreshToken !== undefined && this.refreshToken !== null) {
           fields.push('refresh_token = ?');
           values.push(this.refreshToken);
+        } else if (this.refreshToken === null) {
+          // 如果refreshToken明确设置为null，也要更新数据库
+          fields.push('refresh_token = NULL');
         }
 
         if (this.lastLogin !== undefined) {

@@ -11,6 +11,14 @@ const ACCESS_TOKEN_TTL = process.env.JWT_EXPIRES_IN || '1d';
 const REFRESH_TOKEN_TTL = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
 async function generateTokens(userId, tokenVersion = 0) {
+  // 检查JWT密钥是否配置
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET环境变量未配置');
+  }
+  if (!process.env.JWT_REFRESH_SECRET) {
+    throw new Error('JWT_REFRESH_SECRET环境变量未配置');
+  }
+
   const accessToken = jwt.sign({ 
     id: userId, 
     tokenVersion 
@@ -88,34 +96,50 @@ router.post('/login', [
   body('email').isEmail().withMessage('邮箱格式不正确'),
   body('password').notEmpty().withMessage('密码不能为空')
 ], async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return next(errorFormat(400, '登录失败', mapValidationErrors(errors), 10001));
-  }
-
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(errorFormat(400, '登录失败', mapValidationErrors(errors), 10001));
+    }
+
     const { email, password } = req.body;
+    
+    console.log('登录请求:', { email });
 
     const user = await User.findOne({ email }, { includePassword: true });
     
     if (!user) {
+      console.log('用户不存在:', email);
       return next(errorFormat(401, '邮箱或密码错误', [{ message: '邮箱或密码错误' }], 10006));
     }
 
     // 检查用户账户是否被禁用
-    if (!user.isActive) {
+    // 兼容两种字段名：isActive 和 is_active
+    const isActive = user.isActive !== undefined ? user.isActive : (user.is_active !== undefined ? user.is_active : true);
+    if (!isActive) {
+      console.log('账户已被禁用:', email);
       return next(errorFormat(403, '账户已被禁用，请联系管理员', [{ message: '账户已被禁用，请联系管理员' }], 10020));
     }
 
     const isMatch = await user.matchPassword(password);
     
     if (!isMatch) {
+      console.log('密码不匹配:', email);
       return next(errorFormat(401, '邮箱或密码错误', [{ message: '邮箱或密码错误' }], 10006));
     }
 
-    const { accessToken, refreshToken } = await generateTokens(user.id, user.tokenVersion || 0);
+    const tokenVersion = user.tokenVersion !== undefined ? user.tokenVersion : (user.token_version !== undefined ? user.token_version : 0);
+    
+    console.log('准备生成Token:', { userId: user.id, tokenVersion });
+    
+    const { accessToken, refreshToken } = await generateTokens(user.id, tokenVersion);
+    
+    console.log('Token生成成功');
+    
     user.refreshToken = refreshToken;
     await user.save();
+
+    console.log('登录成功:', { userId: user.id, username: user.username });
 
     res.status(200).json({
       success: true,
@@ -130,6 +154,11 @@ router.post('/login', [
       }
     });
   } catch (error) {
+    console.error('登录处理错误:', error);
+    console.error('错误名称:', error.name);
+    console.error('错误消息:', error.message);
+    console.error('错误堆栈:', error.stack);
+    // 确保错误被正确传递给错误处理中间件
     next(error);
   }
 });

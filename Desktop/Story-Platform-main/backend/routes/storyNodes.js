@@ -18,14 +18,83 @@ router.get('/public/stories/:storyId/nodes', async (req, res) => {
     const { storyId } = req.params;
     const { type, depth } = req.query;
     
+    // 验证storyId格式
+    const storyIdInt = parseInt(storyId);
+    if (isNaN(storyIdInt)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的故事ID'
+      });
+    }
+    
+    // 检查故事是否存在且是公开的
+    const story = await Story.findById(storyIdInt);
+    if (!story) {
+      return res.status(404).json({
+        success: false,
+        message: '故事不存在'
+      });
+    }
+    
+    if (!story.is_public || story.status !== 'published') {
+      return res.status(403).json({
+        success: false,
+        message: '故事未发布或不是公开故事'
+      });
+    }
+    
     const queryOptions = {};
     if (type) queryOptions.type = type;
     
-    const nodes = await StoryNode.getStoryNodes(storyId, queryOptions);
+    // 获取所有节点
+    const nodes = await StoryNode.getStoryNodes(storyIdInt, queryOptions);
+    
+    // 获取所有分支
+    const Branch = require('../models/Branch');
+    const branches = await Branch.getStoryBranches(storyIdInt);
+    
+    // 为每个节点添加其出向分支（作为choices）
+    const nodesWithBranches = nodes.map(node => {
+      // 找到以该节点为源节点的所有分支
+      const nodeBranches = branches.filter(branch => branch.source_node_id === node.id);
+      
+      // 将分支转换为选择项格式
+      const choices = nodeBranches.map(branch => {
+        // 找到目标节点
+        const targetNode = nodes.find(n => n.id === branch.target_node_id);
+        return {
+          id: branch.id,
+          text: branch.context || '继续',
+          targetNodeId: branch.target_node_id,
+          targetNode: targetNode ? {
+            id: targetNode.id,
+            title: targetNode.title
+          } : null
+        };
+      });
+      
+      return {
+        id: node.id,
+        _id: node.id,
+        temporaryId: node.id,
+        storyId: node.story_id || node.storyId,
+        title: node.title || '未命名节点',
+        content: node.content || '',
+        type: node.type || 'regular',
+        parentId: node.parent_id || null,
+        isRoot: node.is_root === 1 || node.is_root === true || node.isRoot === true,
+        order: node.order || 1,
+        x: node.x || 0,
+        y: node.y || 0,
+        choices: choices || []
+      };
+    });
+    
+    console.log(`获取故事 ${storyIdInt} 的节点: 找到 ${nodesWithBranches.length} 个节点`);
     
     res.json({
       success: true,
-      data: nodes
+      data: nodesWithBranches
     });
   } catch (error) {
     console.error('获取节点列表失败:', error);

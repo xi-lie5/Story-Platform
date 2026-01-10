@@ -19,8 +19,18 @@ exports.cacheMiddleware = (ttl = 300) => {
       return next();
     }
 
-    // 构建缓存键
+    // 构建缓存键（使用originalUrl确保包含完整路径，例如 /api/v1/users/4/stories）
     const cacheKey = `${req.originalUrl}_${JSON.stringify(req.query)}`;
+    
+    // 对于用户故事列表API，先尝试清除缓存（确保获取最新数据）
+    if (req.originalUrl.includes('/users/') && req.originalUrl.includes('/stories')) {
+      const userIdMatch = req.originalUrl.match(/\/users\/(\d+)\/stories/);
+      if (userIdMatch && userIdMatch[1]) {
+        const userId = parseInt(userIdMatch[1]);
+        console.log(`[CACHE] 检测到用户故事列表请求，清除用户 ${userId} 的缓存`);
+        exports.clearUserCache(userId);
+      }
+    }
 
     try {
       // 尝试从缓存获取
@@ -65,7 +75,9 @@ exports.clearCache = (pattern) => {
   
   if (matchingKeys.length > 0) {
     cache.del(matchingKeys);
-    console.log(`[CACHE CLEAR] 已清除 ${matchingKeys.length} 个缓存项`);
+    console.log(`[CACHE CLEAR] 已清除 ${matchingKeys.length} 个缓存项: ${matchingKeys.join(', ')}`);
+  } else {
+    console.log(`[CACHE CLEAR] 未找到匹配的缓存键: ${pattern}`);
   }
 };
 
@@ -81,11 +93,16 @@ exports.clearStoryCache = (storyId) => {
 
 /**
  * 清除用户相关的所有缓存
- * @param {string} userId - 用户ID
+ * @param {string|number} userId - 用户ID
  */
 exports.clearUserCache = (userId) => {
-  exports.clearCache(`user/${userId}`);
+  const userIdStr = String(userId);
+  // 清除用户故事列表缓存（匹配 /api/v1/users/:userId/stories 的缓存键）
+  exports.clearCache(`/users/${userIdStr}/stories`);
+  exports.clearCache(`users/${userIdStr}/stories`);
+  exports.clearCache(`user/${userIdStr}`);
   exports.clearCache('users');
+  console.log(`[CACHE CLEAR] 已清除用户 ${userIdStr} 相关的所有缓存`);
 };
 
 /**

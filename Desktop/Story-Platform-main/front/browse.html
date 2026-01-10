@@ -189,7 +189,7 @@
         // 全局变量
         let currentPage = 1;
         let totalPages = 1;
-        let pageSize = 12;
+        let pageSize = 9; // 3x3布局，一页9个故事
         let totalStories = 0;
         let currentFilters = {
             search: '',
@@ -302,11 +302,17 @@
                 }
 
                 const data = await response.json();
+                
+                console.log('API响应数据:', data);
 
                 if (data.success) {
                     const stories = data.data.stories || [];
                     totalStories = data.data.pagination?.total || 0;
                     totalPages = data.data.pagination?.pages || 1;
+                    
+                    console.log('故事列表:', stories);
+                    console.log('故事总数:', totalStories);
+                    console.log('总页数:', totalPages);
 
                     // 更新故事计数
                     document.getElementById('storyCount').textContent = totalStories;
@@ -339,7 +345,13 @@
             const storiesContainer = document.getElementById('storiesContainer');
 
             if (!stories || stories.length === 0) {
-                storiesContainer.innerHTML = '';
+                storiesContainer.innerHTML = `
+                    <div class="col-span-full text-center py-20">
+                        <i class="fa fa-book text-6xl text-slate-300 mb-4"></i>
+                        <p class="text-slate-600 text-lg mb-2">暂无故事</p>
+                        <p class="text-sm text-slate-500">尝试修改搜索条件或筛选条件</p>
+                    </div>
+                `;
                 return;
             }
 
@@ -357,21 +369,28 @@
             const card = document.createElement('div');
             card.className = 'story-card bg-white rounded-xl shadow-md overflow-hidden cursor-pointer';
             
-            const coverImage = story.coverImage || `https://picsum.photos/seed/${story.id}/600/400`;
-            const authorAvatar = story.author?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(story.author?.username || '用户')}&background=6366f1&color=fff`;
-            const categoryName = story.category?.name || '未分类';
+            // 获取故事图片，如果没有则使用默认图片
+            const coverImage = story.coverImage || '/coverImage/1.png';
+            // 获取作者信息
             const authorName = story.author?.username || '未知作者';
+            const authorAvatar = story.author?.avatar || `/avatar/default.png`;
+            // 获取分类信息
+            const categoryName = story.category?.name || '未分类';
+            // 获取故事标题
+            const storyTitle = story.title || '未命名故事';
+            // 获取创作时间
+            const createdAt = story.createdAt ? new Date(story.createdAt).toLocaleDateString('zh-CN') : '未知时间';
             const description = story.description || '暂无描述';
-            const viewCount = story.view || 0;
-            const rating = story.rating || 0;
 
             card.innerHTML = `
                 <div class="relative h-48 overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/20">
-                    ${story.coverImage ? `
-                        <img src="${coverImage}" alt="${story.title}" 
-                            class="w-full h-full object-cover">
+                    ${coverImage && coverImage !== '/coverImage/1.png' ? `
+                        <img src="${coverImage.startsWith('http') ? coverImage : `http://localhost:5000${coverImage}`}" 
+                            alt="${storyTitle}" 
+                            class="w-full h-full object-cover"
+                            onerror="this.onerror=null; this.src='http://localhost:5000/coverImage/1.png';">
                     ` : `
-                        <div class="w-full h-full flex items-center justify-center">
+                        <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
                             <i class="fa fa-book text-6xl text-primary/30"></i>
                         </div>
                     `}
@@ -382,24 +401,22 @@
                     </div>
                 </div>
                 <div class="p-5">
-                    <h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-2">${story.title || '未命名故事'}</h3>
-                    <p class="text-sm text-slate-600 mb-4 line-clamp-2">${description}</p>
+                    <h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-2 min-h-[3.5rem]">${storyTitle}</h3>
+                    <p class="text-sm text-slate-600 mb-4 line-clamp-2 min-h-[2.5rem]">${description}</p>
                     <div class="flex items-center justify-between text-xs text-slate-500 mb-4">
-                        <div class="flex items-center space-x-4">
-                            <span><i class="fa fa-eye mr-1"></i>${viewCount}</span>
-                            <span><i class="fa fa-star mr-1"></i>${rating.toFixed(1)}</span>
-                        </div>
-                        <span>${new Date(story.createdAt).toLocaleDateString('zh-CN')}</span>
-                    </div>
-                    <div class="flex items-center justify-between pt-4 border-t border-slate-200">
                         <div class="flex items-center">
-                            <img src="${authorAvatar}" alt="${authorName}" 
-                                class="w-8 h-8 rounded-full mr-2 border-2 border-slate-200">
-                            <span class="text-sm text-slate-600">${authorName}</span>
+                            <img src="${authorAvatar.startsWith('http') ? authorAvatar : `http://localhost:5000${authorAvatar}`}" 
+                                alt="${authorName}" 
+                                class="w-6 h-6 rounded-full mr-2 border border-slate-300"
+                                onerror="this.onerror=null; this.src='http://localhost:5000/avatar/default.png';">
+                            <span class="font-medium text-slate-700">${authorName}</span>
                         </div>
+                        <span class="text-slate-500">${createdAt}</span>
+                    </div>
+                    <div class="pt-4 border-t border-slate-200">
                         <a href="story-reader.html?id=${story.id}" 
-                            class="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition-colors">
-                            <i class="fa fa-book-open mr-1"></i>阅读
+                            class="block w-full text-center px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition-colors">
+                            <i class="fa fa-book-open mr-1"></i>阅读故事
                         </a>
                     </div>
                 </div>

@@ -18,14 +18,7 @@ const pool = mysql.createPool({
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
   // 设置字符集，确保UUID等字符串正确存储
-  charset: 'utf8mb4',
-  // 设置连接时使用的字符集
-  typeCast: function (field, next) {
-    if (field.type === 'VAR_STRING' || field.type === 'STRING' || field.type === 'TEXT') {
-      return field.string();
-    }
-    return next();
-  }
+  charset: 'utf8mb4'
 });
 
 // 测试数据库连接
@@ -33,8 +26,8 @@ async function testConnection() {
   try {
     const connection = await pool.getConnection();
     // 确保连接使用正确的字符集
-    await connection.execute('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci');
-    await connection.execute('SET CHARACTER SET utf8mb4');
+    await connection.query('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci');
+    await connection.query('SET CHARACTER SET utf8mb4');
     console.log('✅ MySQL数据库连接成功，字符集已设置为 utf8mb4');
     connection.release();
     return true;
@@ -44,19 +37,6 @@ async function testConnection() {
   }
 }
 
-// 包装连接池的getConnection方法，确保每次连接都设置正确的字符集
-const originalGetConnection = pool.getConnection.bind(pool);
-pool.getConnection = async function() {
-  const connection = await originalGetConnection();
-  try {
-    // 确保连接使用正确的字符集
-    await connection.execute('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci');
-    await connection.execute('SET CHARACTER SET utf8mb4');
-  } catch (error) {
-    console.warn('设置连接字符集失败:', error.message);
-  }
-  return connection;
-};
 
 // 初始化数据库表结构
 async function initTables() {

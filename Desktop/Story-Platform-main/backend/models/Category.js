@@ -249,10 +249,28 @@ class Category {
       const created = [];
       for (const categoryData of categoriesData) {
         try {
-          const category = await this.create(categoryData);
-          created.push(category);
+          // 检查分类是否已存在
+          const [existing] = await connection.execute(
+            'SELECT id FROM categories WHERE name = ?',
+            [categoryData.name.trim()]
+          );
+          
+          if (existing.length > 0) {
+            // 如果分类已存在，获取现有分类
+            const existingCategory = await this.findById(existing[0].id);
+            if (existingCategory) {
+              created.push(existingCategory);
+              console.log(`分类 "${categoryData.name}" 已存在，跳过创建`);
+            }
+          } else {
+            // 如果分类不存在，创建新分类
+            const category = await this.create(categoryData);
+            created.push(category);
+            console.log(`成功创建分类: ${categoryData.name}`);
+          }
         } catch (error) {
           console.warn(`创建分类失败: ${categoryData.name}`, error.message);
+          // 继续处理下一个分类，不中断整个流程
         }
       }
 

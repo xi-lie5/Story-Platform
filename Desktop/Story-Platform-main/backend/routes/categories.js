@@ -28,10 +28,21 @@ router.get('/', async (req, res, next) => {
       categories.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     }
     
+    // 格式化返回数据，确保包含id字段
     const responseData = {
       success: true,
       count: categories.length,
-      data: categories
+      data: categories.map(category => {
+        // category是Category实例，包含id, name, description等字段
+        return {
+          id: category.id,
+          name: category.name,
+          description: category.description || '',
+          storyCount: category.storyCount || category.story_count || 0,
+          createdAt: category.created_at,
+          updatedAt: category.updated_at
+        };
+      })
     };
     
     res.status(200).json(responseData);

@@ -30,30 +30,9 @@ app.use(cors({
 
 
 
-// 静态资源（头像、封面）
+// 静态资源（头像、封面）- 使用具体路径，避免与API冲突
 app.use('/avatar', express.static(path.join(__dirname, 'avatar')));
 app.use('/coverImage', express.static(path.join(__dirname, 'coverImage')));
-
-// 前端静态文件服务 - 优化配置，处理所有静态文件请求，包括HTML文件
-// 先处理API路由，再处理静态文件请求
-// 使用更简单的静态文件服务配置
-app.use(express.static(path.join(__dirname, '../front'), {
-  index: 'index.html',
-  extensions: ['html', 'htm']
-}));
-
-// 为所有HTML文件添加直接访问支持（不带.html后缀）
-app.get(/^\/([a-zA-Z0-9_\-]+)$/, (req, res, next) => {
-  const filename = req.params[0];
-  const filePath = path.join(__dirname, '../front', `${filename}.html`);
-  
-  fs.access(filePath, fs.constants.F_OK, (err) => {
-    if (err) {
-      return next();
-    }
-    res.sendFile(filePath);
-  });
-});
 
 // 健康检查
 app.get('/healthz', (req, res) => {
@@ -150,12 +129,75 @@ try {
 
 console.log('所有路由注册完成');
 
-// 前端静态文件服务 - 简化配置，使用更直接的方式处理所有静态文件请求
-// 确保API路由优先处理，静态文件服务放在最后
-app.use(express.static(path.join(__dirname, '../front')));
+// 前端静态文件服务 - 必须放在API路由之后，确保API请求不被拦截
+// 使用条件中间件，只处理非API路径的请求
+const staticFileHandler = express.static(path.join(__dirname, '../front'), {
+  index: 'index.html',
+  extensions: ['html', 'htm']
+});
 
-// 错误处理
+app.use((req, res, next) => {
+  // 如果请求路径以 /api 开头，跳过静态文件服务，继续下一个中间件
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  // 否则，尝试静态文件服务
+  staticFileHandler(req, res, (err) => {
+    if (err) {
+      return next(err);
+    }
+    // 如果静态文件服务没有找到文件，继续下一个中间件
+    next();
+  });
+});
+
+// 为所有HTML文件添加直接访问支持（不带.html后缀）- 只在非API路径上
+app.get(/^\/([a-zA-Z0-9_\-]+)$/, (req, res, next) => {
+  // 如果请求路径以 /api 开头，跳过
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  
+  const filename = req.params[0];
+  const filePath = path.join(__dirname, '../front', `${filename}.html`);
+  
+  fs.access(filePath, fs.constants.F_OK, (err) => {
+    if (err) {
+      return next();
+    }
+    res.sendFile(filePath);
+  });
+});
+
+// 404 处理 - 必须放在所有路由之后，但错误处理之前
+// 处理所有未匹配的API路径
+app.use((req, res, next) => {
+  // 如果请求路径以 /api 开头，说明是API请求，但没有匹配到路由
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({
+      success: false,
+      message: `API端点不存在: ${req.method} ${req.originalUrl}`,
+      error: 'NOT_FOUND',
+      code: 10004
+    });
+  }
+  // 否则继续下一个中间件（可能是静态文件处理）
+  next();
+});
+
+// 错误处理中间件 - 必须放在所有路由和中间件之后
+// Express错误处理中间件必须有4个参数：(err, req, res, next)
+// 直接使用errorHandler，不要包装
 app.use(errorHandler);
+
+// 兜底：处理所有未处理的错误（确保返回JSON）
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('未处理的Promise拒绝:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('未捕获的异常:', error);
+});
 
 const PORT = process.env.PORT || 5000;
 
@@ -194,6 +236,18 @@ async function initializeDefaultCategories() {
 
 async function startServer() {
   try {
+    // 检查必要的环境变量
+    if (!process.env.JWT_SECRET) {
+      console.error('❌ JWT_SECRET环境变量未配置！请在.env文件中设置JWT_SECRET');
+      console.error('提示：JWT_SECRET应该是至少32个字符的随机字符串');
+      process.exit(1);
+    }
+    if (!process.env.JWT_REFRESH_SECRET) {
+      console.error('❌ JWT_REFRESH_SECRET环境变量未配置！请在.env文件中设置JWT_REFRESH_SECRET');
+      console.error('提示：JWT_REFRESH_SECRET应该是至少32个字符的随机字符串，且与JWT_SECRET不同');
+      process.exit(1);
+    }
+
     // 测试MySQL连接
     const connected = await testConnection();
     if (!connected) {
@@ -212,6 +266,7 @@ async function startServer() {
     });
   } catch (error) {
     console.error('❌ 服务启动失败:', error.message);
+    console.error('错误堆栈:', error.stack);
     process.exit(1);
   }
 }

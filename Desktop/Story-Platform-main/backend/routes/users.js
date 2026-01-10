@@ -213,9 +213,12 @@ router.get('/:userId/stories', authGuard, cacheMiddleware(180), async (req, res,
     console.log(`[USERS路由] /:userId/stories 被调用`);
     console.log(`[USERS路由] req.path=${req.path}, req.method=${req.method}`);
     console.log(`[USERS路由] req.user=`, req.user);
+    console.log(`[USERS路由] 查询参数:`, req.query);
     
     const { userId } = req.params;
-    const { page = 1, limit = 10 } = req.query;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 9, 1), 50);
+    const skip = (page - 1) * limit;
     
     // 验证用户ID格式
     if (!isValidIntegerId(userId)) {
@@ -238,77 +241,149 @@ router.get('/:userId/stories', authGuard, cacheMiddleware(180), async (req, res,
     
     console.log(`[USERS路由] 权限验证通过，继续处理请求`);
     
-    // 计算跳过的文档数
-    const skip = (page - 1) * limit;
-    
     const queryUserId = parseInt(userId);
-    console.log(`查询用户故事: userId=${queryUserId}, 当前用户ID=${req.user.id}, page=${page}, limit=${limit}`);
+    
+    // 构建查询条件
+    const query = {
+      author_id: queryUserId
+    };
+    
+    // 分类筛选
+    if (req.query.category) {
+      const Category = require('../models/Category');
+      const category = await Category.findOne({ name: req.query.category });
+      if (category) {
+        query.category_id = category.id;
+      }
+    }
+    
+    // 状态筛选
+    if (req.query.status) {
+      query.status = req.query.status;
+    }
+    
+    // 搜索关键词
+    if (req.query.search && req.query.search.trim()) {
+      query.search = req.query.search.trim();
+    }
+    
+    // 排序选项
+    const sortOption = {};
+    if (req.query.sort === 'latest' || !req.query.sort) {
+      sortOption.createdAt = -1;
+    } else if (req.query.sort === 'popular') {
+      sortOption.view = -1;
+    } else if (req.query.sort === 'rating') {
+      sortOption.rating = -1;
+    } else if (req.query.sort === 'updated') {
+      sortOption.updatedAt = -1;
+    } else {
+      sortOption.createdAt = -1;
+    }
+    
+    console.log(`查询用户故事: userId=${queryUserId}, 查询条件:`, query);
+    console.log(`排序选项:`, sortOption);
+    console.log(`分页参数: page=${page}, limit=${limit}, skip=${skip}`);
+    console.log(`[USERS路由] 当前登录用户ID: ${req.user.id}, 查询用户ID: ${queryUserId}`);
+    
+    // 清除用户故事列表的缓存（确保获取最新数据）
+    // 注意：缓存键的格式是 `/api/v1/users/:userId/stories?_queryParams`
+    try {
+      clearUserCache(queryUserId);
+      console.log(`[USERS路由] 已清除用户 ${queryUserId} 的故事列表缓存`);
+    } catch (cacheError) {
+      console.warn(`[USERS路由] 清除缓存失败:`, cacheError.message);
+    }
     
     // 查询用户的故事列表（包括所有状态：草稿、待审核、已发布等）
-    const stories = await Story.find(
-      { author_id: queryUserId },
-      {
-        sort: { createdAt: -1 },
-        skip: skip,
-        limit: Number(limit),
-        populate: ['category', 'author']
-      }
-    );
+    console.log(`[USERS路由] 执行查询: author_id=${queryUserId}`);
+    const stories = await Story.find(query, {
+      sort: sortOption,
+      skip: skip,
+      limit: limit,
+      populate: ['category', 'author']
+    });
     
-    // 获取总故事数
-    const total = await Story.countDocuments({ author_id: queryUserId });
+    // 获取总故事数（使用相同的查询条件）
+    const total = await Story.countDocuments(query);
     
-    console.log(`获取用户 ${queryUserId} 的故事列表: 找到 ${stories.length} 个故事 (总共 ${total} 个)`);
+    console.log(`[USERS路由] 查询结果: 找到 ${stories.length} 个故事 (总共 ${total} 个)`);
     if (stories.length > 0) {
       stories.forEach((story, index) => {
-        console.log(`  [${index + 1}] ${story.title} (ID: ${story.id}, Status: ${story.status})`);
+        console.log(`  [${index + 1}] ${story.title} (Story ID: ${story.id}, Author ID: ${story.author_id}, Status: ${story.status}, Category: ${story.category?.name || '未分类'})`);
       });
     } else {
-      console.log('  没有找到故事');
+      console.log(`[USERS路由] 警告: 没有找到故事。查询条件 author_id=${queryUserId} 未匹配任何故事。`);
+      
+      // 调试：直接查询数据库，不使用查询条件过滤
+      console.log(`[USERS路由] [调试] 直接查询数据库中所有故事...`);
+      const { pool } = require('../config/database');
+      const connection = await pool.getConnection();
+      try {
+        const [allStories] = await connection.execute(
+          'SELECT id, title, author_id, status FROM stories WHERE author_id = ?',
+          [queryUserId]
+        );
+        console.log(`[USERS路由] [调试] 数据库查询结果: 找到 ${allStories.length} 个 author_id=${queryUserId} 的故事`);
+        allStories.forEach((s, i) => {
+          console.log(`  [调试${i + 1}] ${s.title} (ID: ${s.id}, Author ID: ${s.author_id}, Status: ${s.status})`);
+        });
+      } catch (dbError) {
+        console.error(`[USERS路由] [调试] 数据库查询失败:`, dbError.message);
+      } finally {
+        connection.release();
+      }
     }
     
     // 确保返回的数据格式正确
     // stories是数据库原始行对象数组，字段名是下划线格式
     const responseData = {
       success: true,
-      count: stories.length,
-      total,
-      pages: Math.ceil(total / Number(limit)),
-      page: Number(page),
-      data: stories.map(story => {
-        // story是数据库原始行对象，可能有populate后的category和author对象
-        const categoryData = story.category ? (typeof story.category === 'object' ? { id: story.category.id, name: story.category.name } : null) : null;
-        
-        // 判断故事是否完成：状态为published或已完成的作品
-        // 这里可以根据实际业务逻辑来判断，暂时使用status === 'published'作为完成标志
-        const isCompleted = story.status === 'published';
-        
-        return {
-          id: story.id,
-          _id: story.id, // 为了兼容前端可能使用_id的地方
-          title: story.title,
-          description: story.description,
-          category: categoryData,
-          categoryId: story.category_id,
-          authorId: story.author_id,
-          coverImage: story.cover_image || '/coverImage/1.png',
-          cover_image: story.cover_image || '/coverImage/1.png',
-          status: story.status,
-          isPublic: story.is_public || false,
-          is_public: story.is_public || false,
-          isCompleted: isCompleted,
-          view: story.view_count || 0,
-          view_count: story.view_count || 0,
-          rating: parseFloat(story.rating || 0),
-          createdAt: story.created_at,
-          created_at: story.created_at,
-          updatedAt: story.updated_at,
-          updated_at: story.updated_at
-        };
-      })
+      message: '获取用户故事列表成功',
+      data: {
+        stories: stories.map(story => {
+          // story是数据库原始行对象，可能有populate后的category和author对象
+          const categoryData = story.category ? (typeof story.category === 'object' ? { id: story.category.id, name: story.category.name } : null) : null;
+          const authorData = story.author ? (typeof story.author === 'object' ? { id: story.author.id, username: story.author.username || '未知作者', avatar: story.author.avatar || '/avatar/default.png' } : null) : { id: null, username: '未知作者', avatar: '/avatar/default.png' };
+          
+          // 判断故事是否完成：状态为published或已完成的作品
+          // 这里可以根据实际业务逻辑来判断，暂时使用status === 'published'作为完成标志
+          const isCompleted = story.status === 'published';
+          
+          return {
+            id: story.id,
+            _id: story.id, // 为了兼容前端可能使用_id的地方
+            title: story.title,
+            description: story.description,
+            category: categoryData,
+            categoryId: story.category_id,
+            author: authorData,
+            authorId: story.author_id,
+            coverImage: story.cover_image || '/coverImage/1.png',
+            cover_image: story.cover_image || '/coverImage/1.png',
+            status: story.status,
+            isPublic: story.is_public || false,
+            is_public: story.is_public || false,
+            isCompleted: isCompleted,
+            view: story.view_count || 0,
+            view_count: story.view_count || 0,
+            rating: parseFloat(story.rating || 0),
+            createdAt: story.created_at,
+            created_at: story.created_at,
+            updatedAt: story.updated_at,
+            updated_at: story.updated_at
+          };
+        }),
+        pagination: {
+          page: page,
+          limit: limit,
+          total: total,
+          pages: Math.ceil(total / limit)
+        }
+      }
     };
     
-    console.log(`返回响应: success=${responseData.success}, data.length=${responseData.data.length}`);
+    console.log(`返回响应: success=${responseData.success}, stories数量=${responseData.data.stories.length}`);
     
     res.status(200).json(responseData);
   } catch (err) {

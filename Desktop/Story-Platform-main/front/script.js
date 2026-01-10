@@ -26,6 +26,9 @@ function initApp() {
     // 绑定事件监听
     bindEvents();
     
+    // 加载分类列表
+    loadCategories();
+    
     // 编辑器页面初始化
     // 创建初始节点（如果没有节点）
     if (storyData.nodes.length === 0) {
@@ -125,11 +128,13 @@ function getElements() {
         // 故事信息
         storyTitle: document.getElementById('storyTitle'),
         storyDescription: document.getElementById('storyDescription'),
+        storyCategory: document.getElementById('storyCategory'),
         storyInfoForm: document.getElementById('storyInfoForm'),
         coverImage: document.getElementById('coverImage'),
         coverPreview: document.getElementById('coverPreview'),
         titleError: document.getElementById('titleError'),
         descriptionError: document.getElementById('descriptionError'),
+        categoryError: document.getElementById('categoryError'),
         
     
         
@@ -1400,29 +1405,32 @@ async function saveStory() {
     }
     
     try {
-        // 获取分类ID（使用第一个可用分类作为默认分类）
-        let categoryId;
-        try {
-            categoryId = await getDefaultCategoryId();
-        } catch (error) {
-            // 处理获取分类时的错误
-            const errorMessage = error.message || '获取分类失败';
-            showSaveStatus('保存失败：' + errorMessage, 'error');
-            console.error('获取分类ID失败:', error);
+        // 从分类下拉框获取选中的分类ID
+        const categorySelect = elements.storyCategory;
+        if (!categorySelect) {
+            showSaveStatus('保存失败：分类选择框不存在', 'error');
             return;
         }
         
-        if (!categoryId) {
-            showSaveStatus('保存失败：数据库中没有任何分类。请先通过管理员界面创建一个分类，然后再保存故事。', 'error');
-            console.error('无法获取分类ID：分类列表为空');
-            
-            // 提供帮助提示
-            setTimeout(() => {
-                const helpMsg = '提示：如果这是首次使用，请联系管理员创建分类，或者访问管理员界面 (http://localhost:8000/admin-easy.html) 创建分类。';
-                alert(helpMsg);
-            }, 1000);
+        const categoryId = categorySelect.value;
+        if (!categoryId || categoryId.trim() === '') {
+            showSaveStatus('保存失败：请选择故事分类', 'error');
+            if (elements.categoryError) {
+                elements.categoryError.textContent = '请选择故事分类';
+                elements.categoryError.style.display = 'block';
+            }
+            // 聚焦到分类下拉框
+            categorySelect.focus();
             return;
         }
+        
+        // 清除分类错误信息
+        if (elements.categoryError) {
+            elements.categoryError.textContent = '';
+            elements.categoryError.style.display = 'none';
+        }
+        
+        console.log('选中的分类ID:', categoryId);
         
         // 准备保存的数据格式，转换为后端需要的格式
         const saveData = prepareSaveData(storyData, categoryId);
@@ -1480,13 +1488,19 @@ async function saveStory() {
     }
 }
 
-// 获取默认分类ID
-async function getDefaultCategoryId() {
+// 加载分类列表到下拉框
+async function loadCategories() {
     try {
+        const categorySelect = elements.storyCategory;
+        if (!categorySelect) {
+            console.error('分类下拉框元素不存在');
+            return;
+        }
+        
         const categoriesUrl = 'http://localhost:5000/api/v1/categories';
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         
-        console.log('正在获取分类列表...', { url: categoriesUrl, hasToken: !!token });
+        console.log('正在加载分类列表...', { url: categoriesUrl, hasToken: !!token });
         
         const response = await fetch(categoriesUrl, {
             method: 'GET',
@@ -1502,42 +1516,66 @@ async function getDefaultCategoryId() {
             const errorText = await response.text();
             console.error('分类API请求失败:', response.status, errorText);
             
-            // 提供更详细的错误信息
-            if (response.status === 0 || response.status === 500 || response.status === 503) {
-                throw new Error(`无法连接到后端服务器。请确保：1) 后端服务器正在运行 (http://localhost:5000) 2) 检查浏览器控制台的网络错误`);
+            // 显示错误信息
+            if (elements.categoryError) {
+                elements.categoryError.textContent = '加载分类失败，请刷新页面重试';
+                elements.categoryError.style.display = 'block';
             }
-            
-            throw new Error(`获取分类失败: HTTP ${response.status} ${response.statusText}`);
+            return;
         }
         
         const data = await response.json();
         console.log('分类API响应数据:', data);
         
+        // 清空现有选项（保留"请选择分类..."选项）
+        categorySelect.innerHTML = '<option value="">请选择分类...</option>';
+        
         if (data.success && data.data && Array.isArray(data.data)) {
             if (data.data.length > 0) {
-                // 返回第一个分类的ID
-                const categoryId = data.data[0]._id || data.data[0].id;
-                console.log('找到分类ID:', categoryId);
-                return categoryId;
+                // 添加分类选项到下拉框
+                data.data.forEach(category => {
+                    const option = document.createElement('option');
+                    // Category模型的id字段是数字类型
+                    option.value = category.id || category._id || '';
+                    option.textContent = category.name || '未命名分类';
+                    if (option.value) {
+                        categorySelect.appendChild(option);
+                    }
+                });
+                
+                console.log(`成功加载 ${data.data.length} 个分类`);
+                
+                // 清除错误信息
+                if (elements.categoryError) {
+                    elements.categoryError.textContent = '';
+                    elements.categoryError.style.display = 'none';
+                }
             } else {
                 console.warn('分类列表为空，数据库中没有任何分类');
-                // 分类列表为空，返回null，让调用者处理
-                return null;
+                if (elements.categoryError) {
+                    elements.categoryError.textContent = '数据库中暂无分类，请联系管理员创建分类';
+                    elements.categoryError.style.display = 'block';
+                }
             }
         } else {
             console.error('分类API响应格式错误:', data);
-            throw new Error('分类API响应格式错误: 期望 { success: true, data: [] }');
+            if (elements.categoryError) {
+                elements.categoryError.textContent = '分类数据格式错误';
+                elements.categoryError.style.display = 'block';
+            }
         }
     } catch (error) {
-        console.error('获取分类失败:', error);
+        console.error('加载分类列表失败:', error);
         
-        // 如果是网络错误，提供更友好的提示
-        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-            throw new Error('无法连接到后端服务器。请检查：\n1. 后端服务器是否在运行 (http://localhost:5000)\n2. 网络连接是否正常\n3. 查看浏览器控制台的网络错误详情');
+        // 显示错误信息
+        if (elements.categoryError) {
+            if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                elements.categoryError.textContent = '无法连接到后端服务器，请检查网络连接';
+            } else {
+                elements.categoryError.textContent = '加载分类失败：' + error.message;
+            }
+            elements.categoryError.style.display = 'block';
         }
-        
-        // 重新抛出错误，让调用者处理
-        throw error;
     }
 }
 
@@ -1547,12 +1585,20 @@ async function getDefaultCategoryId() {
 // 准备保存到后端的数据格式
 function prepareSaveData(storyData, categoryId) {
     // 转换为后端需要的格式（只发送后端API需要的字段）
+    // 确保categoryId是数字类型
+    const categoryIdNum = parseInt(categoryId, 10);
+    if (isNaN(categoryIdNum)) {
+        throw new Error('无效的分类ID');
+    }
+    
     const saveData = {
         title: storyData.title,
         description: storyData.description,
-        categoryId: categoryId,
+        categoryId: categoryIdNum,  // 确保是数字类型
         coverImage: storyData.coverImage || undefined  // 后端使用coverImage，不是cover_image
     };
+    
+    console.log('准备保存的故事数据:', saveData);
     
     // 注意：后端会自动创建根节点，不需要在这里发送nodes/branches/characters
     // 这些数据应该在创建故事后通过其他API单独保存

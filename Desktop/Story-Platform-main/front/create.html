@@ -141,6 +141,18 @@
                             <div class="error-message" id="descriptionError"></div>
                         </div>
                         <div class="form-group">
+                            <label for="storyCategory">故事分类 <span class="required">*</span></label>
+                            <select 
+                                id="storyCategory" 
+                                class="form-control"
+                                required
+                            >
+                                <option value="">请选择分类...</option>
+                            </select>
+                            <div class="form-hint">选择故事所属的分类</div>
+                            <div class="error-message" id="categoryError"></div>
+                        </div>
+                        <div class="form-group">
                             <label for="coverImage">封面图片</label>
                             <input 
                                 type="file" 
