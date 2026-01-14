@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="page-title">故事阅读器 - StoryForge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/navbar.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6366f1',
+            secondary: '#ec4899',
+            dark: '#1e293b',
+            light: '#f8fafc'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['Playfair Display', 'serif'],
+            serif: ['Georgia', 'Cambria', 'serif']
+          },
+        },
+      }
+    }
+  </script>
+  <style type="tailwindcss">
+    @layer utilities {
+      .text-shadow { text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+      .animate-fade-in { animation: fadeIn 0.6s ease-in-out; }
+      .animate-slide-up { animation: slideUp 0.4s ease-out; }
+      .choice-card { transition: all 0.3s ease; }
+      .choice-card:hover { transform: translateY(-2px); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
+  <!-- 导航栏 -->
+  <nav class="sticky top-0 z-50 bg-white/98 backdrop-blur-md border-b border-slate-200 shadow-sm">
+    <div class="container mx-auto px-4 py-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <a href="index.html" class="flex items-center space-x-2">
+          <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+            <i class="fa fa-book text-white text-lg"></i>
+          </div>
+          <h1 class="text-xl md:text-2xl font-display font-bold text-gray-900">StoryForge</h1>
+          </a>
+        </div>
+        
+        <nav class="hidden md:flex items-center space-x-8" id="main-nav-desktop">
+          <a href="index.html" class="text-slate-600 hover:text-primary font-medium transition-colors">首页</a>
+          <a href="browse.html" class="text-slate-600 hover:text-primary font-medium transition-colors">故事阅览</a>
+          <a href="create.html" class="text-slate-600 hover:text-primary font-medium transition-colors user-only" style="display: none;">创建故事</a>
+          <a href="my_stories.html" class="text-slate-600 hover:text-primary font-medium transition-colors user-only" style="display: none;">我的作品</a>
+          <a href="review.html" class="text-slate-600 hover:text-primary font-medium transition-colors admin-only" style="display: none;">故事审核</a>
+          <a href="profile.html" class="text-slate-600 hover:text-primary font-medium transition-colors">个人中心</a>
+        </nav>
+        
+        <!-- 认证区域 -->
+        <div id="auth-area-desktop" class="hidden md:flex items-center space-x-3"></div>
+        
+        <!-- 阅读器控制按钮 -->
+        <div class="flex items-center space-x-2">
+          <button id="back-btn" title="返回" aria-label="返回" class="p-2 rounded-full border border-slate-200 text-slate-600 hover:border-primary hover:text-primary transition-colors">
+            <i class="fa fa-arrow-left"></i>
+          </button>
+          <button id="font-size-btn" title="字体大小" aria-label="字体大小" class="p-2 rounded-full border border-slate-200 text-slate-600 hover:border-primary hover:text-primary transition-colors">
+            <i class="fa fa-font"></i>
+          </button>
+          <button id="theme-btn" title="主题切换" aria-label="主题切换" class="hidden p-2 rounded-full border border-slate-200 text-slate-600 hover:border-primary hover:text-primary transition-colors">
+            <i class="fa fa-adjust"></i>
+          </button>
+          
+          <!-- 移动端菜单按钮 -->
+          <button id="mobile-menu-button" aria-label="菜单" class="md:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors">
+              <i class="fa fa-bars text-slate-600 text-xl"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 移动端菜单 -->
+    <div class="md:hidden hidden bg-white/95 backdrop-blur-md border-t border-slate-200" id="mobile-menu">
+      <div class="container mx-auto px-4 py-4 space-y-3">
+        <a href="index.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">首页</a>
+        <a href="browse.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">故事阅览</a>
+        <a href="create.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary user-only" style="display: none;">创建故事</a>
+        <a href="my_stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary user-only" style="display: none;">我的作品</a>
+        <a href="review.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary admin-only" style="display: none;">故事审核</a>
+        <a href="profile.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">个人中心</a>
+        <div class="flex flex-col space-y-3 pt-3 border-t border-slate-200">
+          <div id="auth-area-mobile">
+            <!-- AuthUI会动态渲染移动端登录状态或用户信息 -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 主要内容区域 -->
+  <main class="container mx-auto max-w-4xl px-4 py-8">
+    <!-- 故事信息头部 -->
+    <header class="bg-white rounded-2xl shadow-sm p-6 mb-8 animate-fade-in">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+        <div class="flex-1">
+          <h1 id="story-title" class="text-2xl md:text-3xl font-display font-bold mb-3">加载中...</h1>
+          
+          <!-- 故事元信息 -->
+          <div id="story-meta" class="flex flex-wrap items-center gap-4 text-sm text-slate-600 mb-3">
+            <span id="author-info" class="flex items-center gap-2">
+              <i class="fa fa-user"></i>
+              <span>加载中...</span>
+            </span>
+            <span id="category-info" class="flex items-center gap-2">
+              <i class="fa fa-tag"></i>
+              <span>加载中...</span>
+            </span>
+            <span id="created-time" class="flex items-center gap-2">
+              <i class="fa fa-calendar"></i>
+              <span>加载中...</span>
+            </span>
+          </div>
+          
+          <!-- 节点和阅读时间信息 -->
+          <div class="flex items-center gap-4 text-sm text-slate-500">
+            <span id="node-info" class="flex items-center gap-1">
+              <i class="fa fa-code-fork"></i>
+              <span>节点 1</span>
+            </span>
+            <span id="reading-time" class="flex items-center gap-1">
+              <i class="fa fa-clock-o"></i>
+              <span>约1分钟阅读</span>
+            </span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="bookmark-btn" title="收藏" aria-label="收藏" class="p-2 rounded-full border border-slate-200 text-slate-600 hover:border-primary hover:text-primary transition-colors">
+            <i class="fa fa-bookmark-o"></i>
+          </button>
+          <button id="share-btn" title="分享" aria-label="分享" class="p-2 rounded-full border border-slate-200 text-slate-600 hover:border-primary hover:text-primary transition-colors">
+            <i class="fa fa-share-alt"></i>
+          </button>
+        </div>
+      </div>
+      
+      <!-- 进度条 -->
+      <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div id="progress-bar" class="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-500" style="width: 0%"></div>
+      </div>
+    </header>
+
+    <!-- 故事内容区域 -->
+    <section class="bg-white rounded-2xl shadow-sm p-6 md:p-8 mb-8 animate-slide-up">
+      <article id="story-content" class="font-serif text-lg leading-relaxed">
+        <div class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span class="ml-3 text-slate-600">正在加载故事内容...</span>
+        </div>
+      </article>
+    </section>
+
+    <!-- 选择区域 -->
+    <section id="choices-section" class="bg-white rounded-2xl shadow-sm p-6 md:p-8 mb-8 hidden animate-slide-up">
+      <h2 class="text-xl font-bold mb-6 text-center">你会如何选择？</h2>
+      <div id="choices-container" class="space-y-4">
+        <!-- 选择按钮将动态生成 -->
+      </div>
+    </section>
+
+    <!-- 导航区域 -->
+    <nav id="navigation-section" class="bg-white rounded-2xl shadow-sm p-6 mb-8 hidden animate-slide-up">
+      <div class="flex justify-between items-center">
+        <button id="prev-node-btn" class="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg hover:border-primary hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          <i class="fa fa-chevron-left"></i>
+          <span>返回上一节点</span>
+        </button>
+        
+        <div class="text-center">
+          <p class="text-sm text-slate-600 mb-2">阅读路径</p>
+          <div id="path-indicator" class="flex items-center justify-center gap-2">
+            <!-- 路径指示器将动态生成 -->
+          </div>
+        </div>
+        
+        <button id="restart-btn" class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+          <i class="fa fa-refresh"></i>
+          <span>重新开始</span>
+        </button>
+      </div>
+    </nav>
+  </main>
+
+  <!-- 字体大小选择器 -->
+  <div id="font-size-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center">
+    <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4">
+      <h3 class="text-lg font-bold mb-4">字体大小</h3>
+      <div class="space-y-2">
+        <button class="w-full p-3 text-left rounded-lg hover:bg-slate-50 transition-colors" data-size="small">
+          <span class="text-sm">小号字体</span>
+        </button>
+        <button class="w-full p-3 text-left rounded-lg hover:bg-slate-50 transition-colors border border-primary" data-size="medium">
+          <span class="text-base">中号字体（默认）</span>
+        </button>
+        <button class="w-full p-3 text-left rounded-lg hover:bg-slate-50 transition-colors" data-size="large">
+          <span class="text-lg">大号字体</span>
+        </button>
+      </div>
+      <button id="close-font-modal" class="mt-4 w-full p-3 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">
+        关闭
+      </button>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="assets/js/auth.js"></script>
+  <script>
+    // 初始化AuthUI
+    AuthUI.init();
+
+    // 移动端菜单功能
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (mobileMenuButton && mobileMenu) {
+      mobileMenuButton.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+      });
+    }
+
+    // 全局变量
+    let currentStory = null;
+    let currentNode = null;
+    let readingHistory = [];
+    let fontSize = 'medium';
+    let isDarkMode = false;
+
+    // 工具函数
+    function getUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        storyId: params.get('storyId') || params.get('id'), // 支持storyId和id两种参数
+        nodeId: params.get('node') || 'root'
+      };
+    }
+
+    function updateUrl(storyId, nodeId) {
+      const url = new URL(window.location);
+      url.searchParams.set('id', storyId);
+      url.searchParams.set('node', nodeId);
+      window.history.pushState({}, '', url);
+    }
+
+    function showNotification(message, type = 'info') {
+      const notification = document.createElement('div');
+      notification.className = `fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center transition-all duration-300 transform translate-y-10 opacity-0`;
+
+      if (type === 'success') {
+        notification.classList.add('bg-green-50', 'border', 'border-green-200', 'text-green-700');
+        notification.innerHTML = `<i class="fa fa-check-circle mr-2"></i>${message}`;
+      } else if (type === 'error') {
+        notification.classList.add('bg-red-50', 'border', 'border-red-200', 'text-red-700');
+        notification.innerHTML = `<i class="fa fa-exclamation-circle mr-2"></i>${message}`;
+      } else {
+        notification.classList.add('bg-blue-50', 'border', 'border-blue-200', 'text-blue-700');
+        notification.innerHTML = `<i class="fa fa-info-circle mr-2"></i>${message}`;
+      }
+
+      document.body.appendChild(notification);
+      setTimeout(() => notification.classList.remove('translate-y-10', 'opacity-0'), 10);
+      setTimeout(() => {
+        notification.classList.add('translate-y-10', 'opacity-0');
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
+    }
+
+    // API调用函数
+    async function loadStoryData(storyId) {
+      try {
+        const response = await fetch(`http://localhost:5000/api/v1/stories/${storyId}`);
+        if (!response.ok) {
+          throw new Error('故事不存在');
+        }
+        const data = await response.json();
+        if (data.success && data.data) {
+          currentStory = data.data;
+          
+          // 更新页面标题和故事信息
+          const storyTitle = currentStory.title || '故事';
+          document.getElementById('page-title').textContent = `${storyTitle} - StoryForge`;
+          
+          // 更新故事头部信息
+          updateStoryHeader(currentStory);
+          
+          // 如果有节点数据，计算总节点数
+          if (currentStory.nodes && Array.isArray(currentStory.nodes)) {
+            currentStory.totalNodes = currentStory.nodes.length;
+          }
+          
+          return currentStory;
+        }
+        return null;
+      } catch (error) {
+        console.error('加载故事数据失败:', error);
+        showNotification('加载故事失败: ' + error.message, 'error');
+        return null;
+      }
+    }
+    
+    // 更新故事头部信息
+    function updateStoryHeader(story) {
+      // 更新作者信息
+      const authorInfo = document.getElementById('author-info');
+      if (authorInfo) {
+        const authorName = story.author?.username || story.author?.name || '未知作者';
+        authorInfo.innerHTML = `
+          <i class="fa fa-user"></i>
+          <span>${escapeHtml(authorName)}</span>
+        `;
+      }
+      
+      // 更新分类信息
+      const categoryInfo = document.getElementById('category-info');
+      if (categoryInfo) {
+        const categoryName = story.category?.name || '未分类';
+        categoryInfo.innerHTML = `
+          <i class="fa fa-tag"></i>
+          <span>${escapeHtml(categoryName)}</span>
+        `;
+      }
+      
+      // 更新创作时间
+      const createdTime = document.getElementById('created-time');
+      if (createdTime && story.createdAt) {
+        const date = new Date(story.createdAt);
+        const formattedDate = date.toLocaleDateString('zh-CN', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+        createdTime.innerHTML = `
+          <i class="fa fa-calendar"></i>
+          <span>${formattedDate}</span>
+        `;
+      }
+    }
+
+    async function loadStoryNodes(storyId) {
+      try {
+        console.log('🔍 开始加载故事节点，storyId:', storyId);
+        const url = `http://localhost:5000/api/v1/storyNodes/public/stories/${storyId}/nodes`;
+        console.log('🔍 请求URL:', url);
+        
+        // 尝试获取token（如果用户已登录）
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const headers = {
+          'Content-Type': 'application/json'
+        };
+        if (token) {
+          // 确保token不包含Bearer前缀
+          const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
+          headers['Authorization'] = `Bearer ${cleanToken}`;
+        }
+        
+        const response = await fetch(url, {
+          headers: headers
+        });
+        console.log('🔍 响应状态:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('🔍 响应错误:', errorText);
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+          } catch (e) {
+            errorData = { message: '无法加载故事节点' };
+          }
+          throw new Error(errorData.message || '无法加载故事节点');
+        }
+        
+        const result = await response.json();
+        console.log('🔍 响应数据:', result);
+        
+        if (result.success) {
+          return result.data;
+        } else {
+          throw new Error(result.message || '加载节点失败');
+        }
+      } catch (error) {
+        console.error('加载故事节点失败:', error);
+        showNotification('加载故事节点失败', 'error');
+        return [];
+      }
+    }
+
+    // 节点加载和渲染
+    async function loadNode(storyId, nodeId) {
+      try {
+        // 显示加载状态
+        const contentEl = document.getElementById('story-content');
+        contentEl.innerHTML = `
+          <div class="flex items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span class="ml-3 text-slate-600">正在加载节点内容...</span>
+          </div>
+        `;
+        
+        // 加载所有节点数据（包含分支信息）
+        const nodes = await loadStoryNodes(storyId);
+        if (!nodes || nodes.length === 0) {
+          throw new Error('没有找到故事节点');
+        }
+
+        console.log('加载的节点数据:', nodes);
+        console.log('查找节点ID:', nodeId);
+
+        // 查找当前节点
+        let targetNode = null;
+        if (nodeId === 'root' || nodeId === null || nodeId === undefined) {
+          // 查找根节点（使用isRoot字段）
+          targetNode = nodes.find(node => node.isRoot === true || node.isRoot === 1);
+          if (!targetNode) {
+            // 如果没有isRoot字段，查找parentId为null的节点
+          targetNode = nodes.find(node => !node.parentId);
+          }
+          if (!targetNode) {
+            // 如果还是没有找到，使用第一个节点作为根节点
+            targetNode = nodes[0];
+          }
+        } else {
+          // 查找指定ID的节点
+          targetNode = nodes.find(node => 
+            node.id === nodeId || 
+            node._id === nodeId || 
+            node.temporaryId === nodeId ||
+            String(node.id) === String(nodeId)
+          );
+        }
+
+        if (!targetNode) {
+          throw new Error('节点不存在');
+        }
+
+        console.log('找到目标节点:', targetNode);
+
+        // 更新当前节点
+        currentNode = targetNode;
+        
+        // 添加到阅读历史（避免重复添加）
+        const existingHistory = readingHistory.find(h => 
+          h.nodeId === targetNode.id || 
+          h.nodeId === targetNode._id ||
+          h.nodeId === targetNode.temporaryId
+        );
+        
+        if (!existingHistory) {
+          readingHistory.push({
+            nodeId: targetNode.id || targetNode._id || targetNode.temporaryId,
+            title: targetNode.title,
+            timestamp: new Date()
+          });
+        } else {
+          // 如果已存在，移除之后的所有历史记录（实现返回功能）
+          const index = readingHistory.findIndex(h => 
+            h.nodeId === targetNode.id || 
+            h.nodeId === targetNode._id ||
+            h.nodeId === targetNode.temporaryId
+          );
+          if (index !== -1 && index < readingHistory.length - 1) {
+            readingHistory = readingHistory.slice(0, index + 1);
+          }
+        }
+
+        // 更新URL
+        updateUrl(storyId, targetNode.id || targetNode._id || targetNode.temporaryId);
+        
+        // 渲染节点内容
+        renderNode(targetNode);
+        
+        // 更新导航
+        updateNavigation();
+        
+        // 更新进度
+        updateProgress();
+
+      } catch (error) {
+        console.error('加载节点失败:', error);
+        showNotification('加载节点失败: ' + error.message, 'error');
+        const contentEl = document.getElementById('story-content');
+        contentEl.innerHTML = `
+          <div class="text-center py-12">
+            <i class="fa fa-exclamation-circle text-4xl text-red-500 mb-4"></i>
+            <p class="text-red-600 mb-2">加载节点失败</p>
+            <p class="text-sm text-slate-500">${error.message}</p>
+            <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+              重新加载
+            </button>
+          </div>
+        `;
+      }
+    }
+
+    // 渲染节点内容
+    function renderNode(node) {
+      // 更新页面标题
+      const nodeTitle = node.title || '未命名节点';
+      document.getElementById('page-title').textContent = `${nodeTitle} - StoryForge`;
+      document.getElementById('story-title').textContent = nodeTitle;
+      
+      // 更新节点信息
+      document.getElementById('node-info').innerHTML = `
+        <i class="fa fa-code-fork"></i>
+        <span>节点 ${node.order || readingHistory.length || 1}</span>
+      `;
+      
+      // 计算阅读时间（假设每分钟200字）
+      const contentLength = node.content ? node.content.length : 0;
+      const readingMinutes = Math.max(1, Math.ceil(contentLength / 200));
+      document.getElementById('reading-time').innerHTML = `
+        <i class="fa fa-clock-o"></i>
+        <span>约${readingMinutes}分钟阅读</span>
+      `;
+      
+      // 更新内容
+      const contentEl = document.getElementById('story-content');
+      if (node.content && node.content.trim()) {
+        // 处理内容，支持换行和段落
+        const contentHtml = node.content
+          .split('\n')
+          .filter(line => line.trim())
+          .map(line => `<p class="mb-6 leading-relaxed">${escapeHtml(line)}</p>`)
+          .join('');
+        
+      contentEl.innerHTML = `
+        <div class="prose prose-lg max-w-none">
+            ${contentHtml}
+          </div>
+        `;
+      } else {
+        contentEl.innerHTML = `
+          <div class="text-center py-12 text-slate-500">
+            <i class="fa fa-file-text-o text-4xl mb-4"></i>
+            <p>暂无内容</p>
+        </div>
+      `;
+      }
+      
+      // 渲染选择（分支）
+      renderChoices(node);
+      
+      // 处理结束节点
+      if (node.type === 'end' || (!node.choices || node.choices.length === 0)) {
+        // 如果是结束节点或没有选择，显示结束提示
+        const choicesSection = document.getElementById('choices-section');
+        choicesSection.classList.add('hidden');
+        
+        // 显示结束提示
+        if (node.type === 'end') {
+          contentEl.innerHTML += `
+            <div class="mt-8 p-6 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl border border-primary/20 text-center">
+              <i class="fa fa-flag-checkered text-3xl text-primary mb-3"></i>
+              <h3 class="text-xl font-bold text-gray-900 mb-2">故事结束</h3>
+              <p class="text-slate-600 mb-4">感谢阅读这个故事！</p>
+            </div>
+          `;
+        }
+      }
+      
+      // 应用字体大小
+      applyFontSize();
+    }
+    
+    // HTML转义函数
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // 渲染选择按钮
+    function renderChoices(node) {
+      const choicesSection = document.getElementById('choices-section');
+      const choicesContainer = document.getElementById('choices-container');
+      
+      // 检查是否有选择项
+      const choices = node.choices || [];
+      
+      if (choices.length === 0 || node.type === 'end') {
+        choicesSection.classList.add('hidden');
+        return;
+      }
+      
+      choicesSection.classList.remove('hidden');
+      choicesContainer.innerHTML = '';
+      
+      choices.forEach((choice, index) => {
+        const choiceCard = document.createElement('div');
+        choiceCard.className = 'choice-card p-6 bg-slate-50 rounded-xl border-2 border-slate-200 hover:border-primary hover:bg-primary/5 cursor-pointer transition-all';
+        
+        const choiceText = choice.text || choice.context || '继续';
+        const targetNodeId = choice.targetNodeId || choice.target_node_id;
+        
+        choiceCard.innerHTML = `
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-primary to-secondary text-white rounded-full flex items-center justify-center font-bold text-lg shadow-md">
+              ${String.fromCharCode(65 + index)}
+            </div>
+            <div class="flex-1">
+              <h3 class="font-bold text-lg mb-2 text-gray-900">${escapeHtml(choiceText)}</h3>
+              ${choice.description ? `<p class="text-slate-600 text-sm">${escapeHtml(choice.description)}</p>` : ''}
+              ${choice.targetNode && choice.targetNode.title ? `<p class="text-xs text-slate-500 mt-2">→ ${escapeHtml(choice.targetNode.title)}</p>` : ''}
+            </div>
+            <div class="flex-shrink-0 pt-1">
+              <i class="fa fa-chevron-right text-slate-400 text-xl"></i>
+            </div>
+          </div>
+        `;
+        
+        choiceCard.addEventListener('click', () => {
+          if (targetNodeId) {
+            choiceCard.classList.add('opacity-75');
+            handleChoice(choice, node);
+          } else {
+            showNotification('该选择暂无后续内容', 'info');
+          }
+        });
+        
+        choicesContainer.appendChild(choiceCard);
+      });
+    }
+
+    // 处理选择
+    async function handleChoice(choice, currentNode) {
+      const targetNodeId = choice.targetNodeId || choice.target_node_id;
+      
+      if (!targetNodeId) {
+        showNotification('该选择暂无后续内容', 'info');
+        return;
+      }
+      
+      console.log('处理选择:', choice);
+      console.log('当前节点:', currentNode);
+      console.log('目标节点ID:', targetNodeId);
+      
+      const params = getUrlParams();
+      
+      // 显示加载提示
+      showNotification('正在加载下一个节点...', 'info');
+      
+      // 滚动到顶部，提供更好的用户体验
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // 加载目标节点
+      await loadNode(params.storyId, targetNodeId);
+    }
+
+    // 更新导航
+    function updateNavigation() {
+      const navSection = document.getElementById('navigation-section');
+      const prevBtn = document.getElementById('prev-node-btn');
+      const pathIndicator = document.getElementById('path-indicator');
+      
+      // 只有在不是根节点时才显示导航
+      if (readingHistory.length > 1) {
+      navSection.classList.remove('hidden');
+      } else {
+        navSection.classList.add('hidden');
+      }
+      
+      // 更新返回按钮状态
+      if (readingHistory.length <= 1) {
+        prevBtn.disabled = true;
+        prevBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      } else {
+        prevBtn.disabled = false;
+        prevBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        prevBtn.onclick = () => {
+          // 从阅读历史中移除当前节点，返回到上一个节点
+          readingHistory.pop(); // 移除当前节点
+          const prevNode = readingHistory[readingHistory.length - 1];
+          if (prevNode) {
+          const params = getUrlParams();
+          loadNode(params.storyId, prevNode.nodeId);
+          }
+        };
+      }
+      
+      // 更新路径指示器（最多显示5个节点）
+      const displayHistory = readingHistory.slice(-5);
+      pathIndicator.innerHTML = displayHistory.map((item, index) => {
+        const actualIndex = readingHistory.length - displayHistory.length + index;
+        const isLast = actualIndex === readingHistory.length - 1;
+        const displayTitle = item.title && item.title.length > 10 
+          ? item.title.substring(0, 10) + '...' 
+          : item.title || '节点';
+        
+        return `
+          <div class="flex items-center gap-1" title="${escapeHtml(item.title || '节点')}">
+            <div class="w-2 h-2 rounded-full ${isLast ? 'bg-primary ring-2 ring-primary/30' : 'bg-slate-300'} transition-all"></div>
+            ${index < displayHistory.length - 1 ? '<i class="fa fa-chevron-right text-xs text-slate-400"></i>' : ''}
+        </div>
+        `;
+      }).join('');
+    }
+
+    // 更新进度
+    function updateProgress() {
+      const progressBar = document.getElementById('progress-bar');
+      
+      // 如果有当前故事数据，使用总节点数计算进度
+      if (currentStory && currentStory.totalNodes) {
+        const progress = Math.min((readingHistory.length / currentStory.totalNodes) * 100, 100);
+        progressBar.style.width = `${progress}%`;
+      } else {
+        // 否则根据阅读历史长度估算（假设平均故事有10个节点）
+        const estimatedTotalNodes = 10;
+        const progress = Math.min((readingHistory.length / estimatedTotalNodes) * 100, 100);
+      progressBar.style.width = `${progress}%`;
+      }
+    }
+
+    // 字体大小管理
+    function applyFontSize() {
+      const contentEl = document.getElementById('story-content');
+      contentEl.classList.remove('text-base', 'text-lg', 'text-xl');
+      
+      switch (fontSize) {
+        case 'small':
+          contentEl.classList.add('text-base');
+          break;
+        case 'medium':
+          contentEl.classList.add('text-lg');
+          break;
+        case 'large':
+          contentEl.classList.add('text-xl');
+          break;
+      }
+    }
+
+    // 事件监听器
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 初始化AuthUI
+      if (typeof AuthUI !== 'undefined') {
+        AuthUI.init({
+          desktopContainer: 'auth-area-desktop',
+          mobileContainer: 'auth-area-mobile',
+          showAvatar: true,
+          showName: true,
+          avatarSize: 'medium'
+        });
+      }
+      
+      // 根据用户角色更新导航栏
+      if (typeof updateNavigationByRole === 'function') {
+        setTimeout(updateNavigationByRole, 300);
+      }
+      
+      // 初始化
+      const params = getUrlParams();
+      if (!params.storyId) {
+        showNotification('缺少故事ID', 'error');
+        const contentEl = document.getElementById('story-content');
+        contentEl.innerHTML = `
+          <div class="text-center py-12">
+            <i class="fa fa-exclamation-circle text-4xl text-red-500 mb-4"></i>
+            <p class="text-red-600 mb-2">缺少故事ID</p>
+            <p class="text-sm text-slate-500 mb-4">请在URL中包含故事ID参数</p>
+            <a href="browse.html" class="inline-block px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+              返回故事列表
+            </a>
+          </div>
+        `;
+        return;
+      }
+      
+      // 先加载故事基本信息
+      await loadStoryData(params.storyId);
+      
+      // 然后加载节点
+      await loadNode(params.storyId, params.nodeId || 'root');
+      
+      // 返回按钮
+      document.getElementById('back-btn').addEventListener('click', () => {
+        window.history.back();
+      });
+      
+      // 字体大小按钮
+      document.getElementById('font-size-btn').addEventListener('click', () => {
+        document.getElementById('font-size-modal').classList.remove('hidden');
+      });
+      
+      // 字体大小选择
+      document.querySelectorAll('[data-size]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          fontSize = btn.dataset.size;
+          applyFontSize();
+          
+          // 更新按钮状态
+          document.querySelectorAll('[data-size]').forEach(b => {
+            b.classList.remove('border', 'border-primary');
+          });
+          btn.classList.add('border', 'border-primary');
+          
+          document.getElementById('font-size-modal').classList.add('hidden');
+        });
+      });
+      
+      // 关闭字体模态框
+      document.getElementById('close-font-modal').addEventListener('click', () => {
+        document.getElementById('font-size-modal').classList.add('hidden');
+      });
+      
+      // 主题切换
+      document.getElementById('theme-btn').addEventListener('click', () => {
+        isDarkMode = !isDarkMode;
+        document.body.classList.toggle('dark');
+        showNotification(isDarkMode ? '已切换到深色模式' : '已切换到浅色模式', 'info');
+      });
+      
+      // 重新开始
+      document.getElementById('restart-btn').addEventListener('click', () => {
+        if (confirm('确定要重新开始阅读吗？这将清除当前的阅读进度。')) {
+        readingHistory = [];
+        const params = getUrlParams();
+        loadNode(params.storyId, 'root');
+          showNotification('已重新开始', 'info');
+        }
+      });
+      
+      // 收藏按钮
+      document.getElementById('bookmark-btn').addEventListener('click', () => {
+        const icon = document.querySelector('#bookmark-btn i');
+        if (icon.classList.contains('fa-bookmark-o')) {
+          icon.classList.remove('fa-bookmark-o');
+          icon.classList.add('fa-bookmark');
+          showNotification('已添加书签', 'success');
+        } else {
+          icon.classList.remove('fa-bookmark');
+          icon.classList.add('fa-bookmark-o');
+          showNotification('已移除书签', 'info');
+        }
+      });
+      
+      // 分享按钮
+      document.getElementById('share-btn').addEventListener('click', () => {
+        const url = window.location.href;
+        if (navigator.share) {
+          navigator.share({
+            title: currentNode.title,
+            text: '来阅读这个精彩的故事！',
+            url: url
+          });
+        } else {
+          navigator.clipboard.writeText(url);
+          showNotification('链接已复制到剪贴板', 'success');
+        }
+      });
+      
+      // 浏览器后退/前进
+      window.addEventListener('popstate', () => {
+        const params = getUrlParams();
+        loadNode(params.storyId, params.nodeId);
+      });
+    });
+  </script>
+</body>
+</html>

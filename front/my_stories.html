@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的作品 - StoryForge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#ec4899',
+                        progress: '#10b981'
+                    },
+                },
+            }
+        }
+    </script>
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+          .backdrop-blur {
+            backdrop-filter: blur(8px);
+          }
+          .navbar-modern {
+            background: rgba(255,255,255,0.98);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+          }
+          .navbar-link {
+            transition: color 0.2s ease;
+          }
+          .btn-primary-modern {
+            background: #6366f1;
+            transition: background-color 0.2s ease;
+          }
+          .btn-primary-modern:hover {
+            background: #5558e3;
+          }
+          .btn-secondary-modern {
+            background: transparent;
+            border: 1px solid #e5e7eb;
+            color: #6b7280;
+            transition: all 0.2s ease;
+          }
+          .btn-secondary-modern:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+          }
+        }
+      </style>
+</head>
+
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    <!-- 导航栏 -->
+    <nav class="navbar-modern">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+                        <i class="fa fa-book text-white text-lg"></i>
+                    </div>
+                    <h1 class="text-xl md:text-2xl font-display font-bold text-gray-900">StoryForge</h1>
+                </div>
+                
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="index.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">首页</a>
+                    <a href="browse.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">故事阅览</a>
+                    <a href="create.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">创建故事</a>
+                    <a href="my_stories.html" class="navbar-link active font-medium text-primary">我的作品</a>
+                    <a href="profile.html" class="navbar-link font-medium text-gray-600 hover:text-primary transition-colors">个人中心</a>
+                </div>
+                
+                <div class="flex items-center space-x-4" id="auth-buttons">
+                    <button class="btn-secondary-modern px-4 py-2 rounded-full text-primary font-medium">
+                        <a href="login.html" class="block w-full h-full">登录</a>
+                    </button>
+                    <button class="btn-primary-modern px-4 py-2 rounded-full text-white font-medium">
+                        <a href="register.html" class="block w-full h-full">注册</a>
+                    </button>
+                    <div class="flex items-center space-x-4 md:hidden">
+                        <button id="mobile-menu-button" class="text-xl">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 用户信息区域（默认隐藏） -->
+                <div class="flex items-center space-x-4 hidden" id="user-info">
+                    <div class="flex items-center space-x-3">
+                        <img id="user-avatar" src="" alt="用户头像" class="w-8 h-8 rounded-full">
+                        <div class="hidden md:block">
+                            <p id="user-name" class="text-sm font-medium text-gray-900"></p>
+                            <p id="user-email" class="text-xs text-gray-500"></p>
+                        </div>
+                    </div>
+                    <button id="logout-btn" class="btn-secondary-modern px-4 py-2 rounded-full text-primary font-medium">
+                        退出
+                    </button>
+                    <div class="flex items-center space-x-4 md:hidden">
+                        <button id="mobile-menu-button" class="text-xl">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 移动端菜单 -->
+        <div class="md:hidden hidden bg-white/95 backdrop-blur border-t border-gray-200" id="mobile-menu">
+            <div class="container mx-auto px-4 py-3 space-y-2">
+                <a href="index.html" class="navbar-link block py-2 text-gray-600 hover:text-primary transition-colors">首页</a>
+                <a href="browse.html" class="navbar-link block py-2 text-gray-600 hover:text-primary transition-colors">故事阅览</a>
+                <a href="create.html" class="navbar-link block py-2 text-gray-600 hover:text-primary transition-colors">创建故事</a>
+                <a href="my_stories.html" class="navbar-link active block py-2 text-primary">我的作品</a>
+                <a href="profile.html" class="navbar-link block py-2 text-gray-600 hover:text-primary transition-colors">个人中心</a>
+                <div class="flex flex-col space-y-2 pt-2 border-t border-gray-200">
+                    <a href="login.html" class="block py-2 hover:text-primary transition-colors">登录</a>
+                    <a href="register.html" class="block py-2 hover:text-primary transition-colors">注册</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区 -->
+    <section class="pb-20 px-4">
+        <div class="container mx-auto max-w-6xl">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <h2 class="text-2xl md:text-3xl font-bold">我的作品库</h2>
+                <a href="create.html"
+                    class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center">
+                    <i class="fa fa-plus mr-2"></i> 新建故事
+                </a>
+            </div>
+
+            <!-- 筛选和搜索区域 -->
+            <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+                <div class="flex flex-col md:flex-row gap-4 mb-4">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">搜索作品</label>
+                        <div class="relative">
+                            <input type="text" id="searchInput" placeholder="输入故事标题或关键词..." 
+                                class="w-full px-4 py-2 pl-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none">
+                            <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                        </div>
+                    </div>
+                    <div class="md:w-48">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">分类筛选</label>
+                        <select id="categoryFilter" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none">
+                            <option value="">全部分类</option>
+                        </select>
+                    </div>
+                    <div class="md:w-48">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">状态筛选</label>
+                        <select id="statusFilter" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none">
+                            <option value="">全部状态</option>
+                            <option value="draft">草稿</option>
+                            <option value="pending">待审核</option>
+                            <option value="published">已发布</option>
+                            <option value="rejected">已拒绝</option>
+                        </select>
+                    </div>
+                    <div class="md:w-48">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">排序方式</label>
+                        <select id="sortFilter" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none">
+                            <option value="latest">最新发布</option>
+                            <option value="updated">最近更新</option>
+                            <option value="popular">最受欢迎</option>
+                            <option value="rating">评分最高</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="applyFilters()" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                            <i class="fa fa-filter mr-2"></i>筛选
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 故事统计 -->
+            <div class="mb-6">
+                <p class="text-slate-600">
+                    共找到 <span id="storyCount" class="font-semibold text-primary">0</span> 个作品
+                </p>
+            </div>
+
+            <!-- 作品列表容器 -->
+            <div id="stories-container">
+                <!-- 加载中状态 -->
+                <div id="loading-state" class="text-center py-12">
+                    <i class="fa fa-spinner fa-spin text-4xl text-primary mb-4"></i>
+                    <p class="text-slate-600">正在加载您的作品...</p>
+                </div>
+                
+                <!-- 空状态（默认隐藏） -->
+                <div id="empty-state" class="text-center py-12 hidden">
+                    <i class="fa fa-book text-6xl text-slate-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-slate-700 mb-2">还没有作品</h3>
+                    <p class="text-slate-500 mb-6">开始创建您的第一个互动故事吧！</p>
+                    <a href="create.html" class="inline-flex items-center px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                        <i class="fa fa-plus mr-2"></i> 创建第一个故事
+                    </a>
+                </div>
+                
+                <!-- 未登录状态（默认隐藏） -->
+                <div id="not-logged-in" class="text-center py-12 hidden">
+                    <i class="fa fa-lock text-6xl text-slate-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-slate-700 mb-2">请先登录</h3>
+                    <p class="text-slate-500 mb-6">登录后即可查看和管理您的作品</p>
+                    <div class="flex justify-center gap-4">
+                        <a href="login.html" class="inline-flex items-center px-6 py-3 bg-white text-primary border border-primary rounded-lg hover:bg-primary/5 transition-colors">
+                            登录
+                        </a>
+                        <a href="register.html" class="inline-flex items-center px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                            注册
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 分页 -->
+            <div id="paginationContainer" class="flex justify-center items-center space-x-2 mt-8">
+                <!-- 分页按钮将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="bg-slate-900 text-white py-12 px-4">
+        <div class="container mx-auto max-w-6xl">
+            <div class="border-t border-slate-800 pt-8 text-center text-slate-500 text-sm">
+                <p>&copy; 2023 StoryForge. 保留所有权利。</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="assets/js/auth.js"></script>
+    <script>
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('[my_stories] DOMContentLoaded 触发');
+            
+            // 检查AuthUI是否已加载
+            if (typeof AuthUI === 'undefined') {
+                console.error('[my_stories] AuthUI未定义，等待auth.js加载...');
+                // 等待一下再重试
+                setTimeout(() => {
+                    if (typeof AuthUI !== 'undefined') {
+                        console.log('[my_stories] AuthUI已加载，重新初始化');
+                        initializePage();
+                    } else {
+                        console.error('[my_stories] AuthUI仍未加载，请检查assets/js/auth.js文件');
+                    }
+                }, 500);
+                return;
+            }
+            
+            initializePage();
+        });
+        
+        async function initializePage() {
+            console.log('[my_stories] 开始初始化页面');
+            
+            // 初始化认证UI
+            if (typeof AuthUI.init === 'function') {
+                AuthUI.init();
+                console.log('[my_stories] AuthUI.init() 调用完成');
+            } else {
+                console.warn('[my_stories] AuthUI.init 不是函数');
+            }
+            
+            // 更新认证UI显示
+            const authState = AuthUI.getAuthState();
+            console.log('[my_stories] 获取到的认证状态:', authState);
+            updateAuthUI(authState);
+            
+            // 监听认证状态变化
+            document.addEventListener('authStateChanged', function(event) {
+                console.log('[my_stories] 认证状态变化事件:', event.detail);
+                const { isLoggedIn, userInfo } = event.detail;
+                
+                // 更新UI显示
+                updateAuthUI({ isLoggedIn, userInfo });
+                
+                // 如果用户已登录，重新加载故事数据
+                if (isLoggedIn) {
+                    console.log('[my_stories] 用户已登录，重新加载故事列表');
+                    loadUserStories(1);
+                }
+            });
+            
+            // AuthUI.getAuthState() 返回 { storage, userInfo, token } 或 null
+            // 检查用户是否已登录（有 authState 且 userInfo 存在）
+            if (authState && authState.userInfo) {
+                console.log('[my_stories] 用户已登录，开始加载故事列表');
+                console.log('[my_stories] 用户信息:', authState.userInfo);
+                
+                // 加载分类列表
+                await loadCategories();
+                
+                // 搜索框事件
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) {
+                    searchInput.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                            applyFilters();
+                        }
+                    });
+                }
+                
+                // 加载故事列表
+                await loadUserStories(1);
+            } else {
+                console.log('[my_stories] 用户未登录，显示未登录状态');
+                console.log('[my_stories] authState:', authState);
+                const loadingState = document.getElementById('loading-state');
+                const notLoggedInState = document.getElementById('not-logged-in');
+                if (loadingState) loadingState.classList.add('hidden');
+                if (notLoggedInState) notLoggedInState.classList.remove('hidden');
+            }
+        }
+
+        // 更新认证UI显示
+        function updateAuthUI(authState) {
+            const authButtons = document.getElementById('auth-buttons');
+            const userInfo = document.getElementById('user-info');
+            const userName = document.getElementById('user-name');
+            const userEmail = document.getElementById('user-email');
+            const userAvatar = document.getElementById('user-avatar');
+            const logoutBtn = document.getElementById('logout-btn');
+            
+            if (authState && authState.userInfo) {
+                // 显示用户信息（安全地检查元素是否存在）
+                if (authButtons) {
+                    authButtons.classList.add('hidden');
+                }
+                if (userInfo) {
+                    userInfo.classList.remove('hidden');
+                }
+                
+                if (userName) {
+                    userName.textContent = authState.userInfo.username || '用户';
+                }
+                if (userEmail) {
+                    userEmail.textContent = authState.userInfo.email || '';
+                }
+                
+                // 设置头像（优先使用默认头像）
+                const defaultAvatar = 'assets/img/default-avatar.png';
+                const useCustomAvatar = localStorage.getItem('useCustomAvatar') === 'true';
+                
+                if (userAvatar) {
+                    if (authState.userInfo.avatar && useCustomAvatar) {
+                        userAvatar.src = authState.userInfo.avatar;
+                    } else {
+                        userAvatar.src = defaultAvatar;
+                    }
+                    
+                    // 添加头像点击切换功能
+                    userAvatar.style.cursor = 'pointer';
+                    userAvatar.title = '点击切换头像';
+                    userAvatar.onclick = function() {
+                        const currentSrc = userAvatar.src;
+                        if (currentSrc.includes('default-avatar.png')) {
+                            // 切换到自定义头像或生成头像
+                            if (authState.userInfo.avatar) {
+                                userAvatar.src = authState.userInfo.avatar;
+                                localStorage.setItem('useCustomAvatar', 'true');
+                            } else {
+                                userAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(authState.userInfo.username || 'User')}&background=6366f1&color=fff`;
+                                localStorage.setItem('useCustomAvatar', 'true');
+                            }
+                        } else {
+                            // 切换回默认头像
+                            userAvatar.src = defaultAvatar;
+                            localStorage.setItem('useCustomAvatar', 'false');
+                        }
+                    };
+                }
+                
+                // 添加退出登录事件
+                if (logoutBtn) {
+                    logoutBtn.onclick = function() {
+                        if (typeof AuthUI !== 'undefined' && AuthUI.clearAuthStorage) {
+                            AuthUI.clearAuthStorage();
+                        }
+                        window.location.href = 'index.html';
+                    };
+                }
+            } else {
+                // 显示登录按钮（安全地检查元素是否存在）
+                if (authButtons) {
+                    authButtons.classList.remove('hidden');
+                }
+                if (userInfo) {
+                    userInfo.classList.add('hidden');
+                }
+            }
+        }
+
+        // 通用功能：按钮点击反馈
+        document.querySelectorAll('button, a[href]').forEach(el => {
+            // 忽略外部链接和特定不需要反馈的元素
+            if (!el.href || el.href.includes(window.location.host) || el.tagName === 'BUTTON') {
+                el.addEventListener('click', function (e) {
+                    // 保存按钮逻辑
+                    if (this.innerHTML.includes('保存') || this.id === 'save-story' || this.id === 'save-btn') {
+                        e.preventDefault();
+                        showNotification('已保存成功！', 'success');
+                        return;
+                    }
+
+                    // 删除按钮逻辑
+                    if (this.innerHTML.includes('删除') || this.innerHTML.includes('放弃')) {
+                        e.preventDefault();
+                        if (confirm('确定要删除/放弃吗？此操作不可恢复')) {
+                            showNotification('已删除', 'info');
+                        }
+                        return;
+                    }
+
+                    // AI相关按钮逻辑
+                    if (this.id.includes('ai-') || this.innerHTML.includes('AI') || this.innerHTML.includes('续写')) {
+                        e.preventDefault();
+                        const originalHTML = this.innerHTML;
+                        this.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 处理中...';
+                        this.disabled = true;
+
+                        setTimeout(() => {
+                            this.innerHTML = originalHTML;
+                            this.disabled = false;
+                            showNotification('AI已完成处理，结果已更新', 'success');
+                        }, 1500);
+                        return;
+                    }
+
+                    // 添加分支/角色按钮逻辑
+                    if (this.innerHTML.includes('添加分支') || this.innerHTML.includes('添加角色')) {
+                        e.preventDefault();
+                        showNotification('已添加新分支/角色', 'success');
+                        return;
+                    }
+
+                    // 自动排列按钮逻辑
+                    if (this.innerHTML.includes('自动排列')) {
+                        e.preventDefault();
+                        showNotification('已自动排列节点', 'info');
+                        return;
+                    }
+
+                    // 导出按钮逻辑
+                    if (this.innerHTML.includes('导出')) {
+                        e.preventDefault();
+                        showNotification('导出成功，文件已下载', 'success');
+                        return;
+                    }
+                });
+            }
+        });
+
+        // 通知提示功能
+        function showNotification(message, type = 'info') {
+            // 创建通知元素
+            const notification = document.createElement('div');
+            notification.className = `fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center transition-all duration-300 transform translate-y-10 opacity-0`;
+
+            // 根据类型设置样式
+            if (type === 'success') {
+                notification.classList.add('bg-green-50', 'border', 'border-green-200', 'text-green-700');
+                notification.innerHTML = `<i class="fa fa-check-circle mr-2"></i>${message}`;
+            } else if (type === 'error') {
+                notification.classList.add('bg-red-50', 'border', 'border-red-200', 'text-red-700');
+                notification.innerHTML = `<i class="fa fa-exclamation-circle mr-2"></i>${message}`;
+            } else {
+                notification.classList.add('bg-blue-50', 'border', 'border-blue-200', 'text-blue-700');
+                notification.innerHTML = `<i class="fa fa-info-circle mr-2"></i>${message}`;
+            }
+
+            // 添加到页面
+            document.body.appendChild(notification);
+
+            // 显示动画
+            setTimeout(() => {
+                notification.classList.remove('translate-y-10', 'opacity-0');
+            }, 10);
+
+            // 3秒后隐藏
+            setTimeout(() => {
+                notification.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // 节点点击跳转（针对故事框架页）
+        document.querySelectorAll('.node-hover').forEach(node => {
+            node.addEventListener('click', function (e) {
+                if (!e.target.closest('button')) {
+                    const nodeTitle = this.querySelector('span').textContent;
+                    showNotification(`正在进入「${nodeTitle}」的编辑页面`, 'info');
+                    setTimeout(() => {
+                        // 从URL获取storyId
+                        const params = new URLSearchParams(window.location.search);
+                        const storyId = params.get('story') || '1';
+                        window.location.href = `story_tree_new.html?story=${storyId}`;
+                    }, 500);
+                }
+            });
+        });
+        // 初始化时检查是否有未完成作品跳转参数
+        window.addEventListener('DOMContentLoaded', function () {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('continue') === 'true') {
+                showNotification('检测到未完成作品，正在跳转...', 'info');
+                // 延迟一小段时间再跳转
+                setTimeout(() => {
+                    window.location.href = 'story_tree_new.html?story=1';
+                }, 1000);
+            }
+        });
+        
+        // 全局变量存储故事数据和当前筛选状态
+        let currentPage = 1;
+        let totalPages = 1;
+        let pageSize = 9; // 3x3布局，一页9个故事
+        let totalStories = 0;
+        let currentFilters = {
+            search: '',
+            category: '',
+            status: '',
+            sort: 'latest'
+        };
+        
+        // 初始化AuthUI
+        if (typeof AuthUI !== 'undefined') {
+            AuthUI.init({
+                desktopContainer: 'auth-area-desktop',
+                mobileContainer: 'auth-area-mobile',
+                showAvatar: true,
+                showName: true,
+                avatarSize: 'medium'
+            });
+        }
+        
+        // 加载分类列表（显示当前用户在每个分类下的故事数量）
+        async function loadCategories() {
+            try {
+                const authState = AuthUI.getAuthState();
+                if (!authState || !authState.userInfo) {
+                    console.error('[loadCategories] 用户未登录');
+                    return;
+                }
+                
+                const backendUrl = getBackendUrl();
+                const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                
+                // 获取所有分类
+                const categoriesResponse = await fetch(`${backendUrl}/api/v1/categories`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token && { 'Authorization': `Bearer ${token}` })
+                    },
+                    credentials: 'include'
+                });
+
+                if (categoriesResponse.ok) {
+                    const categoriesData = await categoriesResponse.json();
+                    if (categoriesData.success && categoriesData.data) {
+                        // 获取当前用户ID
+                        const userId = authState.userInfo.userId || authState.userInfo.id || authState.userInfo._id;
+                        const cleanToken = token?.startsWith('Bearer ') ? token.substring(7) : token;
+                        
+                        // 获取当前用户的所有故事，按分类统计
+                        const storiesResponse = await fetch(`${backendUrl}/api/v1/users/${userId}/stories?limit=1000`, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...(cleanToken && { 'Authorization': `Bearer ${cleanToken}` })
+                            },
+                            credentials: 'include'
+                        });
+                        
+                        let categoryCounts = {};
+                        if (storiesResponse.ok) {
+                            const storiesData = await storiesResponse.json();
+                            if (storiesData.success && storiesData.data && storiesData.data.stories) {
+                                // 统计每个分类下的故事数量
+                                storiesData.data.stories.forEach(story => {
+                                    const categoryName = story.category?.name;
+                                    if (categoryName) {
+                                        categoryCounts[categoryName] = (categoryCounts[categoryName] || 0) + 1;
+                                    }
+                                });
+                            }
+                        }
+                        
+                        const categorySelect = document.getElementById('categoryFilter');
+                        if (categorySelect) {
+                            // 保留"全部分类"选项
+                            categorySelect.innerHTML = '<option value="">全部分类</option>';
+                            categoriesData.data.forEach(category => {
+                                const option = document.createElement('option');
+                                option.value = category.name;
+                                // 显示当前用户在该分类下的故事数量
+                                const userStoryCount = categoryCounts[category.name] || 0;
+                                option.textContent = `${category.name} (${userStoryCount})`;
+                                categorySelect.appendChild(option);
+                            });
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('加载分类列表失败:', error);
+            }
+        }
+        
+        // 应用筛选
+        function applyFilters() {
+            const searchInput = document.getElementById('searchInput');
+            const categoryFilter = document.getElementById('categoryFilter');
+            const statusFilter = document.getElementById('statusFilter');
+            const sortFilter = document.getElementById('sortFilter');
+
+            currentFilters.search = searchInput?.value.trim() || '';
+            currentFilters.category = categoryFilter?.value || '';
+            currentFilters.status = statusFilter?.value || '';
+            currentFilters.sort = sortFilter?.value || 'latest';
+
+            // 重置到第一页并加载
+            loadUserStories(1);
+        }
+        // 加载用户故事列表
+        async function loadUserStories(page = 1) {
+            currentPage = page;
+            const storiesContainer = document.getElementById('stories-container');
+            const loadingState = document.getElementById('loading-state');
+            const emptyState = document.getElementById('empty-state');
+            const notLoggedInState = document.getElementById('not-logged-in');
+            
+            // 检查元素是否存在
+            if (!storiesContainer) {
+                console.error('[my_stories] stories-container 元素不存在');
+                return;
+            }
+            
+            // 显示加载状态（安全地检查元素是否存在）
+            if (loadingState) {
+                loadingState.classList.remove('hidden');
+            }
+            if (emptyState) {
+                emptyState.classList.add('hidden');
+            }
+            if (notLoggedInState) {
+                notLoggedInState.classList.add('hidden');
+            }
+            
+            storiesContainer.innerHTML = `
+                <div class="col-span-full flex flex-col items-center justify-center py-20">
+                    <div class="loading-spinner w-12 h-12 mb-4"></div>
+                    <p class="text-slate-600">正在加载您的作品...</p>
+                </div>
+            `;
+
+            try {
+                // 检查用户是否已登录
+                const authState = typeof AuthUI !== 'undefined' ? AuthUI.getAuthState() : null;
+                
+                if (!authState || !authState.userInfo) {
+                    // 用户未登录
+                    loadingState.classList.add('hidden');
+                    notLoggedInState.classList.remove('hidden');
+                    return;
+                }
+
+                // 获取当前用户信息
+                const userInfo = authState.userInfo;
+                console.log('[my_stories] userInfo对象:', userInfo);
+                console.log('[my_stories] userInfo的所有字段:', Object.keys(userInfo));
+                
+                // 尝试多种方式获取用户ID（优先级：userId > id > _id）
+                let userId = userInfo.userId || userInfo.id || userInfo._id;
+                const token = authState.token;
+                
+                console.log('[my_stories] 提取的用户ID (原始):', userId);
+                console.log('[my_stories] 用户ID类型:', typeof userId);
+                console.log('[my_stories] 提取的Token:', token ? token.substring(0, 20) + '...' : 'null');
+                
+                if (!userId) {
+                    console.error('[my_stories] 无法获取用户ID，userInfo:', userInfo);
+                    if (loadingState) {
+                        loadingState.classList.add('hidden');
+                    }
+                    if (notLoggedInState) {
+                        notLoggedInState.classList.remove('hidden');
+                    }
+                    return;
+                }
+                
+                // 确保用户ID是数字（如果后端API需要整数）
+                userId = parseInt(userId, 10);
+                if (isNaN(userId)) {
+                    console.error('[my_stories] 用户ID格式无效:', userInfo.userId || userInfo.id || userInfo._id);
+                    if (loadingState) {
+                        loadingState.classList.add('hidden');
+                    }
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'text-center py-12';
+                    errorDiv.innerHTML = `
+                        <i class="fa fa-exclamation-triangle text-6xl text-yellow-500 mb-4"></i>
+                        <h3 class="text-xl font-semibold text-slate-700 mb-2">用户信息格式错误</h3>
+                        <p class="text-slate-500 mb-4">用户ID格式无效，请重新登录</p>
+                        <a href="login.html" class="inline-flex items-center px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                            重新登录
+                        </a>
+                    `;
+                    if (storiesContainer) {
+                        storiesContainer.appendChild(errorDiv);
+                    }
+                    return;
+                }
+                
+                if (!token) {
+                    console.error('[my_stories] 无法获取Token');
+                    if (typeof AuthUI !== 'undefined' && AuthUI.clearAuthStorage) {
+                        AuthUI.clearAuthStorage();
+                    }
+                    if (loadingState) {
+                        loadingState.classList.add('hidden');
+                    }
+                    if (notLoggedInState) {
+                        notLoggedInState.classList.remove('hidden');
+                    }
+                    return;
+                }
+
+                // 确保 token 不包含 Bearer 前缀
+                let cleanToken = token;
+                if (token.startsWith('Bearer ')) {
+                    cleanToken = token.substring(7);
+                }
+                
+                // 检查JWT格式
+                if (cleanToken.split('.').length !== 3) {
+                    console.error('[my_stories] Token格式无效，不是有效的JWT');
+                    if (typeof AuthUI !== 'undefined' && AuthUI.clearAuthStorage) {
+                        AuthUI.clearAuthStorage();
+                    }
+                    if (loadingState) {
+                        loadingState.classList.add('hidden');
+                    }
+                    if (notLoggedInState) {
+                        notLoggedInState.classList.remove('hidden');
+                    }
+                    return;
+                }
+                
+                console.log('[my_stories] 最终使用的用户ID (整数):', userId);
+
+                // 构建API URL参数
+                const params = new URLSearchParams({
+                    page: page,
+                    limit: pageSize,
+                    sort: currentFilters.sort
+                });
+
+                if (currentFilters.search) {
+                    params.append('search', currentFilters.search);
+                }
+
+                if (currentFilters.category) {
+                    params.append('category', currentFilters.category);
+                }
+                
+                if (currentFilters.status) {
+                    params.append('status', currentFilters.status);
+                }
+
+                // 先测试后端服务器连接（可选，帮助诊断问题）
+                const backendUrl = getBackendUrl();
+                console.log('[my_stories] 测试后端服务器连接...');
+                try {
+                    const healthCheck = await fetch(`${backendUrl}/healthz`, {
+                        method: 'GET',
+                        mode: 'cors',
+                        credentials: 'include'
+                    });
+                    if (healthCheck.ok) {
+                        console.log('[my_stories] 后端服务器连接正常');
+                    } else {
+                        console.warn('[my_stories] 后端服务器健康检查失败:', healthCheck.status);
+                    }
+                } catch (healthError) {
+                    console.warn('[my_stories] 后端服务器健康检查失败:', healthError.message);
+                    console.warn('[my_stories] 健康检查错误详情:', {
+                        message: healthError.message,
+                        name: healthError.name,
+                        stack: healthError.stack
+                    });
+                    // 如果健康检查失败，提示用户
+                    if (healthError.message.includes('Failed to fetch') || healthError.message.includes('NetworkError')) {
+                        throw new Error(`无法连接到后端服务器 (${backendUrl})。请确保后端服务器正在运行。\n\n如果后端服务器正在运行，可能是以下原因：\n1. CORS配置问题\n2. 浏览器安全策略阻止了请求\n3. 防火墙阻止了连接\n\n请打开浏览器控制台（F12）查看详细错误信息。`);
+                    }
+                    // 不中断流程，继续尝试API请求
+                }
+                
+                // 获取后端URL并构建API URL
+                const apiUrl = `${backendUrl}/api/v1/users/${userId}/stories?${params}`;
+                console.log('[my_stories] 发起请求到:', apiUrl);
+                console.log('[my_stories] 后端URL:', backendUrl);
+                console.log('[my_stories] 用户ID:', userId, '(类型:', typeof userId, ')');
+                console.log('[my_stories] 查询参数:', params.toString());
+                console.log('[my_stories] Token长度:', cleanToken.length);
+                console.log('[my_stories] Token前20字符:', cleanToken.substring(0, 20) + '...');
+                
+                let response;
+                try {
+                    console.log('[my_stories] 准备发起fetch请求...');
+                    console.log('[my_stories] API URL:', apiUrl);
+                    console.log('[my_stories] Headers:', {
+                        'Authorization': `Bearer ${cleanToken.substring(0, 20)}...`,
+                        'Content-Type': 'application/json'
+                    });
+                    
+                    response = await fetch(apiUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${cleanToken}`,
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache',
+                            'Pragma': 'no-cache'
+                        },
+                        credentials: 'include', // 包含凭据，用于CORS
+                        mode: 'cors' // 明确指定CORS模式
+                    });
+                    
+                    console.log('[my_stories] Fetch请求完成，状态码:', response.status);
+                    console.log('[my_stories] 响应Content-Type:', response.headers.get('content-type'));
+                } catch (fetchError) {
+                    console.error('[my_stories] Fetch错误详情:', {
+                        message: fetchError.message,
+                        name: fetchError.name,
+                        stack: fetchError.stack,
+                        apiUrl: apiUrl,
+                        backendUrl: backendUrl,
+                        userId: userId,
+                        userIdType: typeof userId,
+                        tokenLength: cleanToken.length
+                    });
+                    
+                    // 提供更详细的错误信息
+                    let errorMsg = fetchError.message || '无法连接到服务器';
+                    if (errorMsg.includes('Failed to fetch') || errorMsg.includes('fetch') || errorMsg.includes('NetworkError')) {
+                        // 检查是否是文件协议导致的问题
+                        const isFileProtocol = window.location.protocol === 'file:';
+                        let protocolWarning = '';
+                        if (isFileProtocol) {
+                            protocolWarning = '\n⚠️ 警告：检测到您使用的是 file:// 协议打开页面。\n这会导致CORS错误，请使用HTTP服务器打开页面（例如：http://localhost:3000 或使用 VS Code 的 Live Server 扩展）。\n';
+                        }
+                        
+                        errorMsg = `无法连接到后端服务器 (${backendUrl})${protocolWarning}\n\n可能的原因：\n1. 后端服务器未运行 - 请在终端运行: cd backend && npm run dev\n2. 服务器地址不正确 - 当前地址: ${backendUrl}\n3. 网络连接问题 - 请检查网络连接\n4. CORS配置问题 - 请检查后端CORS配置\n5. 浏览器安全策略 - 如果使用 file:// 协议，请改用 HTTP 服务器\n6. 防火墙阻止 - 请检查防火墙设置\n\n请打开浏览器控制台（F12）查看详细错误信息。`;
+                    }
+                    
+                    throw new Error(errorMsg);
+                }
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        if (typeof AuthUI !== 'undefined' && AuthUI.clearAuthStorage) {
+                            AuthUI.clearAuthStorage();
+                        }
+                        if (loadingState) {
+                            loadingState.classList.add('hidden');
+                        }
+                        if (notLoggedInState) {
+                            notLoggedInState.classList.remove('hidden');
+                        }
+                        return;
+                    }
+                    
+                    // 尝试解析错误响应
+                    let errorMessage = `获取故事列表失败: HTTP ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorData.error || errorMessage;
+                    } catch (e) {
+                        // 如果响应不是JSON，使用状态文本
+                        errorMessage = `获取故事列表失败: ${response.status} ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                const data = await response.json();
+                console.log('API响应数据:', data);
+                
+                if (!data.success) {
+                    throw new Error(data.message || '获取故事列表失败');
+                }
+                
+                // 解析响应数据
+                const stories = data.data?.stories || data.data || [];
+                totalStories = data.data?.pagination?.total || data.total || 0;
+                totalPages = data.data?.pagination?.pages || Math.ceil(totalStories / pageSize) || 1;
+                
+                console.log('故事列表:', stories);
+                console.log('故事总数:', totalStories);
+                console.log('总页数:', totalPages);
+
+                // 更新故事计数
+                const storyCountEl = document.getElementById('storyCount');
+                if (storyCountEl) {
+                    storyCountEl.textContent = totalStories;
+                }
+
+                // 隐藏加载状态
+                if (loadingState) {
+                    loadingState.classList.add('hidden');
+                }
+                
+                // 渲染故事列表
+                renderStories(stories);
+                
+                // 渲染分页
+                renderPagination();
+
+            } catch (error) {
+                console.error('加载故事列表失败:', error);
+                console.error('错误详情:', {
+                    message: error.message,
+                    name: error.name,
+                    stack: error.stack
+                });
+                if (loadingState) {
+                    loadingState.classList.add('hidden');
+                }
+                
+                let errorMessage = error.message || '未知错误';
+                console.error('[my_stories] 完整错误信息:', errorMessage);
+                
+                // 提供更友好的错误信息
+                if (errorMessage.includes('Failed to fetch') || errorMessage.includes('fetch') || errorMessage.includes('NetworkError')) {
+                    const backendUrl = getBackendUrl();
+                    const isFileProtocol = window.location.protocol === 'file:';
+                    let protocolWarning = '';
+                    if (isFileProtocol) {
+                        protocolWarning = '\n⚠️ 重要提示：检测到您使用 file:// 协议打开页面。\n浏览器会阻止 file:// 协议下的跨域请求（CORS）。\n\n解决方案：\n1. 使用HTTP服务器打开页面（例如：http://localhost:3000）\n2. 使用 VS Code 的 Live Server 扩展\n3. 使用 Python: python -m http.server 8000\n4. 使用 Node.js: npx http-server -p 8000\n\n';
+                    }
+                    
+                    errorMessage = `无法连接到后端服务器 (${backendUrl})${protocolWarning}\n\n请检查：\n1. 后端服务器是否运行 - 在终端运行: cd backend && npm run dev\n2. 服务器地址是否正确 - 当前: ${backendUrl}\n3. 网络连接是否正常\n4. CORS配置是否正确\n5. 防火墙是否阻止了连接\n\n提示：请打开浏览器控制台（F12）查看详细错误信息和网络请求状态。`;
+                }
+                
+                storiesContainer.innerHTML = `
+                    <div class="col-span-full text-center py-20">
+                        <i class="fa fa-exclamation-circle text-4xl text-red-500 mb-4"></i>
+                        <p class="text-red-600 mb-2 font-semibold text-lg">加载失败</p>
+                        <p class="text-sm text-slate-600 mb-4 whitespace-pre-line bg-red-50 border border-red-200 rounded-lg p-4 max-w-2xl mx-auto">${errorMessage}</p>
+                        <div class="flex justify-center gap-3 mt-6">
+                            <button onclick="loadUserStories(${currentPage})" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center">
+                                <i class="fa fa-refresh mr-2"></i>重试
+                            </button>
+                            <button onclick="location.reload()" class="px-6 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center">
+                                <i class="fa fa-reload mr-2"></i>刷新页面
+                            </button>
+                        </div>
+                        <div class="mt-4 text-xs text-slate-500">
+                            <p>如果问题持续存在，请检查：</p>
+                            <ol class="list-decimal list-inside mt-2 space-y-1">
+                                <li>后端服务器日志</li>
+                                <li>浏览器控制台（F12）的错误信息</li>
+                                <li>网络标签页中的请求详情</li>
+                            </ol>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // 渲染故事列表
+        function renderStories(stories) {
+            const storiesContainer = document.getElementById('stories-container');
+            const emptyState = document.getElementById('empty-state');
+
+            if (!storiesContainer) {
+                console.error('[my_stories] stories-container 元素不存在');
+                return;
+            }
+
+            if (!stories || stories.length === 0) {
+                storiesContainer.innerHTML = '';
+                if (emptyState) {
+                    emptyState.classList.remove('hidden');
+                }
+                return;
+            }
+
+            storiesContainer.innerHTML = '';
+            storiesContainer.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
+            if (emptyState) {
+                emptyState.classList.add('hidden');
+            }
+
+            stories.forEach(story => {
+                const card = createStoryCard(story);
+                storiesContainer.appendChild(card);
+            });
+        }
+
+        // HTML转义函数（全局定义，以便在createStoryCard中使用）
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+        
+        // 获取后端URL（全局函数）
+        function getBackendUrl() {
+            if (typeof AuthUI !== 'undefined' && AuthUI.BACKEND_BASE_URL) {
+                return AuthUI.BACKEND_BASE_URL;
+            }
+            return 'http://localhost:5000';
+        }
+        
+        // 测试后端服务器连接
+        async function testBackendConnection() {
+            try {
+                const backendUrl = getBackendUrl();
+                console.log('[my_stories] 测试后端服务器连接:', backendUrl);
+                
+                const response = await fetch(`${backendUrl}/healthz`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('[my_stories] 后端服务器连接测试成功:', data);
+                    return true;
+                } else {
+                    console.error('[my_stories] 后端服务器响应异常:', response.status, response.statusText);
+                    return false;
+                }
+            } catch (error) {
+                console.error('[my_stories] 后端服务器连接测试失败:', error);
+                return false;
+            }
+        }
+        
+        // 创建故事卡片（使用和browse.html相同的样式）
+        function createStoryCard(story) {
+            const card = document.createElement('div');
+            card.className = 'story-card bg-white rounded-xl shadow-md overflow-hidden cursor-pointer';
+            
+            // 获取后端URL
+            const backendUrl = getBackendUrl();
+            
+            // 获取故事图片，如果没有则使用默认图片
+            const coverImage = story.coverImage || story.cover_image || '/coverImage/1.png';
+            // 获取作者信息
+            const authorName = story.author?.username || '未知作者';
+            const authorAvatar = story.author?.avatar || `/avatar/default.png`;
+            // 获取分类信息
+            const categoryName = story.category?.name || '未分类';
+            // 获取故事标题
+            const storyTitle = story.title || '未命名故事';
+            // 获取创作时间
+            const createdAt = story.createdAt || story.created_at;
+            const createdDate = createdAt ? new Date(createdAt).toLocaleDateString('zh-CN') : '未知时间';
+            const description = story.description || '暂无描述';
+            // 获取状态
+            const status = story.status || 'draft';
+            // 获取故事ID
+            const storyId = story.id || story._id;
+            
+            // 状态标签
+            let statusBadge = '';
+            if (status === 'published') {
+                statusBadge = '<span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full"><i class="fa fa-check-circle mr-1"></i>已发布</span>';
+            } else if (status === 'pending') {
+                statusBadge = '<span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full"><i class="fa fa-clock-o mr-1"></i>待审核</span>';
+            } else if (status === 'rejected') {
+                statusBadge = '<span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full"><i class="fa fa-times-circle mr-1"></i>已拒绝</span>';
+            } else {
+                statusBadge = '<span class="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-full"><i class="fa fa-file-text-o mr-1"></i>草稿</span>';
+            }
+
+            card.innerHTML = `
+                    <div class="relative h-48 overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/20">
+                    ${coverImage && coverImage !== '/coverImage/1.png' ? `
+                        <img src="${coverImage.startsWith('http') ? coverImage : `${backendUrl}${coverImage}`}" 
+                            alt="${escapeHtml(storyTitle)}" 
+                            class="w-full h-full object-cover"
+                            onerror="this.onerror=null; this.src='${backendUrl}/coverImage/1.png';">
+                    ` : `
+                        <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
+                            <i class="fa fa-book text-6xl text-primary/30"></i>
+                        </div>
+                    `}
+                    <div class="absolute top-3 left-3 flex gap-2 flex-wrap">
+                        <span class="px-3 py-1 bg-white/90 backdrop-blur-sm text-primary text-xs font-medium rounded-full">
+                            ${escapeHtml(categoryName)}
+                        </span>
+                        ${statusBadge}
+                    </div>
+                </div>
+                <div class="p-5">
+                    <h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-2 min-h-[3.5rem]">${escapeHtml(storyTitle)}</h3>
+                    <p class="text-sm text-slate-600 mb-4 line-clamp-2 min-h-[2.5rem]">${escapeHtml(description)}</p>
+                    <div class="flex items-center justify-between text-xs text-slate-500 mb-4">
+                        <div class="flex items-center">
+                            <img src="${authorAvatar.startsWith('http') ? authorAvatar : `${backendUrl}${authorAvatar}`}" 
+                                alt="${escapeHtml(authorName)}" 
+                                class="w-6 h-6 rounded-full mr-2 border border-slate-300"
+                                onerror="this.onerror=null; this.src='${backendUrl}/avatar/default.png';">
+                            <span class="font-medium text-slate-700">${escapeHtml(authorName)}</span>
+                        </div>
+                        <span class="text-slate-500">${escapeHtml(createdDate)}</span>
+                    </div>
+                    <div class="pt-4 border-t border-slate-200 flex gap-2 flex-wrap">
+                        ${status === 'published' || status === 'pending' ? `
+                            <a href="story-reader.html?id=${storyId}" 
+                                onclick="event.stopPropagation();"
+                                class="flex-1 text-center px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition-colors">
+                                <i class="fa fa-book-open mr-1"></i>阅读故事
+                            </a>
+                        ` : status === 'rejected' ? `
+                            <a href="create.html?story=${storyId}" 
+                                onclick="event.stopPropagation();"
+                                class="flex-1 text-center px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition-colors">
+                                <i class="fa fa-edit mr-1"></i>编辑故事
+                            </a>
+                        ` : status === 'draft' ? `
+                            <a href="create.html?story=${storyId}" 
+                                onclick="event.stopPropagation();"
+                                class="flex-1 text-center px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition-colors">
+                                <i class="fa fa-edit mr-1"></i>编辑故事
+                            </a>
+                        ` : ''}
+                        ${status === 'draft' ? `
+                            <button data-story-id="${storyId}" data-story-title="${escapeHtml(storyTitle)}" 
+                                onclick="event.stopPropagation(); submitStory(this.dataset.storyId, this.dataset.storyTitle)" 
+                                class="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors">
+                                <i class="fa fa-paper-plane mr-1"></i>提交审核
+                            </button>
+                        ` : status === 'rejected' ? `
+                            <button data-story-id="${storyId}" data-story-title="${escapeHtml(storyTitle)}" 
+                                onclick="event.stopPropagation(); submitStory(this.dataset.storyId, this.dataset.storyTitle)" 
+                                class="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors">
+                                <i class="fa fa-paper-plane mr-1"></i>重新提交
+                            </button>
+                        ` : ''}
+                        <button data-story-id="${storyId}" data-story-title="${escapeHtml(storyTitle)}" 
+                            onclick="event.stopPropagation(); deleteStory(this.dataset.storyId, this.dataset.storyTitle)" 
+                            class="px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors">
+                            <i class="fa fa-trash mr-1"></i>删除
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // 点击卡片也可以跳转（根据状态决定跳转位置）
+            card.addEventListener('click', function(e) {
+                if (!e.target.closest('a') && !e.target.closest('button')) {
+                    if (status === 'published' || status === 'pending') {
+                        // 待审核和已发布的故事只能阅读
+                        window.location.href = `story-reader.html?id=${storyId}`;
+                    } else if (status === 'rejected' || status === 'draft') {
+                        // 已拒绝和草稿可以编辑
+                        window.location.href = `create.html?story=${storyId}`;
+                    }
+                }
+            });
+
+            return card;
+        }
+        
+        // 渲染分页
+        function renderPagination() {
+            const paginationContainer = document.getElementById('paginationContainer');
+            if (!paginationContainer) return;
+
+            if (totalPages <= 1) {
+                paginationContainer.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+
+            // 上一页按钮
+            html += `
+                <button 
+                    onclick="loadUserStories(${currentPage - 1})"
+                    ${currentPage === 1 ? 'disabled' : ''}
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa fa-chevron-left"></i>
+                </button>
+            `;
+
+            // 页码按钮
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, startPage + 4);
+
+            if (startPage > 1) {
+                html += `<button onclick="loadUserStories(1)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">1</button>`;
+                if (startPage > 2) {
+                    html += `<span class="px-2 text-slate-500">...</span>`;
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `
+                    <button 
+                        onclick="loadUserStories(${i})"
+                        class="px-4 py-2 text-sm font-medium ${i === currentPage ? 'bg-primary text-white' : 'text-gray-700 bg-white'} border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        ${i}
+                    </button>
+                `;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    html += `<span class="px-2 text-slate-500">...</span>`;
+                }
+                html += `<button onclick="loadUserStories(${totalPages})" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">${totalPages}</button>`;
+            }
+
+            // 下一页按钮
+            html += `
+                <button 
+                    onclick="loadUserStories(${currentPage + 1})"
+                    ${currentPage === totalPages ? 'disabled' : ''}
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa fa-chevron-right"></i>
+                </button>
+            `;
+
+            paginationContainer.innerHTML = html;
+        }
+
+        // 分享故事功能
+        function shareStory(storyId, title) {
+            const shareUrl = `${window.location.origin}/story_tree_new.html?story=${storyId}&view=true`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: title,
+                    text: `来看看我创作的互动故事《${title}》！`,
+                    url: shareUrl
+                }).catch(err => console.log('分享取消或失败'));
+            } else {
+                // 复制到剪贴板
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    showNotification('故事链接已复制到剪贴板', 'success');
+                }).catch(() => {
+                    showNotification('复制失败，请手动复制链接', 'error');
+                });
+            }
+        }
+
+        // 提交故事审核
+        async function submitStory(storyId, title) {
+            console.log('[submitStory] 函数被调用, storyId:', storyId, 'title:', title);
+            
+            try {
+                // 确认对话框
+                const confirmed = confirm(`确定要提交故事《${title}》进行审核吗？\n\n提交后管理员将审核您的作品，审核通过后其他用户才能在探索页面找到此作品。`);
+                console.log('[submitStory] 用户确认:', confirmed);
+                
+                if (!confirmed) {
+                    console.log('[submitStory] 用户取消了提交');
+                    return;
+                }
+
+                console.log('[submitStory] 开始获取认证状态...');
+                const authState = AuthUI.getAuthState();
+                console.log('[submitStory] 认证状态:', authState ? '存在' : '不存在');
+                
+                if (!authState || !authState.token) {
+                    console.error('[submitStory] 未找到认证状态或token');
+                    showNotification('请先登录', 'error');
+                    return;
+                }
+
+                // 确保 token 不包含 Bearer 前缀
+                let cleanToken = authState.token;
+                if (cleanToken.startsWith('Bearer ')) {
+                    cleanToken = cleanToken.substring(7);
+                }
+                console.log('[submitStory] Token已准备，长度:', cleanToken.length);
+
+                showNotification('正在提交审核...', 'info');
+
+                const backendUrl = getBackendUrl();
+                const apiUrl = `${backendUrl}/api/v1/stories/${storyId}/submit`;
+                console.log('[submitStory] 请求URL:', apiUrl);
+                
+                const response = await fetch(apiUrl, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('[submitStory] 响应状态:', response.status, response.statusText);
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        console.error('[submitStory] 认证失败，清除存储');
+                        AuthUI.clearAuthStorage();
+                        showNotification('登录已过期，请重新登录', 'error');
+                        setTimeout(() => {
+                            window.location.href = 'login.html';
+                        }, 2000);
+                        return;
+                    }
+                    
+                    let errorData = {};
+                    try {
+                        errorData = await response.json();
+                    } catch (e) {
+                        console.error('[submitStory] 解析错误响应失败:', e);
+                        errorData = { message: `提交审核失败 (${response.status})` };
+                    }
+                    console.error('[submitStory] 错误数据:', errorData);
+                    throw new Error(errorData.message || errorData.error || `提交审核失败 (${response.status})`);
+                }
+
+                let result;
+                try {
+                    result = await response.json();
+                    console.log('[submitStory] 响应数据:', result);
+                } catch (e) {
+                    console.error('[submitStory] 解析响应失败:', e);
+                    throw new Error('服务器响应格式错误');
+                }
+                
+                if (result.success) {
+                    console.log('[submitStory] 提交成功，返回的数据:', result.data);
+                    showNotification(`故事《${title}》已提交审核！`, 'success');
+                    // 立即重新加载故事列表以更新状态（清除缓存后获取最新数据）
+                    setTimeout(() => {
+                        console.log('[submitStory] 重新加载故事列表，当前页码:', currentPage);
+                        loadUserStories(currentPage);
+                    }, 300);
+                } else {
+                    console.error('[submitStory] 服务器返回失败:', result);
+                    throw new Error(result.message || result.error || '提交审核失败');
+                }
+
+            } catch (error) {
+                console.error('[submitStory] 异常捕获:', error);
+                console.error('[submitStory] 错误堆栈:', error.stack);
+                const errorMessage = error.message || '提交审核失败，请重试';
+                showNotification(`提交审核失败: ${errorMessage}`, 'error');
+            }
+        }
+        
+        // 确保函数在全局作用域可用
+        window.submitStory = submitStory;
+
+        // 取消发布故事功能
+        async function unpublishStory(storyId, title) {
+            if (!confirm(`确定要取消发布故事《${title}》吗？\n\n取消发布后，其他用户将无法在探索页面找到您的作品。`)) {
+                return;
+            }
+
+            try {
+                const authState = AuthUI.getAuthState();
+                if (!authState || !authState.token) {
+                    showNotification('请先登录', 'error');
+                    return;
+                }
+
+                // 确保 token 不包含 Bearer 前缀
+                let cleanToken = authState.token;
+                if (cleanToken.startsWith('Bearer ')) {
+                    cleanToken = cleanToken.substring(7);
+                }
+
+                showNotification('正在取消发布...', 'info');
+
+                const backendUrl = getBackendUrl();
+                const response = await fetch(`${backendUrl}/api/v1/stories/${storyId}/unpublish`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        AuthUI.clearAuthStorage();
+                        showNotification('登录已过期，请重新登录', 'error');
+                        setTimeout(() => {
+                            window.location.href = 'login.html';
+                        }, 2000);
+                        return;
+                    }
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `取消发布失败 (${response.status})`);
+                }
+
+                await response.json();
+                showNotification(`故事《${title}》已取消发布`, 'success');
+                
+                // 重新加载故事列表以更新状态
+                await loadUserStories(currentPage);
+
+            } catch (error) {
+                console.error('取消发布失败:', error);
+                showNotification(`取消发布失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 删除故事功能
+        async function deleteStory(storyId, title) {
+            console.log('[deleteStory] 函数被调用, storyId:', storyId, 'title:', title);
+            
+            if (!confirm(`确定要删除故事《${title}》吗？\n\n此操作不可恢复，将删除故事及其所有节点和分支。`)) {
+                return;
+            }
+
+            try {
+                const authState = AuthUI.getAuthState();
+                if (!authState || !authState.token) {
+                    showNotification('请先登录', 'error');
+                    return;
+                }
+
+                // 确保 token 不包含 Bearer 前缀
+                let cleanToken = authState.token;
+                if (cleanToken.startsWith('Bearer ')) {
+                    cleanToken = cleanToken.substring(7);
+                }
+
+                showNotification('正在删除故事...', 'info');
+
+                const backendUrl = getBackendUrl();
+                const response = await fetch(`${backendUrl}/api/v1/stories/${storyId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        AuthUI.clearAuthStorage();
+                        showNotification('登录已过期，请重新登录', 'error');
+                        setTimeout(() => {
+                            window.location.href = 'login.html';
+                        }, 2000);
+                        return;
+                    }
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `删除失败 (${response.status})`);
+                }
+
+                await response.json();
+                showNotification(`故事《${title}》已删除`, 'success');
+                
+                // 重新加载故事列表
+                await loadUserStories(currentPage);
+
+            } catch (error) {
+                console.error('删除故事失败:', error);
+                showNotification(`删除失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 确保所有函数在全局作用域可用（用于onclick属性调用）
+        window.deleteStory = deleteStory;
+        window.unpublishStory = unpublishStory;
+        console.log('[my_stories] 函数已注册到全局作用域: submitStory, deleteStory, unpublishStory');
+
+        // 显示故事统计功能
+        function showStoryStats(storyId, title) {
+            // 创建统计弹窗
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-y-auto">
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold">故事统计</h3>
+                            <button onclick="this.closest('.fixed').remove()" class="text-slate-400 hover:text-slate-600">
+                                <i class="fa fa-times text-xl"></i>
+                            </button>
+                        </div>
+                        <div class="mb-4">
+                            <h4 class="font-semibold text-lg mb-2">${title}</h4>
+                            <div class="bg-slate-50 rounded-lg p-4 space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-600">浏览次数</span>
+                                    <span class="font-semibold text-primary">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-600">完成次数</span>
+                                    <span class="font-semibold text-progress">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-600">平均完成时间</span>
+                                    <span class="font-semibold text-secondary">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-600">收藏次数</span>
+                                    <span class="font-semibold text-orange-500">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-600">评分</span>
+                                    <span class="font-semibold text-yellow-500">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div class="flex items-center text-sm text-blue-700">
+                                <i class="fa fa-info-circle mr-2"></i>
+                                <span>详细统计数据功能正在开发中，敬请期待！</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // 点击背景关闭弹窗
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>故事审核 - StoryForge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="assets/js/auth.js"></script>
+    <script src="assets/js/navbar.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#ec4899',
+                    },
+                },
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .backdrop-blur {
+                backdrop-filter: blur(8px);
+            }
+            .navbar-modern {
+                background: rgba(255,255,255,0.98);
+                backdrop-filter: blur(10px);
+                border-bottom: 1px solid rgba(0,0,0,0.08);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            }
+            .navbar-link {
+                transition: color 0.2s ease;
+            }
+            .navbar-link.active {
+                color: #6366f1;
+                font-weight: 600;
+            }
+            .story-card {
+                transition: all 0.3s ease;
+            }
+            .story-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+            }
+            .loading-spinner {
+                border: 4px solid #f3f4f6;
+                border-top: 4px solid #6366f1;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen text-slate-800 font-sans">
+    <!-- 导航栏 -->
+    <nav class="navbar-modern sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <!-- Logo区域 -->
+                <div class="flex items-center space-x-3">
+                    <a href="index.html" class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+                            <i class="fa fa-book text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-xl md:text-2xl font-display font-bold text-gray-900">StoryForge</h1>
+                            <p class="text-xs text-slate-500 hidden md:block">AI故事创作平台</p>
+                        </div>
+                    </a>
+                </div>
+                
+                <!-- 桌面端导航链接（管理员专用） -->
+                <div class="hidden lg:flex items-center space-x-8" id="admin-nav-desktop">
+                    <a href="index.html" class="navbar-link font-medium text-slate-600 hover:text-primary">首页</a>
+                    <a href="browse.html" class="navbar-link font-medium text-slate-600 hover:text-primary">故事阅览</a>
+                    <a href="review.html" class="navbar-link active font-medium text-slate-700">故事审核</a>
+                    <a href="profile.html" class="navbar-link font-medium text-slate-600 hover:text-primary">个人中心</a>
+                </div>
+                
+                <!-- 认证区域 -->
+                <div id="auth-area-desktop" class="flex items-center space-x-3">
+                    <!-- AuthUI会动态渲染登录状态或用户信息 -->
+                </div>
+                
+                <!-- 移动端菜单按钮 -->
+                <button id="mobile-menu-button" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors">
+                    <i class="fa fa-bars text-slate-600 text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 移动端菜单 -->
+        <div class="lg:hidden hidden bg-white/95 backdrop-blur-md border-t border-slate-200" id="mobile-menu">
+            <div class="container mx-auto px-4 py-4 space-y-3" id="admin-nav-mobile">
+                <a href="index.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">首页</a>
+                <a href="browse.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">故事阅览</a>
+                <a href="review.html" class="block py-3 px-4 rounded-lg font-medium text-primary bg-primary/5">故事审核</a>
+                <a href="profile.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">个人中心</a>
+                <div class="flex flex-col space-y-3 pt-3 border-t border-slate-200">
+                    <div id="auth-area-mobile">
+                        <!-- AuthUI会动态渲染移动端登录状态或用户信息 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区 -->
+    <section class="pb-20 px-4">
+        <div class="container mx-auto max-w-6xl py-8">
+            <!-- 页面标题 -->
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">故事审核</h2>
+                <p class="text-slate-600">审核用户提交的故事作品</p>
+            </div>
+
+            <!-- 统计信息 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-slate-600 mb-1">待审核故事</p>
+                            <p class="text-3xl font-bold text-yellow-600" id="pending-count">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                            <i class="fa fa-clock-o text-yellow-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-slate-600 mb-1">今日审核</p>
+                            <p class="text-3xl font-bold text-blue-600" id="today-count">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i class="fa fa-check-circle text-blue-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-slate-600 mb-1">总审核数</p>
+                            <p class="text-3xl font-bold text-green-600" id="total-count">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fa fa-list text-green-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 筛选和搜索区域 -->
+            <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">搜索故事</label>
+                        <div class="relative">
+                            <input type="text" id="searchInput" placeholder="输入故事标题、作者或关键词..." 
+                                class="w-full px-4 py-2 pl-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none">
+                            <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                        </div>
+                    </div>
+                    <div class="md:w-48">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">排序方式</label>
+                        <select id="sortFilter" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none">
+                            <option value="latest">最新提交</option>
+                            <option value="oldest">最早提交</option>
+                            <option value="title">标题排序</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="applyFilters()" class="w-full md:w-auto px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                            <i class="fa fa-filter mr-2"></i>筛选
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 故事列表 -->
+            <div id="storiesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 故事卡片将动态加载到这里 -->
+            </div>
+
+            <!-- 分页 -->
+            <div id="pagination" class="mt-8 flex justify-center">
+                <!-- 分页控件将动态加载到这里 -->
+            </div>
+        </div>
+    </section>
+
+    <script>
+        const backendUrl = 'http://localhost:5000';
+        let currentPage = 1;
+        const pageSize = 9;
+        let totalPages = 1;
+        let totalStories = 0;
+        let currentFilters = {
+            search: '',
+            sort: 'latest'
+        };
+
+        // 检查管理员权限
+        function checkAdminAccess() {
+            const authState = AuthUI.getAuthState();
+            if (!authState || !authState.userInfo) {
+                window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.href);
+                return false;
+            }
+
+            const userRole = authState.userInfo.role || 'user';
+            if (userRole !== 'admin') {
+                alert('您没有权限访问此页面');
+                window.location.href = 'index.html';
+                return false;
+            }
+
+            return true;
+        }
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!checkAdminAccess()) {
+                return;
+            }
+
+            // 初始化AuthUI
+            if (typeof AuthUI !== 'undefined') {
+                AuthUI.init({
+                    desktopContainer: 'auth-area-desktop',
+                    mobileContainer: 'auth-area-mobile',
+                    showAvatar: true,
+                    showName: true,
+                    avatarSize: 'medium'
+                });
+            }
+
+            // 移动端菜单切换
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            // 搜索框事件
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        applyFilters();
+                    }
+                });
+            }
+
+            // 加载待审核故事列表
+            loadPendingStories();
+            
+            // 加载审核统计信息
+            loadReviewStats();
+        });
+        
+        // 加载审核统计信息
+        async function loadReviewStats() {
+            try {
+                const authState = AuthUI.getAuthState();
+                if (!authState || !authState.token) {
+                    return;
+                }
+
+                const token = authState.token.startsWith('Bearer ') ? authState.token.substring(7) : authState.token;
+
+                const response = await fetch(`${backendUrl}/api/v1/admin/stats`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    console.error('获取审核统计失败:', response.status);
+                    return;
+                }
+
+                const data = await response.json();
+                
+                if (data.success && data.data.reviews) {
+                    document.getElementById('today-count').textContent = data.data.reviews.today || 0;
+                    document.getElementById('total-count').textContent = data.data.reviews.total || 0;
+                }
+            } catch (error) {
+                console.error('加载审核统计失败:', error);
+            }
+        }
+
+        // 加载待审核故事列表
+        async function loadPendingStories(page = 1) {
+            currentPage = page;
+            const storiesContainer = document.getElementById('storiesContainer');
+            
+            // 显示加载状态
+            storiesContainer.innerHTML = `
+                <div class="col-span-full flex flex-col items-center justify-center py-20">
+                    <div class="loading-spinner w-12 h-12 mb-4"></div>
+                    <p class="text-slate-600">正在加载待审核故事...</p>
+                </div>
+            `;
+
+            try {
+                const authState = AuthUI.getAuthState();
+                if (!authState || !authState.token) {
+                    throw new Error('请先登录');
+                }
+
+                const token = authState.token.startsWith('Bearer ') ? authState.token.substring(7) : authState.token;
+
+                // 构建API URL
+                const params = new URLSearchParams({
+                    page: page,
+                    limit: pageSize,
+                    status: 'pending'
+                });
+
+                if (currentFilters.search) {
+                    params.append('search', currentFilters.search);
+                }
+
+                const response = await fetch(`${backendUrl}/api/v1/admin/stories?${params}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        AuthUI.clearAuthStorage();
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    throw new Error(`获取故事列表失败: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    const stories = data.data.stories || [];
+                    totalStories = data.data.pagination?.total || 0;
+                    totalPages = data.data.pagination?.pages || 1;
+                    
+                    // 更新统计信息
+                    document.getElementById('pending-count').textContent = totalStories;
+
+                    // 渲染故事列表
+                    renderStories(stories);
+
+                    // 渲染分页
+                    renderPagination();
+                } else {
+                    throw new Error(data.message || '获取故事列表失败');
+                }
+            } catch (error) {
+                console.error('加载故事列表失败:', error);
+                storiesContainer.innerHTML = `
+                    <div class="col-span-full text-center py-20">
+                        <i class="fa fa-exclamation-circle text-4xl text-red-500 mb-4"></i>
+                        <p class="text-red-600 mb-2">加载失败</p>
+                        <p class="text-sm text-slate-500">${error.message}</p>
+                        <button onclick="loadPendingStories()" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                            重试
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // 渲染故事列表
+        function renderStories(stories) {
+            const storiesContainer = document.getElementById('storiesContainer');
+
+            if (!stories || stories.length === 0) {
+                storiesContainer.innerHTML = `
+                    <div class="col-span-full text-center py-20">
+                        <i class="fa fa-check-circle text-6xl text-green-300 mb-4"></i>
+                        <p class="text-slate-600 text-lg mb-2">暂无待审核故事</p>
+                        <p class="text-sm text-slate-500">所有故事都已审核完成</p>
+                    </div>
+                `;
+                return;
+            }
+
+            storiesContainer.innerHTML = '';
+            storiesContainer.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
+
+            stories.forEach(story => {
+                const card = createStoryCard(story);
+                storiesContainer.appendChild(card);
+            });
+        }
+
+        // 创建故事卡片
+        function createStoryCard(story) {
+            const card = document.createElement('div');
+            card.className = 'story-card bg-white rounded-xl shadow-md overflow-hidden';
+            
+            const coverImage = story.coverImage || '/coverImage/1.png';
+            const authorName = story.author?.username || '未知作者';
+            const authorAvatar = story.author?.avatar || `/avatar/default.png`;
+            const categoryName = story.category?.name || '未分类';
+            const storyTitle = story.title || '未命名故事';
+            // 处理时间显示
+            let createdAt = '未知时间';
+            if (story.createdAt) {
+              try {
+                const date = new Date(story.createdAt);
+                if (!isNaN(date.getTime())) {
+                  createdAt = date.toLocaleDateString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                  });
+                }
+              } catch (e) {
+                console.error('日期解析失败:', e);
+              }
+            } else if (story.created_at) {
+              try {
+                const date = new Date(story.created_at);
+                if (!isNaN(date.getTime())) {
+                  createdAt = date.toLocaleDateString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                  });
+                }
+              } catch (e) {
+                console.error('日期解析失败:', e);
+              }
+            }
+            const description = story.description || '暂无描述';
+
+            card.innerHTML = `
+                <div class="relative h-48 overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/20">
+                    ${coverImage && coverImage !== '/coverImage/1.png' ? `
+                        <img src="${coverImage.startsWith('http') ? coverImage : `${backendUrl}${coverImage}`}" 
+                            alt="${storyTitle}" 
+                            class="w-full h-full object-cover"
+                            onerror="this.onerror=null; this.src='${backendUrl}/coverImage/1.png';">
+                    ` : `
+                        <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
+                            <i class="fa fa-book text-6xl text-primary/30"></i>
+                        </div>
+                    `}
+                    <div class="absolute top-3 left-3 flex gap-2">
+                        <span class="px-3 py-1 bg-white/90 backdrop-blur-sm text-primary text-xs font-medium rounded-full">
+                            ${categoryName}
+                        </span>
+                        <span class="px-3 py-1 bg-yellow-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full">
+                            待审核
+                        </span>
+                    </div>
+                </div>
+                <div class="p-5">
+                    <h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-2 min-h-[3.5rem]">${storyTitle}</h3>
+                    <p class="text-sm text-slate-600 mb-4 line-clamp-2 min-h-[2.5rem]">${description}</p>
+                    <div class="flex items-center justify-between text-xs text-slate-500 mb-4">
+                        <div class="flex items-center">
+                            <img src="${authorAvatar.startsWith('http') ? authorAvatar : `${backendUrl}${authorAvatar}`}" 
+                                alt="${authorName}" 
+                                class="w-6 h-6 rounded-full mr-2 border border-slate-300"
+                                onerror="this.onerror=null; this.src='${backendUrl}/avatar/default.png';">
+                            <span class="font-medium text-slate-700">${authorName}</span>
+                        </div>
+                        <span class="text-slate-500">${createdAt}</span>
+                    </div>
+                    <div class="pt-4 border-t border-slate-200 space-y-2">
+                        <a href="story-reader.html?storyId=${story.id}" 
+                            class="block w-full text-center px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors">
+                            <i class="fa fa-eye mr-1"></i>预览故事
+                        </a>
+                        <div class="flex gap-2">
+                            <button onclick="reviewStory(${story.id}, 'approve', '${storyTitle.replace(/'/g, "\\'")}')" 
+                                class="flex-1 px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors">
+                                <i class="fa fa-check mr-1"></i>通过
+                            </button>
+                            <button onclick="reviewStory(${story.id}, 'reject', '${storyTitle.replace(/'/g, "\\'")}')" 
+                                class="flex-1 px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors">
+                                <i class="fa fa-times mr-1"></i>拒绝
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            return card;
+        }
+
+        // 审核故事
+        async function reviewStory(storyId, action, storyTitle) {
+            const actionText = action === 'approve' ? '通过' : '拒绝';
+            let reason = '';
+            
+            // 只有拒绝操作才需要输入原因
+            if (action === 'reject') {
+                const inputReason = prompt(`请输入拒绝原因:`);
+                if (inputReason === null) {
+                    // 如果取消输入，不执行操作
+                    return;
+                }
+                reason = inputReason || '';
+            }
+
+            try {
+                const authState = AuthUI.getAuthState();
+                if (!authState || !authState.token) {
+                    alert('请先登录');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const token = authState.token.startsWith('Bearer ') ? authState.token.substring(7) : authState.token;
+
+                const response = await fetch(`${backendUrl}/api/v1/admin/stories/${storyId}/review`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: action,
+                        reason: reason || ''
+                    })
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        AuthUI.clearAuthStorage();
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `审核失败: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`故事《${storyTitle}》已${actionText}`);
+                    // 重新加载列表和统计信息
+                    loadPendingStories(currentPage);
+                    loadReviewStats();
+                } else {
+                    throw new Error(result.message || '审核失败');
+                }
+            } catch (error) {
+                console.error('审核故事失败:', error);
+                alert(`审核失败: ${error.message}`);
+            }
+        }
+
+        // 应用筛选
+        function applyFilters() {
+            const searchInput = document.getElementById('searchInput');
+            const sortFilter = document.getElementById('sortFilter');
+
+            currentFilters.search = searchInput?.value.trim() || '';
+            currentFilters.sort = sortFilter?.value || 'latest';
+
+            // 重置到第一页并加载
+            loadPendingStories(1);
+        }
+
+        // 渲染分页
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+
+            // 上一页按钮
+            html += `
+                <button 
+                    onclick="loadPendingStories(${currentPage - 1})"
+                    ${currentPage === 1 ? 'disabled' : ''}
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa fa-chevron-left"></i>
+                </button>
+            `;
+
+            // 页码按钮
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+
+            if (startPage > 1) {
+                html += `<button onclick="loadPendingStories(1)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">1</button>`;
+                if (startPage > 2) {
+                    html += `<span class="px-2 text-slate-500">...</span>`;
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button onclick="loadPendingStories(${i})" class="px-4 py-2 text-sm font-medium ${i === currentPage ? 'bg-primary text-white' : 'text-gray-700 bg-white border border-gray-300'} rounded-lg hover:bg-gray-50 transition-colors">${i}</button>`;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    html += `<span class="px-2 text-slate-500">...</span>`;
+                }
+                html += `<button onclick="loadPendingStories(${totalPages})" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">${totalPages}</button>`;
+            }
+
+            // 下一页按钮
+            html += `
+                <button 
+                    onclick="loadPendingStories(${currentPage + 1})"
+                    ${currentPage === totalPages ? 'disabled' : ''}
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa fa-chevron-right"></i>
+                </button>
+            `;
+
+            pagination.innerHTML = html;
+        }
+
+        // 全局函数
+        window.loadPendingStories = loadPendingStories;
+        window.reviewStory = reviewStory;
+        window.applyFilters = applyFilters;
+    </script>
+</body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互动故事创建工具 - StoryForge</title>
+    <!-- 引入Tailwind CSS用于导航栏 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="assets/js/auth.js"></script>
+    <script src="assets/js/navbar.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#ec4899'
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .navbar-modern {
+                background: rgba(255, 255, 255, 0.98);
+                backdrop-filter: blur(10px);
+                border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            }
+            .navbar-link {
+                position: relative;
+                transition: color 0.2s ease;
+                color: #374151;
+                font-weight: 400;
+            }
+            .navbar-link:hover {
+                color: #6366f1;
+            }
+            .navbar-link.active {
+                color: #6366f1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar-modern fixed top-0 left-0 right-0 z-50">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+                        <i class="fa fa-book text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl md:text-2xl font-bold text-gray-900">StoryForge</h1>
+                        <p class="text-xs text-slate-500 hidden md:block">AI故事创作平台</p>
+                    </div>
+                </div>
+                
+                <!-- 桌面端导航链接（根据角色动态显示） -->
+                <div class="hidden lg:flex items-center space-x-6">
+                    <a href="index.html" class="navbar-link font-medium hover:text-primary transition-colors">首页</a>
+                    <a href="browse.html" class="navbar-link font-medium hover:text-primary transition-colors">故事阅览</a>
+                    <a href="create.html" class="navbar-link active font-medium text-primary transition-colors user-only" style="display: none;">创建故事</a>
+                    <a href="my_stories.html" class="navbar-link font-medium hover:text-primary transition-colors user-only" style="display: none;">我的作品</a>
+                    <a href="review.html" class="navbar-link font-medium hover:text-primary transition-colors admin-only" style="display: none;">故事审核</a>
+                    <a href="profile.html" class="navbar-link font-medium hover:text-primary transition-colors">个人中心</a>
+                </div>
+                
+                <!-- 认证区域 -->
+                <div id="auth-area-desktop" class="flex items-center space-x-3"></div>
+                
+                <!-- 移动端菜单按钮 -->
+                <button id="mobile-menu-button" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors">
+                    <i class="fa fa-bars text-slate-600 text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 移动端菜单 -->
+        <div class="lg:hidden hidden bg-white/95 backdrop-blur-md border-t border-slate-200" id="mobile-menu">
+            <div class="container mx-auto px-4 py-4 space-y-3">
+                <a href="index.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">首页</a>
+                <a href="browse.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">故事阅览</a>
+                <a href="create.html" class="block py-3 px-4 rounded-lg font-medium text-primary bg-primary/5 user-only" style="display: none;">创建故事</a>
+                <a href="my_stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary user-only" style="display: none;">我的作品</a>
+                <a href="review.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary admin-only" style="display: none;">故事审核</a>
+                <a href="profile.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">个人中心</a>
+                <div class="flex flex-col space-y-3 pt-3 border-t border-slate-200">
+                    <div id="auth-area-mobile"></div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="app-container" style="margin-top: 70px;">
+        <!-- 顶部工具栏 -->
+        <header class="app-header" style="position: relative; top: 0;">
+            <div class="header-left">
+                <h1><i class="fas fa-book-open"></i> 互动故事创建工具</h1>
+            </div>
+            <div class="header-right">
+                <button id="saveBtn" class="btn btn-primary"><i class="fas fa-save"></i> 保存</button>
+                <button id="exportBtn" class="btn btn-secondary"><i class="fas fa-download"></i> 导出</button>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 左侧面板 - 故事信息 -->
+            <aside class="left-panel">
+                <!-- 故事信息设置面板 -->
+                <section class="panel-section" id="storyInfoSection">
+                    <h2><i class="fas fa-info-circle"></i> 故事信息</h2>
+                    <form id="storyInfoForm" class="story-info-form">
+                        <div class="form-group">
+                            <label for="storyTitle">故事标题 <span class="required">*</span></label>
+                            <input 
+                                type="text" 
+                                id="storyTitle" 
+                                placeholder="输入故事标题" 
+                                class="form-control"
+                                maxlength="50"
+                                required
+                            >
+                            <div class="form-hint">最多50个字符</div>
+                            <div class="error-message" id="titleError"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="storyDescription">故事简介 <span class="required">*</span></label>
+                            <textarea 
+                                id="storyDescription" 
+                                placeholder="输入故事简介" 
+                                class="form-control"
+                                maxlength="500"
+                                rows="3"
+                                required
+                            ></textarea>
+                            <div class="form-hint">最多500个字符</div>
+                            <div class="error-message" id="descriptionError"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="storyCategory">故事分类 <span class="required">*</span></label>
+                            <select 
+                                id="storyCategory" 
+                                class="form-control"
+                                required
+                            >
+                                <option value="">请选择分类...</option>
+                            </select>
+                            <div class="form-hint">选择故事所属的分类</div>
+                            <div class="error-message" id="categoryError"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="coverImage">封面图片</label>
+                            <input 
+                                type="file" 
+                                id="coverImage" 
+                                accept="image/*"
+                                class="form-control"
+                            >
+                            <div id="coverPreview" class="cover-preview"></div>
+                        </div>
+                    </form>
+                </section>
+
+            </aside>
+
+            <!-- 中间面板 - 分支创建 -->
+            <section class="middle-panel">
+                <!-- 分支剧情创建工具 -->
+                <section class="panel-section" id="branchSection">
+                    <div class="section-header">
+                        <h2><i class="fas fa-project-diagram"></i> 分支管理</h2>
+                        <div class="branch-controls">
+                            <button id="addBranchBtn" class="btn btn-primary"><i class="fas fa-code-branch"></i> 添加分支</button>
+                        </div>
+                    </div>
+                    <div id="branchEditor" class="branch-editor">
+                    <div id="nodesCanvas" class="nodes-canvas"></div>
+                    <div class="branch-properties">
+                            <h3>分支属性</h3>
+                            <div class="form-group">
+                                <label for="branchText">分支文本</label>
+                                <input type="text" id="branchText" placeholder="输入分支选项文本" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="newNodeType">后继节点类型</label>
+                                <select id="newNodeType" class="form-control">
+                                    <option value="regular">普通节点</option>
+                                    <option value="branch">分支节点</option>
+                                    <option value="end">结束节点</option>
+                                </select>
+                            </div>
+                            <!-- 节点预览 -->
+                            <h3>节点预览</h3>
+                            <div class="node-preview">
+                                <div class="node-preview-header">
+                                    <span class="node-preview-title-label">节点标题：</span>
+                                    <button id="editNodeBtn" class="btn btn-primary btn-sm" style="margin-left: auto;">
+                                        <i class="fas fa-edit"></i> 修改节点
+                                    </button>
+                                </div>
+                                <div id="nodePreviewTitle" class="node-preview-title">未选择节点</div>
+                                <div class="node-preview-content-label">节点内容：</div>
+                                <div id="nodePreviewContent" class="node-preview-content">请选择一个节点查看详情</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </section>
+
+        </main>
+
+        <!-- 节点编辑模态框 -->
+        <div id="nodeEditModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-edit"></i> 编辑节点</h3>
+                    <button class="close-btn" id="closeNodeEditModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="nodeEditTitle">节点标题</label>
+                        <input type="text" id="nodeEditTitle" placeholder="输入节点标题" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="nodeEditContent">节点内容</label>
+                        <textarea id="nodeEditContent" placeholder="输入节点内容" class="form-control rich-text" rows="8"></textarea>
+                    </div>
+                    <div class="form-group" style="margin-top: 1.5rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <label for="aiGeneratedContent" style="margin-bottom: 0;">AI润色和扩写结果</label>
+                            <button id="aiPolishBtn" class="btn btn-primary btn-sm" style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-magic"></i> 生成
+                            </button>
+                        </div>
+                        <textarea id="aiGeneratedContent" placeholder="点击"生成"按钮后，AI润色和扩写的内容将显示在这里" class="form-control rich-text" rows="8" readonly style="background-color: #f8f9fa; cursor: not-allowed;"></textarea>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                            <button id="useAiContentBtn" class="btn btn-success btn-sm" style="flex: 1; display: none;">
+                                <i class="fas fa-check"></i> 使用AI生成的内容
+                            </button>
+                            <button id="copyAiContentBtn" class="btn btn-secondary btn-sm" style="display: none;">
+                                <i class="fas fa-copy"></i> 复制
+                            </button>
+                        </div>
+                    </div>
+                    <div class="error-message" id="nodeEditError" style="display: none; color: #ef4444; margin-top: 1rem;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button id="cancelNodeEditBtn" class="btn btn-secondary">取消</button>
+                    <button id="saveNodeEditBtn" class="btn btn-primary">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/auth.js"></script>
+    <script>
+        // 移动端菜单切换
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', function() {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+            
+            // 初始化AuthUI（如果可用）
+            if (typeof AuthUI !== 'undefined') {
+                AuthUI.init();
+            }
+            
+            // 根据用户角色更新导航栏
+            if (typeof updateNavigationByRole === 'function') {
+                setTimeout(updateNavigationByRole, 300);
+            }
+        });
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - StoryForge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6366f1',
+            secondary: '#a855f7',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['Playfair Display', 'serif']
+          },
+        },
+      }
+    }
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto { content-visibility: auto; }
+      .text-shadow { text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+      .animate-float { animation: float 6s ease-in-out infinite; }
+      .animate-pulse-slow { animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+      .backdrop-blur { backdrop-filter: blur(8px); }
+      .navbar-modern {
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+      .navbar-link {
+        transition: color 0.2s ease;
+      }
+      .btn-primary-modern {
+        background: #6366f1;
+        transition: background-color 0.2s ease;
+      }
+      .btn-primary-modern:hover {
+        background: #5558e3;
+      }
+      .btn-secondary-modern {
+        background: transparent;
+        border: 1px solid #e5e7eb;
+        transition: all 0.2s ease;
+      }
+      .btn-secondary-modern:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+      }
+    }
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-15px); }
+      100% { transform: translateY(0px); }
+    }
+    .gradient-bg {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      position: relative;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+    .gradient-bg::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                  radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
+      animation: float 20s ease-in-out infinite;
+    }
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+  </style>
+</head>
+<body class="gradient-bg text-slate-800 font-sans">
+  <!-- 导航栏 -->
+  <nav class="navbar-modern">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+          <i class="fa fa-book text-white text-lg"></i>
+        </div>
+        <h1 class="text-xl md:text-2xl font-display font-bold text-gray-900">StoryForge</h1>
+      </div>
+      
+      <div class="hidden md:flex items-center space-x-8">
+        <a href="index.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">首页</a>
+        <a href="create.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">创建故事</a>
+        <a href="my_stories.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">我的作品</a>
+      </div>
+      
+      <div class="flex items-center space-x-4">
+        <button class="btn-secondary-modern px-5 py-2 rounded-full text-primary font-medium">
+          <a href="register.html" class="block w-full h-full">注册</a>
+        </button>
+        <div class="flex items-center space-x-4 md:hidden">
+          <button id="mobile-menu-button" class="text-xl text-gray-700">
+            <i class="fa fa-bars"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 移动端菜单 -->
+    <div class="md:hidden hidden bg-white/95 backdrop-blur border-t border-gray-200 absolute w-full" id="mobile-menu">
+        <div class="container mx-auto px-4 py-3 flex flex-col space-y-4">
+          <a href="index.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">首页</a>
+          <a href="create.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">创建故事</a>
+          <a href="my_stories.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">我的作品</a>
+          <div class="pt-2 space-y-3">
+            <button class="w-full btn-secondary-modern px-5 py-2 rounded-full text-primary font-medium">
+              <a href="register.html" class="block w-full h-full">注册</a>
+            </button>
+          </div>
+        </div>
+    </div>
+  </nav>
+
+  <!-- 登录内容区域 -->
+  <section class="pb-20 px-4">
+    <div class="w-full max-w-md mx-auto">
+      <!-- 登录卡片 -->
+      <div class="glass-effect rounded-2xl p-8 shadow-2xl">
+        <!-- 标题 -->
+        <div class="text-center mb-8">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4 animate-pulse-slow">
+            <i class="fa fa-sign-in text-white text-2xl"></i>
+          </div>
+          <h1 class="text-3xl font-bold text-white mb-2">欢迎回来</h1>
+          <p class="text-white/80">登录你的账号，继续创作之旅</p>
+        </div>
+
+        <!-- 登录表单 -->
+        <form class="space-y-6" id="login-form">
+          <div>
+            <label for="login-email" class="block text-white text-sm font-medium mb-2">电子邮箱</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fa fa-envelope text-white/60"></i>
+              </div>
+              <input type="email" id="login-email" class="w-full pl-10 pr-3 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all" placeholder="请输入你的电子邮箱" required>
+            </div>
+          </div>
+          
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label for="login-password" class="block text-white text-sm font-medium">密码</label>
+              <a href="forgot_password.html" class="text-xs text-white/80 hover:text-white transition-colors">忘记密码？</a>
+            </div>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fa fa-lock text-white/60"></i>
+              </div>
+              <input type="password" id="login-password" class="w-full pl-10 pr-12 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all" placeholder="请输入你的密码" required>
+              <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 pr-3 flex items-center text-white/60 hover:text-white transition-colors">
+                <i class="fa fa-eye" id="password-icon"></i>
+              </button>
+            </div>
+          </div>
+          
+          <div class="flex items-center">
+            <input type="checkbox" id="remember-me" class="w-4 h-4 bg-white/10 border-white/20 rounded focus:ring-white/50 focus:ring-2">
+            <label for="remember-me" class="ml-2 text-sm text-white/80">记住我</label>
+          </div>
+          
+          <button type="submit" class="w-full bg-white/20 hover:bg-white/30 text-white font-medium py-3 px-4 rounded-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-transparent border border-white/30">
+            <i class="fa fa-sign-in mr-2"></i>
+            登录账号
+          </button>
+          
+          <div class="text-center text-sm text-white/80">
+            还没有账号？<a href="register.html" class="text-white hover:text-white/80 font-medium transition-colors">立即注册</a>
+          </div>
+        </form>
+
+        <!-- 第三方登录 -->
+        <div class="mt-6">
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-white/20"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+              <span class="px-2 bg-transparent text-white/60">或者使用以下方式登录</span>
+            </div>
+          </div>
+          
+          <div class="mt-6 grid grid-cols-3 gap-3">
+            <button class="w-full inline-flex justify-center py-2 px-4 border border-white/20 rounded-lg shadow-sm text-sm font-medium text-white/80 hover:bg-white/10 transition-all">
+              <i class="fa fa-weixin"></i>
+            </button>
+            <button class="w-full inline-flex justify-center py-2 px-4 border border-white/20 rounded-lg shadow-sm text-sm font-medium text-white/80 hover:bg-white/10 transition-all">
+              <i class="fa fa-qq"></i>
+            </button>
+            <button class="w-full inline-flex justify-center py-2 px-4 border border-white/20 rounded-lg shadow-sm text-sm font-medium text-white/80 hover:bg-white/10 transition-all">
+              <i class="fa fa-weibo"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 帮助信息 -->
+      <div class="mt-8 text-center">
+        <div class="glass-effect rounded-lg p-4">
+          <h3 class="text-white font-medium mb-2">首次使用？</h3>
+          <p class="text-white/80 text-sm mb-3">
+            加入StoryForge，开启您的AI故事创作之旅
+          </p>
+          <div class="flex justify-center space-x-4">
+            <a href="register.html" class="text-white/80 hover:text-white transition-colors">
+              <i class="fa fa-user-plus mr-1"></i>
+              立即注册
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 额外内容区域，确保页面可以滚动 -->
+      <div class="mt-12 space-y-8">
+        <div class="glass-effect rounded-lg p-6">
+          <h3 class="text-white font-medium mb-4">为什么选择 StoryForge？</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-white/80 text-sm">
+            <div class="text-center">
+              <i class="fa fa-magic text-2xl mb-2"></i>
+              <h4 class="font-medium mb-1">AI 智能创作</h4>
+              <p>先进的AI技术助力故事创作</p>
+            </div>
+            <div class="text-center">
+              <i class="fa fa-users text-2xl mb-2"></i>
+              <h4 class="font-medium mb-1">社区互动</h4>
+              <p>与其他创作者分享交流</p>
+            </div>
+            <div class="text-center">
+              <i class="fa fa-book text-2xl mb-2"></i>
+              <h4 class="font-medium mb-1">海量故事</h4>
+              <p>探索无限精彩的故事世界</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-effect rounded-lg p-6">
+          <h3 class="text-white font-medium mb-4">快速开始指南</h3>
+          <ol class="text-white/80 text-sm space-y-2">
+            <li>1. 注册账号并完善个人信息</li>
+            <li>2. 浏览热门故事获取灵感</li>
+            <li>3. 使用AI工具开始创作</li>
+            <li>4. 发布作品与社区互动</li>
+            <li>5. 持续优化提升创作水平</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 页脚 -->
+  <footer class="bg-slate-900 text-white py-12 px-4">
+    <div class="container mx-auto max-w-6xl">
+      <div class="border-t border-slate-800 pt-8 text-center text-slate-500 text-sm">
+        <p>&copy; 2023 StoryForge. 保留所有权利。</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- JavaScript -->
+  <script>
+    // 移动端菜单切换
+    document.getElementById('mobile-menu-button').addEventListener('click', function() {
+      const mobileMenu = document.getElementById('mobile-menu');
+      mobileMenu.classList.toggle('hidden');
+    });
+
+    // 密码显示/隐藏功能
+    (function() {
+      const togglePassword = document.getElementById('toggle-password');
+      const passwordInput = document.getElementById('login-password');
+      const passwordIcon = document.getElementById('password-icon');
+      
+      if (togglePassword && passwordInput && passwordIcon) {
+        togglePassword.addEventListener('click', function() {
+          const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+          passwordInput.setAttribute('type', type);
+          
+          // 切换图标
+          if (type === 'text') {
+            passwordIcon.classList.remove('fa-eye');
+            passwordIcon.classList.add('fa-eye-slash');
+          } else {
+            passwordIcon.classList.remove('fa-eye-slash');
+            passwordIcon.classList.add('fa-eye');
+          }
+        });
+      }
+    })();
+
+    // 登录功能
+    (function () {
+      const form = document.getElementById('login-form');
+      if (!form) return;
+
+      const emailInput = document.getElementById('login-email');
+      const passwordInput = document.getElementById('login-password');
+      const rememberCheckbox = document.getElementById('remember-me');
+      const submitButton = form.querySelector('button[type="submit"]');
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+        const rememberMe = rememberCheckbox.checked;
+
+        if (!email || !password) {
+          alert('请输入邮箱和密码');
+          return;
+        }
+
+        const originalButtonText = submitButton.innerHTML;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 正在登录...';
+
+        try {
+          const response = await fetch('http://localhost:5000/api/v1/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+          });
+
+          // 检查响应类型
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('服务器返回了非JSON响应:', text.substring(0, 200));
+            throw new Error(`服务器返回了非JSON响应 (${response.status}): ${text.substring(0, 100)}`);
+          }
+
+          const result = await response.json();
+
+          if (!response.ok || !result.success) {
+            const message = (result.errors && result.errors[0]?.message) || result.message || '登录失败，请检查账号密码';
+            throw new Error(message);
+          }
+
+          const storage = rememberMe ? localStorage : sessionStorage;
+          storage.setItem('token', result.data.token);
+          storage.setItem('refreshToken', result.data.refreshToken);
+          storage.setItem('userInfo', JSON.stringify({
+            userId: result.data.userId,
+            username: result.data.username,
+            email: result.data.email,
+            avatar: result.data.avatar,
+            role: result.data.role || 'user'
+          }));
+
+          // 清理另一种存储，避免冗余
+          const otherStorage = rememberMe ? sessionStorage : localStorage;
+          otherStorage.removeItem('token');
+          otherStorage.removeItem('refreshToken');
+          otherStorage.removeItem('userInfo');
+          
+          // 确保设置单独的username字段，与导航栏登录状态检查逻辑配合
+          storage.setItem('username', result.data.username);
+
+          // 检查是否有重定向参数
+          const params = new URLSearchParams(window.location.search);
+          const redirectUrl = params.get('redirect');
+          
+          if (redirectUrl) {
+            // 验证重定向URL是否安全，只允许站内跳转
+            try {
+              const parsedUrl = new URL(redirectUrl, window.location.origin);
+              if (parsedUrl.origin === window.location.origin) {
+                alert('登录成功，正在跳转...');
+                window.location.href = redirectUrl;
+              } else {
+                alert('登录成功，正在跳转到首页');
+                window.location.href = 'index.html';
+              }
+            } catch (e) {
+              alert('登录成功，正在跳转到首页');
+              window.location.href = 'index.html';
+            }
+          } else {
+            alert('登录成功，正在跳转到首页');
+            window.location.href = 'index.html';
+          }
+        } catch (error) {
+          console.error('登录失败:', error);
+          alert(error.message || '登录失败，请稍后再试');
+        } finally {
+          submitButton.disabled = false;
+          submitButton.innerHTML = originalButtonText;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

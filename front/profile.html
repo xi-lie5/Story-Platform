@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人中心 - StoryForge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/navbar.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6366f1',
+            secondary: '#ec4899',
+            accent: '#10b981'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['Playfair Display', 'serif']
+          }
+        }
+      }
+    }
+
+      // 分类管理相关函数
+      let currentEditingCategory = null;
+
+      function openCategoryModal(categoryId = null) {
+        currentEditingCategory = categoryId;
+        const modal = document.getElementById('categoryModal');
+        const title = document.getElementById('categoryModalTitle');
+        const nameInput = document.getElementById('categoryName');
+        const descInput = document.getElementById('categoryDescription');
+        
+        if (categoryId) {
+          title.textContent = '编辑分类';
+          // 加载分类数据
+          loadCategoryData(categoryId);
+        } else {
+          title.textContent = '添加分类';
+          nameInput.value = '';
+          descInput.value = '';
+        }
+        
+        modal.classList.remove('hidden');
+      }
+
+      async function loadCategoryData(categoryId) {
+        try {
+          const authState = AuthUI.getAuthState();
+          const currentToken = authState?.token || (authState?.token?.startsWith('Bearer ') ? authState.token.substring(7) : null);
+          
+          if (!currentToken) {
+            throw new Error('请先登录');
+          }
+          
+          const categoriesResponse = await fetch(`http://localhost:5000/api/v1/categories/${categoryId}`, {
+            headers: { 'Authorization': `Bearer ${currentToken}` }
+          });
+          
+          if (!categoriesResponse.ok) {
+            throw new Error('加载分类数据失败');
+          }
+          
+          const categoryData = await categoriesResponse.json();
+          if (categoryData.success && categoryData.data) {
+            const category = categoryData.data;
+            // 确保正确设置分类名称和描述
+            const nameInput = document.getElementById('categoryName');
+            const descInput = document.getElementById('categoryDescription');
+            if (nameInput) {
+              nameInput.value = category.name || '';
+            }
+            if (descInput) {
+              descInput.value = category.description || '';
+            }
+          } else {
+            console.error('分类数据格式错误:', categoryData);
+            showNotification('加载分类数据失败', 'error');
+          }
+        } catch (error) {
+          console.error('加载分类数据失败:', error);
+          showNotification('加载分类数据失败: ' + error.message, 'error');
+        }
+      }
+
+      function closeCategoryModal() {
+        document.getElementById('categoryModal').classList.add('hidden');
+        currentEditingCategory = null;
+      }
+
+      async function saveCategory() {
+        const nameInput = document.getElementById('categoryName');
+        const descInput = document.getElementById('categoryDescription');
+        
+        if (!nameInput || !descInput) {
+          showNotification('无法找到分类输入框', 'error');
+          return;
+        }
+        
+        const name = nameInput.value.trim();
+        const description = descInput.value.trim();
+        
+        if (!name) {
+          showNotification('请输入分类名称', 'error');
+          return;
+        }
+        
+        try {
+          const authState = AuthUI.getAuthState();
+          const currentToken = authState?.token || (authState?.token?.startsWith('Bearer ') ? authState.token.substring(7) : null);
+          
+          if (!currentToken) {
+            throw new Error('请先登录');
+          }
+          
+          const url = currentEditingCategory 
+            ? `http://localhost:5000/api/v1/categories/${currentEditingCategory}`
+            : 'http://localhost:5000/api/v1/categories';
+          
+          const method = currentEditingCategory ? 'PUT' : 'POST';
+          
+          const response = await fetch(url, {
+            method: method,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${currentToken}`
+            },
+            body: JSON.stringify({ name, description })
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || '保存失败');
+          }
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            showNotification(currentEditingCategory ? '分类更新成功' : '分类添加成功', 'success');
+            closeCategoryModal();
+            loadAdminCategories(); // 重新加载分类列表
+          } else {
+            showNotification(result.message || '操作失败', 'error');
+          }
+        } catch (error) {
+          console.error('保存分类失败:', error);
+          showNotification('保存分类失败: ' + error.message, 'error');
+        }
+      }
+
+      async function editCategory(categoryId) {
+        openCategoryModal(categoryId);
+      }
+
+      async function deleteCategory(categoryId) {
+        if (!confirm('确定要删除这个分类吗？删除后无法恢复。')) {
+          return;
+        }
+        
+        try {
+          const authState = AuthUI.getAuthState();
+          const currentToken = authState?.token || (authState?.token?.startsWith('Bearer ') ? authState.token.substring(7) : null);
+          
+          if (!currentToken) {
+            throw new Error('请先登录');
+          }
+          
+          const response = await fetch(`http://localhost:5000/api/v1/categories/${categoryId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${currentToken}` }
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            showNotification('分类删除成功', 'success');
+            loadAdminCategories(); // 重新加载分类列表
+          } else {
+            showNotification(result.message || '删除失败', 'error');
+          }
+        } catch (error) {
+          console.error('删除分类失败:', error);
+          showNotification('删除分类失败', 'error');
+        }
+      }
+
+      function showNotification(message, type = 'info') {
+        // 创建通知元素
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full`;
+        
+        // 根据类型设置颜色
+        const colors = {
+          success: 'bg-green-500 text-white',
+          error: 'bg-red-500 text-white',
+          info: 'bg-blue-500 text-white',
+          warning: 'bg-yellow-500 text-white'
+        };
+        
+        notification.className += ` ${colors[type] || colors.info}`;
+        notification.innerHTML = `
+          <div class="flex items-center">
+            <i class="fa fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} mr-2"></i>
+            <span>${message}</span>
+          </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // 显示动画
+        setTimeout(() => {
+          notification.classList.remove('translate-x-full');
+        }, 100);
+        
+        // 3秒后自动消失
+        setTimeout(() => {
+          notification.classList.add('translate-x-full');
+          setTimeout(() => {
+            document.body.removeChild(notification);
+          }, 300);
+        }, 3000);
+      }
+    </script>
+
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto { content-visibility: auto; }
+      .text-shadow { text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+      .animate-float { animation: float 6s ease-in-out infinite; }
+      .animate-pulse-slow { animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+      .backdrop-blur { backdrop-filter: blur(8px); }
+      .navbar-modern {
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+      .navbar-link {
+        position: relative;
+        transition: color 0.2s ease;
+        color: #374151;
+        font-weight: 400;
+      }
+      .navbar-link:hover {
+        color: #6366f1;
+      }
+      .navbar-link.active {
+        color: #6366f1;
+        font-weight: 600;
+      }
+      .btn-primary-modern {
+        background: #6366f1;
+        color: white;
+        border: none;
+        box-shadow: 0 1px 2px rgba(99, 102, 241, 0.2);
+        transition: background-color 0.2s ease;
+      }
+      .btn-primary-modern:hover {
+        background: #5558e3;
+      }
+      .btn-secondary-modern {
+        background: transparent;
+        border: 1px solid #e5e7eb;
+        color: #374151;
+        box-shadow: none;
+        transition: all 0.2s ease;
+      }
+      .btn-secondary-modern:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+      }
+    }
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-15px); }
+      100% { transform: translateY(0px); }
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-white to-slate-100 min-h-screen text-slate-800 font-sans">
+  <nav class="navbar-modern" id="navbar">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+          <i class="fa fa-book text-white text-lg"></i>
+        </div>
+        <h1 class="text-xl md:text-2xl font-display font-bold text-gray-900">StoryForge</h1>
+      </div>
+
+      <nav class="hidden md:flex items-center space-x-8" id="main-nav-desktop">
+        <a href="index.html" id="nav-home-link" class="navbar-link font-medium transition-colors">首页</a>
+        <a href="browse.html" id="nav-browse-link" class="navbar-link font-medium transition-colors">故事阅览</a>
+        <a href="create.html" id="nav-create-link" class="navbar-link font-medium transition-colors user-only" style="display: none;">创建故事</a>
+        <a href="my_stories.html" id="nav-stories-link" class="navbar-link font-medium transition-colors user-only" style="display: none;">我的作品</a>
+        <a href="review.html" id="nav-review-link" class="navbar-link font-medium transition-colors admin-only" style="display: none;">故事审核</a>
+        <a href="profile.html" id="nav-profile-link" class="navbar-link font-medium text-primary transition-colors">个人中心</a>
+      </nav>
+
+      <div class="flex items-center space-x-4" id="auth-area-desktop">
+          <!-- 已登录状态 (将由JS控制显示) -->
+          <div id="user-logged-in" class="hidden flex items-center space-x-4">
+            <div class="relative group">
+              <button class="flex items-center space-x-2 px-3 py-1 rounded-full btn-secondary-modern">
+                <img src="https://picsum.photos/32/32" alt="用户头像" class="w-8 h-8 rounded-full object-cover">
+                <span class="font-medium text-gray-700">用户名</span>
+                <i class="fa fa-caret-down text-xs text-gray-500"></i>
+              </button>
+              <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 hidden group-hover:block transition-all">
+                <a href="profile.html" class="block px-4 py-2 text-sm hover:bg-slate-100 transition-colors">
+                  <i class="fa fa-user mr-2"></i> 个人设置
+                </a>
+                <a href="my_stories.html" class="block px-4 py-2 text-sm hover:bg-slate-100 transition-colors">
+                  <i class="fa fa-book mr-2"></i> 我的作品
+                </a>
+                <div class="border-t border-slate-200 my-1"></div>
+                <button onclick="AuthUI.clearAuthStorage(); window.location.href = 'index.html';" class="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-slate-100 transition-colors" id="logout-btn">
+                  <i class="fa fa-sign-out mr-2"></i> 退出登录
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 未登录状态 (默认显示) -->
+          <div id="user-not-logged-in">
+            <button class="hidden md:block btn-secondary-modern px-5 py-2 rounded-full text-gray-700 font-medium">
+              <a href="login.html" class="block w-full h-full">登录</a>
+            </button>
+            <button class="btn-primary-modern px-5 py-2 rounded-full font-medium">
+              <a href="register.html" class="block w-full h-full">注册</a>
+            </button>
+          </div>
+        </div>
+        <div class="flex items-center space-x-4 md:hidden">
+          <button id="mobile-menu-button" class="text-xl text-gray-700">
+            <i class="fa fa-bars"></i>
+          </button>
+        </div>
+    </div>
+
+    <div class="md:hidden hidden bg-white/95 backdrop-blur absolute w-full border-t border-gray-200" id="mobile-menu">
+      <div class="p-4 space-y-3">
+        <a href="index.html" id="mobile-nav-home-link" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors">首页</a>
+        <a href="browse.html" id="mobile-nav-browse-link" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors">故事阅览</a>
+        <a href="create.html" id="mobile-nav-create-link" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors user-only" style="display: none;">创建故事</a>
+        <a href="my_stories.html" id="mobile-nav-stories-link" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors user-only" style="display: none;">我的作品</a>
+        <a href="review.html" id="mobile-nav-review-link" class="navbar-link block font-medium py-2 text-gray-600 hover:text-primary transition-colors admin-only" style="display: none;">故事审核</a>
+        <a href="profile.html" id="mobile-nav-profile-link" class="navbar-link block font-medium py-2 text-primary transition-colors">个人中心</a>
+        <div id="auth-area-mobile" class="pt-3 border-t border-gray-200 space-y-3"></div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="pb-20 px-4 min-h-screen bg-gray-50">
+    <div class="container mx-auto max-w-6xl">
+      <!-- 标签页导航 -->
+      <div class="bg-white rounded-t-2xl shadow-lg p-1 mb-0">
+        <div class="flex flex-wrap gap-1">
+          <button onclick="showTab('profile')" class="tab-btn flex-1 min-w-[120px] px-4 py-2 rounded-xl font-medium transition-all active" data-tab="profile">
+            <i class="fa fa-user mr-2"></i>个人资料
+          </button>
+          <button onclick="showTab('stats')" id="stats-tab-btn" class="tab-btn flex-1 min-w-[120px] px-4 py-2 rounded-xl font-medium transition-all user-only" style="display: none;" data-tab="stats">
+            <i class="fa fa-bar-chart mr-2"></i>创作统计
+          </button>
+          <button onclick="showTab('admin')" id="admin-tab-btn" class="hidden tab-btn flex-1 min-w-[120px] px-4 py-2 rounded-xl font-medium transition-all" data-tab="admin">
+            <i class="fa fa-cogs mr-2"></i>管理中心
+          </button>
+        </div>
+      </div>
+
+      <!-- 标签页内容 -->
+      <div class="bg-white rounded-b-2xl shadow-xl p-6 md:p-8">
+        <!-- 个人资料标签页 -->
+        <div id="profile-tab" class="tab-content active">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <section class="lg:col-span-1">
+              <div class="text-center">
+                <div class="relative w-32 h-32 mx-auto mb-4">
+                  <img id="profile-avatar" src="" alt="用户头像" class="w-32 h-32 rounded-full border-4 border-primary/20 object-cover shadow-inner">
+                  <span class="absolute bottom-0 right-0 block p-2 rounded-full bg-primary text-white shadow-md">
+                    <i class="fa fa-camera"></i>
+                  </span>
+                </div>
+                <h2 id="profile-name" class="text-2xl font-bold mb-1">--</h2>
+                <p id="profile-email" class="text-sm text-slate-500 mb-6">--</p>
+                <div class="space-y-3">
+                  <a href="create.html" id="start-story-btn" class="user-only block w-full py-2 rounded-full bg-primary text-white hover:bg-primary/90 transition-colors" style="display: none;">
+                    <i class="fa fa-plus mr-2"></i>
+                    开始新的故事
+                  </a>
+                  <a href="admin.html" id="admin-console-btn" class="hidden block w-full py-2 rounded-full bg-purple-600 text-white hover:bg-purple-700 transition-colors">
+                    <i class="fa fa-cogs mr-2"></i>进入管理员控制台
+                  </a>
+                  <button id="profile-logout" class="block w-full py-2 rounded-full bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors">
+                    退出登录
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section class="lg:col-span-2">
+              <div class="space-y-6">
+                <div class="bg-slate-50 rounded-xl p-6">
+                  <h3 class="text-lg font-bold mb-4 flex items-center">
+                    <i class="fa fa-id-card mr-2 text-primary"></i> 账号信息
+                  </h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 class="text-sm font-medium text-slate-500 mb-1">昵称</h4>
+                      <p id="profile-username" class="text-lg font-semibold text-slate-800">--</p>
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-medium text-slate-500 mb-1">邮箱</h4>
+                      <p id="profile-email-detail" class="text-lg text-slate-700">--</p>
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-medium text-slate-500 mb-1">用户ID</h4>
+                      <p id="profile-id" class="text-lg text-slate-700">--</p>
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-medium text-slate-500 mb-1">登录状态</h4>
+                      <p id="profile-session" class="text-lg text-slate-700">--</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- 创作统计标签页 -->
+        <div id="stats-tab" class="tab-content">
+          <div class="space-y-6">
+            <h3 class="text-xl font-bold flex items-center">
+              <i class="fa fa-bar-chart mr-2 text-secondary"></i> 创作概览
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div class="p-6 rounded-xl bg-primary/5 border border-primary/10 text-center">
+                <div class="text-sm text-slate-500 mb-2">已发布故事</div>
+                <div class="text-4xl font-bold text-primary" id="stories-count">0</div>
+              </div>
+              <div class="p-6 rounded-xl bg-secondary/5 border border-secondary/10 text-center">
+                <div class="text-sm text-slate-500 mb-2">创作中</div>
+                <div class="text-4xl font-bold text-secondary" id="profile-drafts">0</div>
+              </div>
+              <div class="p-6 rounded-xl bg-red-50 border border-red-100 text-center">
+                <div class="text-sm text-slate-500 mb-2">收藏故事</div>
+                <div class="text-4xl font-bold text-red-500" id="collections-count">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 管理中心标签页 -->
+        <div id="admin-tab" class="tab-content">
+          <div id="admin-loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
+            <p class="mt-4 text-slate-600">正在加载管理员面板...</p>
+          </div>
+          
+          <div id="admin-content" class="hidden space-y-6">
+            <!-- 管理员统计 -->
+            <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-6 text-white">
+              <h3 class="text-xl font-bold mb-4">
+                <i class="fa fa-tachometer-alt mr-2"></i>系统概览
+              </h3>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="text-center">
+                  <div class="text-3xl font-bold" id="admin-total-stories">0</div>
+                  <div class="text-sm opacity-90">总作品数</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-3xl font-bold" id="admin-pending-stories">0</div>
+                  <div class="text-sm opacity-90">待审核</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-3xl font-bold" id="admin-total-users">0</div>
+                  <div class="text-sm opacity-90">用户总数</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-3xl font-bold" id="admin-total-categories">0</div>
+                  <div class="text-sm opacity-90">分类总数</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 快速操作 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="bg-white border border-slate-200 rounded-xl p-6">
+                <h4 class="font-bold mb-4 flex items-center">
+                  <i class="fa fa-book mr-2 text-primary"></i>作品管理
+                </h4>
+                <div class="space-y-3">
+                  <button onclick="loadAdminStories('pending')" class="w-full text-left px-4 py-2 rounded-lg bg-yellow-50 hover:bg-yellow-100 transition-colors">
+                    <i class="fa fa-clock text-yellow-600 mr-2"></i>查看待审核作品
+                  </button>
+                  <button onclick="loadAdminStories('published')" class="w-full text-left px-4 py-2 rounded-lg bg-green-50 hover:bg-green-100 transition-colors">
+                    <i class="fa fa-check text-green-600 mr-2"></i>查看已发布作品
+                  </button>
+                  <button onclick="loadAdminStories('all')" class="w-full text-left px-4 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors">
+                    <i class="fa fa-list text-blue-600 mr-2"></i>查看所有作品
+                  </button>
+                </div>
+              </div>
+
+              <div class="bg-white border border-slate-200 rounded-xl p-6">
+                <h4 class="font-bold mb-4 flex items-center">
+                  <i class="fa fa-users mr-2 text-secondary"></i>用户管理
+                </h4>
+                <div class="space-y-3">
+                  <button onclick="loadAdminUsers()" class="w-full text-left px-4 py-2 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors">
+                    <i class="fa fa-users text-purple-600 mr-2"></i>查看所有用户
+                  </button>
+                  <button onclick="loadAdminCategories()" class="w-full text-left px-4 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                    <i class="fa fa-tags text-indigo-600 mr-2"></i>管理分类
+                  </button>
+                  <a href="admin.html" target="_blank" class="w-full text-left px-4 py-2 rounded-lg bg-red-50 hover:bg-red-100 transition-colors block">
+                    <i class="fa fa-external-link text-red-600 mr-2"></i>打开管理员控制台
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- 数据显示区域 -->
+            <div id="admin-data-area" class="hidden">
+              <div class="bg-slate-50 rounded-xl p-6">
+                <div class="flex justify-between items-center mb-4">
+                  <h4 id="admin-data-title" class="font-bold"></h4>
+                  <button onclick="closeAdminData()" class="text-slate-500 hover:text-slate-700">
+                    <i class="fa fa-times"></i>
+                  </button>
+                </div>
+                <div id="admin-data-content"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-slate-900 text-white py-10 px-4">
+    <div class="container mx-auto max-w-6xl flex flex-col md:flex-row justify-between items-start gap-6">
+      <div>
+        <h4 class="text-lg font-semibold mb-2">StoryForge</h4>
+        <p class="text-sm text-slate-300">与AI一起探索故事创作的无限可能。</p>
+      </div>
+      <div class="text-sm text-slate-400">
+        <p>© <span id="footer-year"></span> StoryForge. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/js/auth.js"></script>
+  <script>
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (mobileMenuButton && mobileMenu) {
+      mobileMenuButton.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+      });
+    }
+
+    AuthUI.init();
+
+    // 标签页切换功能
+    function showTab(tabName) {
+      // 隐藏所有标签页内容
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      
+      // 移除所有按钮的激活状态
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-primary', 'text-white');
+        btn.classList.add('text-slate-600', 'hover:text-slate-800');
+      });
+      
+      // 显示选中的标签页
+      document.getElementById(`${tabName}-tab`).classList.add('active');
+      
+      // 激活对应的按钮
+      const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
+      activeBtn.classList.add('active', 'bg-primary', 'text-white');
+      activeBtn.classList.remove('text-slate-600', 'hover:text-slate-800');
+      
+      // 如果切换到管理员标签页，加载管理员数据
+      if (tabName === 'admin') {
+        loadAdminPanel();
+      }
+    }
+
+    // 加载管理员面板
+    async function loadAdminPanel() {
+      const authState = AuthUI.getAuthState();
+      const userRole = authState?.userInfo?.role || 'user';
+      
+      // 检查是否是管理员（通过role字段）
+      if (!authState || userRole !== 'admin') {
+        document.getElementById('admin-loading').innerHTML = `
+          <div class="text-center py-12">
+            <i class="fa fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i>
+            <p class="text-slate-600">您没有管理员权限</p>
+          </div>
+        `;
+        return;
+      }
+
+      try {
+        // 首先检查服务器连接
+        console.log('开始加载管理员面板...');
+        
+        // 使用当前登录用户的token
+        const currentToken = authState?.token || (authState?.token?.startsWith('Bearer ') ? authState.token.substring(7) : null);
+        
+        if (!currentToken) {
+          throw new Error('请先登录');
+        }
+        
+        // 获取管理员统计数据
+        console.log('获取管理员统计数据...');
+        const statsResponse = await fetch('http://localhost:5000/api/v1/admin/stats', {
+          headers: {
+            'Authorization': `Bearer ${currentToken}`
+          }
+        });
+        
+        console.log('统计数据响应状态:', statsResponse.status, statsResponse.statusText);
+        
+        if (!statsResponse.ok) {
+          const errorText = await statsResponse.text();
+          console.error('获取统计数据失败响应:', errorText);
+          throw new Error(`获取统计数据失败: ${statsResponse.status} - ${statsResponse.statusText}`);
+        }
+        
+        const statsData = await statsResponse.json();
+        console.log('统计数据响应:', statsData);
+        
+        if (!statsData.success) {
+          throw new Error(statsData.message || '获取统计数据失败');
+        }
+        
+        const stats = statsData.data;
+        
+        document.getElementById('admin-total-stories').textContent = stats.stories?.total || 0;
+        document.getElementById('admin-pending-stories').textContent = stats.stories?.pending || 0;
+        document.getElementById('admin-total-users').textContent = stats.users?.total || 0;
+        document.getElementById('admin-total-categories').textContent = stats.categories?.total || 0;
+        
+        // 显示管理员内容，隐藏加载状态
+        document.getElementById('admin-loading').classList.add('hidden');
+        document.getElementById('admin-content').classList.remove('hidden');
+        
+        console.log('管理员面板加载成功');
+        
+      } catch (error) {
+        console.error('加载管理员面板失败:', error);
+        document.getElementById('admin-loading').innerHTML = `
+          <div class="text-center py-12">
+            <i class="fa fa-exclamation-circle text-4xl text-red-500 mb-4"></i>
+            <p class="text-slate-600">加载管理员面板失败</p>
+            <p class="text-sm text-slate-500 mt-2">${error.message}</p>
+            <p class="text-xs text-slate-400 mt-1">请检查服务器是否正常运行</p>
+            <button onclick="loadAdminPanel()" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+              重试
+            </button>
+          </div>
+        `;
+      }
+    }
+
+    // 管理员功能函数
+    async function loadAdminStories(status = 'pending') {
+      try {
+        const authState = AuthUI.getAuthState();
+        const currentToken = authState?.token || (authState?.token?.startsWith('Bearer ') ? authState.token.substring(7) : null);
+        
+        if (!currentToken) {
+          throw new Error('请先登录');
+        }
+        
+        // 获取所有作品，设置一个较大的limit值
+        const storiesResponse = await fetch(`http://localhost:5000/api/v1/admin/stories?status=${status === 'all' ? '' : status}&limit=1000&page=1`, {
+          headers: {
+            'Authorization': `Bearer ${currentToken}`
+          }
+        });
+        
+        if (!storiesResponse.ok) {
+          throw new Error(`获取作品列表失败: ${storiesResponse.status}`);
+        }
+        
+        const storiesData = await storiesResponse.json();
+        if (!storiesData.success) {
+          throw new Error(storiesData.message || '获取作品列表失败');
+        }
+        
+        const stories = storiesData.data.stories || [];
+        const total = storiesData.data.pagination?.total || stories.length;
+        
+        const statusText = {
+          'pending': '待审核',
+          'published': '已发布',
+          'draft': '草稿',
+          'rejected': '已拒绝',
+          'unpublished': '已下架'
+        };
+        
+        let html = `
+          <div class="space-y-3">
+            <h5 class="font-medium">${statusText[status] || '全部'}作品 (共 ${total} 个，显示 ${stories.length} 个)</h5>
+            <div class="space-y-2 max-h-96 overflow-y-auto">
+        `;
+        
+        if (stories.length === 0) {
+          html += '<p class="text-slate-500 text-center py-4">暂无作品</p>';
+        } else {
+          stories.forEach(story => {
+            html += `
+              <div class="bg-white p-3 rounded-lg border border-slate-200">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h6 class="font-medium">${story.title || '未命名作品'}</h6>
+                    <p class="text-sm text-slate-500">作者: ${story.author?.username || '未知'}</p>
+                  </div>
+                  <span class="px-2 py-1 text-xs rounded-full ${
+                    story.status === 'published' ? 'bg-green-100 text-green-800' :
+                    story.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    story.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                    story.status === 'unpublished' ? 'bg-gray-100 text-gray-800' :
+                    'bg-blue-100 text-blue-800'
+                  }">${statusText[story.status] || story.status}</span>
+                </div>
+              </div>
+            `;
+          });
+        }
+        
+        html += '</div></div>';
+        
+        document.getElementById('admin-data-title').textContent = '作品列表';
+        document.getElementById('admin-data-content').innerHTML = html;
+        document.getElementById('admin-data-area').classList.remove('hidden');
+      } catch (error) {
+        console.error('加载作品列表失败:', error);
+        document.getElementById('admin-data-title').textContent = '作品列表';
+        document.getElementById('admin-data-content').innerHTML = `
+          <div class="text-center py-8">
+            <i class="fa fa-exclamation-circle text-3xl text-red-500 mb-3"></i>
+            <p class="text-slate-600">加载作品列表失败</p>
+            <p class="text-sm text-slate-500 mt-1">${error.message}</p>
+          </div>
+        `;
+        document.getElementById('admin-data-area').classList.remove('hidden');
+      }
+    }
+
+    async function loadAdminUsers() {
+      try {
+        const authState = AuthUI.getAuthState();
+        const currentToken = authState?.token || (authState?.token?.startsWith('Bearer ') ? authState.token.substring(7) : null);
+        
+        if (!currentToken) {
+          throw new Error('请先登录');
+        }
+        
+        const usersResponse = await fetch('http://localhost:5000/api/v1/admin/users', {
+          headers: {
+            'Authorization': `Bearer ${currentToken}`
+          }
+        });
+        
+        if (!usersResponse.ok) {
+          throw new Error(`获取用户列表失败: ${usersResponse.status}`);
+        }
+        
+        const usersData = await usersResponse.json();
+        if (!usersData.success) {
+          throw new Error(usersData.message || '获取用户列表失败');
+        }
+        
+        const users = usersData.data.users || [];
+        
+        let html = `
+          <div class="space-y-3">
+            <h5 class="font-medium">用户列表 (${users.length})</h5>
+            <div class="overflow-x-auto">
+              <table class="w-full border-collapse">
+                <thead>
+                  <tr class="bg-slate-50">
+                    <th class="border border-slate-200 px-4 py-2 text-left text-sm font-semibold text-slate-700">用户名</th>
+                    <th class="border border-slate-200 px-4 py-2 text-left text-sm font-semibold text-slate-700">邮箱</th>
+                    <th class="border border-slate-200 px-4 py-2 text-left text-sm font-semibold text-slate-700">作品数</th>
+                    <th class="border border-slate-200 px-4 py-2 text-left text-sm font-semibold text-slate-700">创建时间</th>
+                    <th class="border border-slate-200 px-4 py-2 text-left text-sm font-semibold text-slate-700">最后登录</th>
+                  </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        if (users.length === 0) {
+          html += `
+            <tr>
+              <td colspan="5" class="border border-slate-200 px-4 py-4 text-center text-slate-500">暂无用户</td>
+            </tr>
+          `;
+        } else {
+          users.forEach(user => {
+            const createdAt = user.createdAt ? new Date(user.createdAt).toLocaleDateString('zh-CN') : '未知';
+            const lastLogin = user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('zh-CN') : '从未登录';
+            
+            html += `
+              <tr class="hover:bg-slate-50 transition-colors">
+                <td class="border border-slate-200 px-4 py-2 text-sm">${user.username || '未知用户'}</td>
+                <td class="border border-slate-200 px-4 py-2 text-sm">${user.email || '无邮箱'}</td>
+                <td class="border border-slate-200 px-4 py-2 text-sm text-center">${user.storyCount || 0}</td>
+                <td class="border border-slate-200 px-4 py-2 text-sm">${createdAt}</td>
+                <td class="border border-slate-200 px-4 py-2 text-sm">${lastLogin}</td>
+              </tr>
+            `;
+          });
+        }
+        
+        html += '</tbody></table></div></div>';
+        
+        document.getElementById('admin-data-title').textContent = '用户列表';
+        document.getElementById('admin-data-content').innerHTML = html;
+        document.getElementById('admin-data-area').classList.remove('hidden');
+      } catch (error) {
+        console.error('加载用户列表失败:', error);
+        document.getElementById('admin-data-title').textContent = '用户列表';
+        document.getElementById('admin-data-content').innerHTML = `
+          <div class="text-center py-8">
+            <i class="fa fa-exclamation-circle text-3xl text-red-500 mb-3"></i>
+            <p class="text-slate-600">加载用户列表失败</p>
+            <p class="text-sm text-slate-500 mt-1">${error.message}</p>
+          </div>
+        `;
+        document.getElementById('admin-data-area').classList.remove('hidden');
+      }
+    }
+
+    async function loadAdminCategories() {
+      try {
+        const authState = AuthUI.getAuthState();
+        const currentToken = authState?.token || (authState?.token?.startsWith('Bearer ') ? authState.token.substring(7) : null);
+        
+        if (!currentToken) {
+          throw new Error('请先登录');
+        }
+        
+        const categoriesResponse = await fetch('http://localhost:5000/api/v1/categories', {
+          headers: {
+            'Authorization': `Bearer ${currentToken}`
+          }
+        });
+        
+        if (!categoriesResponse.ok) {
+          throw new Error(`获取分类列表失败: ${categoriesResponse.status}`);
+        }
+        
+        const categoriesData = await categoriesResponse.json();
+        if (!categoriesData.success) {
+          throw new Error(categoriesData.message || '获取分类列表失败');
+        }
+        
+        const categories = categoriesData.data || [];
+        
+        let html = `
+          <div class="space-y-4">
+            <div class="flex justify-between items-center">
+              <h5 class="font-medium">分类管理 (${categories.length})</h5>
+              <button onclick="openCategoryModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                <i class="fa fa-plus mr-2"></i>添加分类
+              </button>
+            </div>
+            <div class="space-y-2 max-h-80 overflow-y-auto">
+        `;
+        
+        if (categories.length === 0) {
+          html += '<p class="text-slate-500 text-center py-4">暂无分类</p>';
+        } else {
+          categories.forEach(category => {
+            html += `
+              <div class="bg-white p-4 rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <h6 class="font-medium text-lg mb-1">${category.name || '未命名分类'}</h6>
+                    <p class="text-sm text-slate-600 mb-2">${category.description || '暂无描述'}</p>
+                    <div class="flex items-center space-x-4 text-xs text-slate-500">
+                      <span><i class="fa fa-book mr-1"></i>${category.storyCount || 0} 个故事</span>
+                      <span><i class="fa fa-calendar mr-1"></i>${new Date(category.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <div class="flex space-x-2 ml-4">
+                    <button onclick="editCategory('${category.id}')" class="px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors">
+                      <i class="fa fa-edit mr-1"></i>编辑
+                    </button>
+                    <button onclick="deleteCategory('${category.id}')" class="px-3 py-1 text-sm bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors">
+                      <i class="fa fa-trash mr-1"></i>删除
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+        }
+        
+        html += '</div></div>';
+        
+        document.getElementById('admin-data-title').textContent = '分类管理';
+        document.getElementById('admin-data-content').innerHTML = html;
+        document.getElementById('admin-data-area').classList.remove('hidden');
+      } catch (error) {
+        console.error('加载分类列表失败:', error);
+        document.getElementById('admin-data-title').textContent = '分类管理';
+        document.getElementById('admin-data-content').innerHTML = `
+          <div class="text-center py-8">
+            <i class="fa fa-exclamation-circle text-3xl text-red-500 mb-3"></i>
+            <p class="text-slate-600">加载分类列表失败</p>
+            <p class="text-sm text-slate-500 mt-1">${error.message}</p>
+          </div>
+        `;
+        document.getElementById('admin-data-area').classList.remove('hidden');
+      }
+    }
+
+    function closeAdminData() {
+      document.getElementById('admin-data-area').classList.add('hidden');
+    }
+
+    // 标签页切换函数
+    function showTab(tabName) {
+      // 隐藏所有标签页内容
+      const allTabs = document.querySelectorAll('.tab-content');
+      allTabs.forEach(tab => tab.classList.remove('active'));
+      
+      // 移除所有标签按钮的active状态
+      const allBtns = document.querySelectorAll('.tab-btn');
+      allBtns.forEach(btn => btn.classList.remove('active'));
+      
+      // 显示选中的标签页内容
+      const targetTab = document.getElementById(tabName + '-tab');
+      if (targetTab) {
+        targetTab.classList.add('active');
+      }
+      
+      // 激活选中的标签按钮
+      const targetBtn = document.querySelector(`[data-tab="${tabName}"]`);
+      if (targetBtn) {
+        targetBtn.classList.add('active');
+      }
+      
+      // 如果是管理员标签，加载管理员数据
+      if (tabName === 'admin') {
+        loadAdminPanel();
+      }
+    }
+
+    async function renderProfile() {
+      try {
+        // 检查AuthUI是否可用
+        if (typeof AuthUI === 'undefined') {
+          console.error('AuthUI未加载');
+          return;
+        }
+
+        const authState = AuthUI.getAuthState();
+        if (!authState) {
+          console.log('用户未登录，跳转到登录页');
+          window.location.href = 'login.html';
+          return;
+        }
+
+        const { storage, userInfo } = authState;
+        
+        // 检查必要的DOM元素是否存在
+        const avatarElement = document.getElementById('profile-avatar');
+        const nameElement = document.getElementById('profile-name');
+        const emailElement = document.getElementById('profile-email');
+        
+        if (!avatarElement || !nameElement || !emailElement) {
+          console.error('必要的DOM元素不存在');
+          return;
+        }
+
+        const avatarUrl = AuthUI.resolveAvatarUrl(userInfo.avatar, userInfo.username);
+        const storageType = storage === localStorage ? '已记住登录（本地存储）' : '当前会话登录（会话存储）';
+
+        avatarElement.src = avatarUrl;
+        nameElement.textContent = userInfo.username || '--';
+        emailElement.textContent = userInfo.email || '--';
+        
+        // 设置其他元素（添加存在性检查）
+        const usernameElement = document.getElementById('profile-username');
+        if (usernameElement) usernameElement.textContent = userInfo.username || '--';
+        
+        const emailDetailElement = document.getElementById('profile-email-detail');
+        if (emailDetailElement) emailDetailElement.textContent = userInfo.email || '--';
+        
+        const idElement = document.getElementById('profile-id');
+        if (idElement) idElement.textContent = userInfo.userId || '--';
+        
+        const sessionElement = document.getElementById('profile-session');
+        if (sessionElement) sessionElement.textContent = storageType;
+
+        // 检查是否为管理员用户（只检查role）
+        if (userInfo.role === 'admin') {
+          const adminTabBtn = document.getElementById('admin-tab-btn');
+          if (adminTabBtn) {
+            adminTabBtn.classList.remove('hidden');
+          }
+          // 显示管理员控制台按钮
+          const adminConsoleBtn = document.getElementById('admin-console-btn');
+          if (adminConsoleBtn) {
+            adminConsoleBtn.classList.remove('hidden');
+          }
+          // 隐藏"开始新的故事"按钮
+          const startStoryBtn = document.getElementById('start-story-btn');
+          if (startStoryBtn) {
+            startStoryBtn.style.display = 'none';
+          }
+        } else {
+          // 普通用户：显示"开始新的故事"按钮
+          const startStoryBtn = document.getElementById('start-story-btn');
+          if (startStoryBtn) {
+            startStoryBtn.style.display = '';
+          }
+        }
+
+        const logoutButton = document.getElementById('profile-logout');
+        if (logoutButton) {
+          logoutButton.addEventListener('click', () => {
+            AuthUI.clearAuthStorage();
+            // 跳转到首页而不是登录页
+            window.location.href = 'index.html';
+          });
+        }
+
+        const footerYearElement = document.getElementById('footer-year');
+        if (footerYearElement) {
+          footerYearElement.textContent = new Date().getFullYear();
+        }
+        
+        console.log('个人资料渲染成功');
+      } catch (error) {
+        console.error('渲染个人资料时出错:', error);
+      }
+    }
+
+    // 设置导航栏活动状态
+    function setActiveNavigation() {
+      // 获取当前页面路径
+      const currentPath = window.location.pathname;
+      const currentPage = currentPath.split('/').pop() || 'index.html';
+      
+      // 移除所有导航链接的活动状态
+      const navLinks = document.querySelectorAll('.navbar-link');
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+      });
+      
+      // 根据当前页面设置对应的活动状态
+      let activeLinkId = '';
+      switch(currentPage) {
+        case 'index.html':
+        case '':
+          activeLinkId = 'nav-home-link';
+          break;
+        case 'create.html':
+          activeLinkId = 'nav-create-link';
+          break;
+        case 'my_stories.html':
+          activeLinkId = 'nav-stories-link';
+          break;
+        case 'profile.html':
+          activeLinkId = 'nav-profile-link';
+          break;
+      }
+      
+      // 如果找到了对应的链接ID，设置活动状态
+      if (activeLinkId) {
+        const activeLink = document.getElementById(activeLinkId);
+        if (activeLink) {
+          activeLink.classList.add('active');
+        }
+      }
+      
+      // 移动端导航栏也设置活动状态
+      const mobileActiveLinkId = 'mobile-' + activeLinkId;
+      const mobileActiveLink = document.getElementById(mobileActiveLinkId);
+      if (mobileActiveLink) {
+        mobileActiveLink.classList.add('active');
+      }
+    }
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM加载完成，开始初始化...');
+      
+      // 设置导航栏活动状态
+      setActiveNavigation();
+      
+      // 检查AuthUI是否可用
+      console.log('AuthUI类型:', typeof AuthUI);
+      console.log('AuthUI对象:', AuthUI);
+      
+      // 初始化AuthUI
+      if (typeof AuthUI !== 'undefined') {
+        console.log('初始化AuthUI...');
+        AuthUI.init({
+          desktopContainer: 'auth-area-desktop',
+          mobileContainer: 'auth-area-mobile',
+          showAvatar: true,
+          showName: true,
+          avatarSize: 'medium'
+        });
+        console.log('AuthUI初始化完成');
+      } else {
+        console.error('AuthUI未定义');
+      }
+      
+      // 根据用户角色更新导航栏
+      if (typeof updateNavigationByRole === 'function') {
+        setTimeout(updateNavigationByRole, 300);
+      }
+      
+      // 根据用户角色显示/隐藏创作统计和"开始新的故事"按钮
+      const authState = AuthUI.getAuthState();
+      const userRole = authState?.userInfo?.role || 'user';
+      const statsTabBtn = document.getElementById('stats-tab-btn');
+      const statsTab = document.getElementById('stats-tab');
+      // 更精确地选择"开始新的故事"按钮（在个人资料区域内的）
+      // 选择"开始新的故事"按钮（使用ID选择器更可靠）
+      const startStoryBtn = document.getElementById('start-story-btn');
+      
+      if (userRole === 'admin') {
+        // 管理员：隐藏创作统计和"开始新的故事"按钮
+        if (statsTabBtn) statsTabBtn.style.display = 'none';
+        if (statsTab) statsTab.style.display = 'none';
+        if (startStoryBtn) {
+          startStoryBtn.style.display = 'none';
+          console.log('[profile] 已隐藏"开始新的故事"按钮');
+        } else {
+          console.log('[profile] 未找到"开始新的故事"按钮（ID: start-story-btn）');
+        }
+      } else {
+        // 普通用户：显示创作统计和"开始新的故事"按钮
+        if (statsTabBtn) statsTabBtn.style.display = '';
+        if (statsTab) statsTab.style.display = '';
+        if (startStoryBtn) startStoryBtn.style.display = '';
+        // 只有普通用户才加载统计信息
+        console.log('开始加载用户统计...');
+        loadUserStats();
+      }
+      
+      // 渲染个人资料
+      console.log('开始渲染个人资料...');
+      renderProfile();
+    });
+
+    window.addEventListener('storage', (event) => {
+      if (!event.key || (typeof AuthUI !== 'undefined' && AuthUI.AUTH_STORAGE_KEYS && AuthUI.AUTH_STORAGE_KEYS.includes(event.key))) {
+        renderProfile();
+        // 只有普通用户才加载统计信息
+        const authState = AuthUI.getAuthState();
+        const userRole = authState?.userInfo?.role || 'user';
+        if (userRole !== 'admin') {
+          loadUserStats();
+        }
+        // 更新导航栏
+        if (typeof updateNavigationByRole === 'function') {
+          setTimeout(updateNavigationByRole, 300);
+        }
+      }
+    });
+
+    // 加载用户统计信息
+    async function loadUserStats() {
+      const authState = AuthUI.getAuthState();
+      if (!authState) return;
+
+      try {
+        // 使用新的统计API
+        const statsResponse = await fetch('http://localhost:5000/api/v1/users/me/stats', {
+          headers: {
+            'Authorization': 'Bearer ' + authState.token
+          }
+        });
+
+        if (statsResponse.ok) {
+          const data = await statsResponse.json();
+          if (data.success) {
+            const stats = data.data;
+            
+            // 更新创作统计页面
+            // 已发布故事：只有 status 为 'published' 的才算
+            document.getElementById('stories-count').textContent = stats.publishedStories || 0;
+            // 创作中：包括 draft, pending, rejected, unpublished 等所有非已发布状态
+            document.getElementById('profile-drafts').textContent = stats.draftStories || 0;
+            // 收藏故事
+            document.getElementById('collections-count').textContent = stats.collectedStories || 0;
+            
+            console.log('用户统计数据加载成功:', stats);
+            console.log('已发布故事数量:', stats.publishedStories);
+            console.log('创作中故事数量:', stats.draftStories);
+            console.log('总故事数量:', stats.totalStories);
+          }
+        } else {
+          console.error('获取统计数据失败:', statsResponse.status, statsResponse.statusText);
+        }
+      } catch (error) {
+        console.error('加载用户统计信息失败:', error);
+      }
+    }
+  </script>
+
+  <style>
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .tab-btn.active {
+      background-color: #6366f1;
+      color: white;
+    }
+  </style>
+
+  <!-- 分类管理模态框 -->
+  <div id="categoryModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 transform transition-all">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 id="categoryModalTitle" class="text-lg font-semibold text-slate-800">添加分类</h3>
+          <button onclick="closeCategoryModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+            <i class="fa fa-times text-xl"></i>
+          </button>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">分类名称 *</label>
+            <input type="text" id="categoryName" maxlength="50" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" placeholder="请输入分类名称">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">分类描述</label>
+            <textarea id="categoryDescription" maxlength="200" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none" placeholder="请输入分类描述（可选）"></textarea>
+          </div>
+        </div>
+        
+        <div class="flex justify-end space-x-3 mt-6">
+          <button onclick="closeCategoryModal()" class="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">
+            取消
+          </button>
+          <button onclick="saveCategory()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
