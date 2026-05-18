@@ -29,7 +29,7 @@ module.exports = async (req, res, next) => {
         const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
         // 4. 根据令牌中的用户 ID 查找用户
-        const user = await User.findById(decoded.id).select('+refreshToken');
+        const user = await User.findById(decoded.id);
         if (!user) {
             return next(errorFormat(
                 404,
@@ -50,7 +50,8 @@ module.exports = async (req, res, next) => {
         }
 
         // 5. 验证 refreshToken 是否与数据库中存储的一致（防止令牌被盗用后恶意刷新）
-        if (user.refreshToken !== refreshToken) {
+        const storedRefreshToken = user.refreshToken || user.refresh_token;
+        if (!storedRefreshToken || storedRefreshToken !== refreshToken) {
             return next(errorFormat(
                 401,
                 '刷新令牌无效或已过期',
@@ -61,7 +62,7 @@ module.exports = async (req, res, next) => {
 
         // 6. 验证通过：将用户信息挂载到 req，供后续接口（如刷新令牌接口）使用
         req.user = {
-            id: user._id,
+            id: user.id,
             username: user.username
         };
         next(); // 继续执行刷新令牌的业务逻辑

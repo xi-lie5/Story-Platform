@@ -252,7 +252,7 @@ router.post('/refresh', [
   return refreshAuth(req, res, next);
 }, async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).select('+refreshToken');
+    const user = await User.findById(req.user.id);
     if (!user) {
       return next(errorFormat(404, '用户不存在', [], 10013));
     }

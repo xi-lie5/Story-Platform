@@ -6,290 +6,238 @@
   <title>注册 - StoryForge</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/design-system.css">
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            primary: '#6366f1',
-            secondary: '#a855f7',
+            primary: '#C67B3C',
+            secondary: '#6B8E7B',
+            dark: '#2C1810',
+            light: '#FBF7F2',
+            paper: '#F5EDE3',
+            ink: '#4A3728',
+            muted: '#7A6B5D',
+            border: '#E0D5C7',
           },
           fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-            display: ['Playfair Display', 'serif']
+            display: ["'Playfair Display'", "'Noto Serif SC'", 'Georgia', 'serif'],
+            body: ["'Lora'", "'Noto Serif SC'", 'Georgia', 'serif'],
+            sans: ['system-ui', '-apple-system', 'sans-serif'],
           },
         },
       }
     }
   </script>
-  <style type="text/tailwindcss">
-    @layer utilities {
-      .content-auto { content-visibility: auto; }
-      .text-shadow { text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-      .animate-float { animation: float 6s ease-in-out infinite; }
-      .animate-pulse-slow { animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-      .backdrop-blur { backdrop-filter: blur(8px); }
-      .navbar-modern {
-        background: rgba(255, 255, 255, 0.98);
-        backdrop-filter: blur(10px);
-        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-      }
-      .navbar-link {
-        transition: color 0.2s ease;
-      }
-      .btn-primary-modern {
-        background: #6366f1;
-        transition: background-color 0.2s ease;
-      }
-      .btn-primary-modern:hover {
-        background: #5558e3;
-      }
-      .btn-secondary-modern {
-        background: transparent;
-        border: 1px solid #e5e7eb;
-        color: #6b7280;
-        transition: all 0.2s ease;
-      }
-      .btn-secondary-modern:hover {
-        background: #f9fafb;
-        border-color: #d1d5db;
-      }
-    }
-    @keyframes float {
-      0% { transform: translateY(0px); }
-      50% { transform: translateY(-15px); }
-      100% { transform: translateY(0px); }
-    }
-    .gradient-bg {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      position: relative;
-      overflow-x: hidden;
-      min-height: 100vh;
-    }
-    .gradient-bg::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-                  radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-                  radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
-      animation: float 20s ease-in-out infinite;
-    }
-    .glass-effect {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-  </style>
 </head>
-<body class="gradient-bg text-slate-800 font-sans">
-  <!-- 导航栏 -->
-  <nav class="navbar-modern">
-    <div class="container mx-auto px-4 py-3">
+<body class="min-h-screen font-body">
+
+  <!-- 背景装饰 -->
+  <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(198, 123, 60, 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(107, 142, 123, 0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(198, 123, 60, 0.03) 0%, transparent 60%);">
+  </div>
+
+  <!-- 导航栏 (简洁版) -->
+  <nav class="nav-library">
+    <div class="container mx-auto px-4 py-4">
       <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-2">
-          <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+        <a href="index.html" class="flex items-center gap-2 no-underline">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #8B5E3C, #C67B3C); box-shadow: 0 2px 8px rgba(139,94,60,0.3);">
             <i class="fa fa-book text-white text-lg"></i>
           </div>
-          <h1 class="text-xl md:text-2xl font-display font-bold text-gray-900">StoryForge</h1>
-        </div>
-        
-        <div class="hidden md:flex items-center space-x-6">
-          <a href="index.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">首页</a>
-          <a href="create.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">创建故事</a>
-          <a href="my_stories.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">我的作品</a>
-          <a href="profile.html" class="navbar-link text-gray-600 hover:text-primary transition-colors">个人中心</a>
-        </div>
-        
-        <div class="flex items-center space-x-4">
-          <button class="btn-secondary-modern px-4 py-2 rounded-full text-primary font-medium">
-            <a href="login.html" class="block w-full h-full">登录</a>
-          </button>
-          <div class="flex items-center space-x-4 md:hidden">
-            <button id="mobile-menu-button" class="text-xl text-gray-700">
-              <i class="fa fa-bars"></i>
-            </button>
+          <div>
+            <h1 class="text-xl font-display font-bold" style="color: var(--color-ink);">StoryForge</h1>
+            <p class="text-xs text-muted hidden md:block">AI 故事创作平台</p>
           </div>
+        </a>
+
+        <div class="hidden md:flex items-center gap-6">
+          <a href="index.html" class="nav-link">首页</a>
+          <a href="create.html" class="nav-link">创建故事</a>
+          <a href="my_stories.html" class="nav-link">我的作品</a>
+          <a href="profile.html" class="nav-link">个人中心</a>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <a href="login.html" class="btn btn-secondary">登录</a>
+          <button id="mobile-menu-button" class="btn-icon md:hidden">
+            <i class="fa fa-bars"></i>
+          </button>
         </div>
       </div>
     </div>
-    
+
     <!-- 移动端菜单 -->
-    <div class="md:hidden hidden bg-white/95 backdrop-blur border-t border-gray-200" id="mobile-menu">
+    <div class="md:hidden hidden" id="mobile-menu" style="background: rgba(251,247,242,0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--color-border-light);">
       <div class="container mx-auto px-4 py-3 space-y-2">
-        <a href="index.html" class="navbar-link block py-2 text-gray-600 hover:text-primary">首页</a>
-        <a href="create.html" class="navbar-link block py-2 text-gray-600 hover:text-primary">创建故事</a>
-        <a href="my_stories.html" class="navbar-link block py-2 text-gray-600 hover:text-primary">我的作品</a>
-        <a href="profile.html" class="navbar-link block py-2 text-gray-600 hover:text-primary">个人中心</a>
-        <div class="flex flex-col space-y-2 pt-2 border-t border-gray-200">
-          <a href="login.html" class="block py-2 text-center text-primary font-medium">登录</a>
+        <a href="index.html" class="nav-link block py-2 px-4 rounded-lg">首页</a>
+        <a href="create.html" class="nav-link block py-2 px-4 rounded-lg">创建故事</a>
+        <a href="my_stories.html" class="nav-link block py-2 px-4 rounded-lg">我的作品</a>
+        <a href="profile.html" class="nav-link block py-2 px-4 rounded-lg">个人中心</a>
+        <div class="pt-2 border-t" style="border-color: var(--color-border-light);">
+          <a href="login.html" class="btn btn-primary w-full justify-center">登录</a>
         </div>
       </div>
     </div>
   </nav>
 
   <!-- 注册内容区域 -->
-  <section class="pb-20 px-4">
-    <div class="w-full max-w-md mx-auto">
+  <section class="pb-20 px-4" style="position: relative; z-index: 1;">
+    <div class="w-full max-w-md mx-auto" style="padding-top: 3rem;">
+
       <!-- 注册卡片 -->
-      <div class="glass-effect rounded-2xl p-8 shadow-2xl">
+      <div class="card paper-texture p-8 animate-fade-in-up stagger-1" style="box-shadow: var(--shadow-float);">
         <!-- 标题 -->
         <div class="text-center mb-8">
-          <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4 animate-pulse-slow">
-            <i class="fa fa-user-plus text-white text-2xl"></i>
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style="background: var(--color-sage-pale);">
+            <i class="fa fa-user-plus text-2xl" style="color: var(--color-sage);"></i>
           </div>
-          <h1 class="text-3xl font-bold text-white mb-2">创建账号</h1>
-          <p class="text-white/80">加入StoryForge，开启AI创作之旅</p>
+          <h1 class="display-md mb-2">创建账号</h1>
+          <p class="text-muted body-sm">加入StoryForge，开启AI创作之旅</p>
         </div>
 
         <!-- 注册表单 -->
         <form class="space-y-6" id="register-form">
           <div>
-            <label for="reg-name" class="block text-white text-sm font-medium mb-2">用户名</label>
+            <label for="reg-name" class="block text-sm font-medium mb-2" style="color: var(--color-ink-soft);">用户名</label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <i class="fa fa-user text-white/60"></i>
+                <i class="fa fa-user" style="color: var(--color-ink-muted);"></i>
               </div>
-              <input type="text" id="reg-name" class="w-full pl-10 pr-3 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all" placeholder="请输入用户名" required>
+              <input type="text" id="reg-name" class="input w-full pl-10" placeholder="请输入用户名" required>
             </div>
           </div>
-          
+
           <div>
-            <label for="reg-email" class="block text-white text-sm font-medium mb-2">电子邮箱</label>
+            <label for="reg-email" class="block text-sm font-medium mb-2" style="color: var(--color-ink-soft);">电子邮箱</label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <i class="fa fa-envelope text-white/60"></i>
+                <i class="fa fa-envelope" style="color: var(--color-ink-muted);"></i>
               </div>
-              <input type="email" id="reg-email" class="w-full pl-10 pr-3 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all" placeholder="请输入电子邮箱" required>
+              <input type="email" id="reg-email" class="input w-full pl-10" placeholder="请输入电子邮箱" required>
             </div>
           </div>
-          
+
           <div>
-            <label for="reg-password" class="block text-white text-sm font-medium mb-2">密码</label>
+            <label for="reg-password" class="block text-sm font-medium mb-2" style="color: var(--color-ink-soft);">密码</label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <i class="fa fa-lock text-white/60"></i>
+                <i class="fa fa-lock" style="color: var(--color-ink-muted);"></i>
               </div>
-              <input type="password" id="reg-password" class="w-full pl-10 pr-3 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all" placeholder="至少8位字符，包含字母和数字" required>
+              <input type="password" id="reg-password" class="input w-full pl-10" placeholder="至少8位字符，包含字母和数字" required>
             </div>
-            <div id="password-tips" class="text-xs text-white/60 mt-1"></div>
+            <div id="password-tips" class="text-xs body-sm mt-1"></div>
           </div>
-          
+
           <div>
-            <label for="reg-confirm" class="block text-white text-sm font-medium mb-2">确认密码</label>
+            <label for="reg-confirm" class="block text-sm font-medium mb-2" style="color: var(--color-ink-soft);">确认密码</label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <i class="fa fa-lock text-white/60"></i>
+                <i class="fa fa-lock" style="color: var(--color-ink-muted);"></i>
               </div>
-              <input type="password" id="reg-confirm" class="w-full pl-10 pr-3 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all" placeholder="再次输入密码" required>
+              <input type="password" id="reg-confirm" class="input w-full pl-10" placeholder="再次输入密码" required>
             </div>
           </div>
-          
+
           <div class="flex items-start">
-            <input type="checkbox" id="reg-agree" class="w-4 h-4 mt-1 bg-white/10 border-white/20 rounded focus:ring-white/50 focus:ring-2" required>
-            <label for="reg-agree" class="ml-2 text-sm text-white/80">
-              我同意<a href="#" class="text-white hover:text-white/80 transition-colors">服务条款</a>和<a href="#" class="text-white hover:text-white/80 transition-colors">隐私政策</a>
+            <input type="checkbox" id="reg-agree" class="w-4 h-4 mt-1 rounded" style="accent-color: var(--color-amber); border-color: var(--color-border);" required>
+            <label for="reg-agree" class="ml-2 text-sm text-muted">
+              我同意<a href="#" style="color: var(--color-amber);">服务条款</a>和<a href="#" style="color: var(--color-amber);">隐私政策</a>
             </label>
           </div>
-          
-          <button type="submit" class="w-full bg-white/20 hover:bg-white/30 text-white font-medium py-3 px-4 rounded-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-transparent border border-white/30">
+
+          <button type="submit" class="btn btn-primary w-full justify-center py-3 text-base">
             <i class="fa fa-user-plus mr-2"></i>
             免费注册
           </button>
-          
-          <div class="text-center text-sm text-white/80">
-            已有账号？<a href="login.html" class="text-white hover:text-white/80 font-medium transition-colors">立即登录</a>
+
+          <div class="text-center text-sm text-muted">
+            已有账号？<a href="login.html" style="color: var(--color-amber);">立即登录</a>
           </div>
         </form>
 
+        <!-- 分割线 -->
+        <div class="divider-ornament my-6">
+          <span>或者使用以下方式注册</span>
+        </div>
+
         <!-- 第三方注册 -->
-        <div class="mt-6">
-          <div class="relative">
-            <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-white/20"></div>
-            </div>
-            <div class="relative flex justify-center text-sm">
-              <span class="px-2 bg-transparent text-white/60">或者使用以下方式注册</span>
-            </div>
-          </div>
-          
-          <div class="mt-6 grid grid-cols-3 gap-3">
-            <button class="w-full inline-flex justify-center py-2 px-4 border border-white/20 rounded-lg shadow-sm text-sm font-medium text-white/80 hover:bg-white/10 transition-all">
-              <i class="fa fa-weixin"></i>
-            </button>
-            <button class="w-full inline-flex justify-center py-2 px-4 border border-white/20 rounded-lg shadow-sm text-sm font-medium text-white/80 hover:bg-white/10 transition-all">
-              <i class="fa fa-qq"></i>
-            </button>
-            <button class="w-full inline-flex justify-center py-2 px-4 border border-white/20 rounded-lg shadow-sm text-sm font-medium text-white/80 hover:bg-white/10 transition-all">
-              <i class="fa fa-weibo"></i>
-            </button>
-          </div>
+        <div class="grid grid-cols-3 gap-3">
+          <button class="btn btn-secondary justify-center">
+            <i class="fa fa-weixin"></i>
+          </button>
+          <button class="btn btn-secondary justify-center">
+            <i class="fa fa-qq"></i>
+          </button>
+          <button class="btn btn-secondary justify-center">
+            <i class="fa fa-weibo"></i>
+          </button>
         </div>
       </div>
 
       <!-- 帮助信息 -->
-      <div class="mt-8 text-center">
-        <div class="glass-effect rounded-lg p-4">
-          <h3 class="text-white font-medium mb-2">为什么选择StoryForge？</h3>
-          <p class="text-white/80 text-sm mb-3">
+      <div class="mt-8 text-center animate-fade-in-up stagger-2">
+        <div class="card-paper rounded-lg p-4">
+          <h3 class="font-medium mb-2" style="color: var(--color-ink);">为什么选择StoryForge？</h3>
+          <p class="text-muted body-sm mb-3">
             加入10,000+创作者社区，与AI协作生成无限可能的故事
           </p>
-          <div class="grid grid-cols-2 gap-2 text-xs text-white/70">
+          <div class="grid grid-cols-2 gap-2 text-xs text-muted">
             <div class="flex items-center justify-center">
-              <i class="fa fa-check-circle mr-1"></i>
+              <i class="fa fa-check-circle mr-1" style="color: var(--color-sage);"></i>
               实时AI协作
             </div>
             <div class="flex items-center justify-center">
-              <i class="fa fa-check-circle mr-1"></i>
+              <i class="fa fa-check-circle mr-1" style="color: var(--color-sage);"></i>
               多结局分支
             </div>
             <div class="flex items-center justify-center">
-              <i class="fa fa-check-circle mr-1"></i>
+              <i class="fa fa-check-circle mr-1" style="color: var(--color-sage);"></i>
               场景可视化
             </div>
             <div class="flex items-center justify-center">
-              <i class="fa fa-check-circle mr-1"></i>
+              <i class="fa fa-check-circle mr-1" style="color: var(--color-sage);"></i>
               免费使用
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 额外内容区域，确保页面可以滚动 -->
-      <div class="mt-12 space-y-8">
-        <div class="glass-effect rounded-lg p-6">
-          <h3 class="text-white font-medium mb-4">为什么选择 StoryForge？</h3>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-white/80 text-sm">
+      <!-- 额外内容区域 -->
+      <div class="mt-12 space-y-6 animate-fade-in-up stagger-3">
+        <div class="card-paper rounded-lg p-6">
+          <h3 class="font-display font-semibold mb-4" style="color: var(--color-ink);">为什么选择 StoryForge？</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div class="text-center">
-              <i class="fa fa-magic text-2xl mb-2"></i>
-              <h4 class="font-medium mb-1">AI 智能创作</h4>
-              <p>先进的AI技术助力故事创作</p>
+              <i class="fa fa-magic text-2xl mb-2" style="color: var(--color-amber);"></i>
+              <h4 class="font-medium mb-1" style="color: var(--color-ink-soft);">AI 智能创作</h4>
+              <p class="text-muted">先进的AI技术助力故事创作</p>
             </div>
             <div class="text-center">
-              <i class="fa fa-users text-2xl mb-2"></i>
-              <h4 class="font-medium mb-1">社区互动</h4>
-              <p>与其他创作者分享交流</p>
+              <i class="fa fa-users text-2xl mb-2" style="color: var(--color-sage);"></i>
+              <h4 class="font-medium mb-1" style="color: var(--color-ink-soft);">社区互动</h4>
+              <p class="text-muted">与其他创作者分享交流</p>
             </div>
             <div class="text-center">
-              <i class="fa fa-book text-2xl mb-2"></i>
-              <h4 class="font-medium mb-1">海量故事</h4>
-              <p>探索无限精彩的故事世界</p>
+              <i class="fa fa-book text-2xl mb-2" style="color: var(--color-amber);"></i>
+              <h4 class="font-medium mb-1" style="color: var(--color-ink-soft);">海量故事</h4>
+              <p class="text-muted">探索无限精彩的故事世界</p>
             </div>
           </div>
         </div>
 
-        <div class="glass-effect rounded-lg p-6">
-          <h3 class="text-white font-medium mb-4">注册步骤</h3>
-          <ol class="text-white/80 text-sm space-y-2">
-            <li>1. 填写基本信息创建账号</li>
-            <li>2. 验证邮箱确保账户安全</li>
-            <li>3. 完善个人资料</li>
-            <li>4. 浏览新手指南</li>
-            <li>5. 开始创作第一个故事</li>
+        <div class="card-paper rounded-lg p-6">
+          <h3 class="font-display font-semibold mb-4" style="color: var(--color-ink);">注册步骤</h3>
+          <ol class="text-muted text-sm space-y-2 list-decimal list-inside">
+            <li>填写基本信息创建账号</li>
+            <li>验证邮箱确保账户安全</li>
+            <li>完善个人资料</li>
+            <li>浏览新手指南</li>
+            <li>开始创作第一个故事</li>
           </ol>
         </div>
       </div>
@@ -297,9 +245,9 @@
   </section>
 
   <!-- 页脚 -->
-  <footer class="bg-slate-900 text-white py-12 px-4">
+  <footer style="background: var(--color-ink); color: var(--color-cream); padding: 3rem 1rem; position: relative; z-index: 1;">
     <div class="container mx-auto max-w-6xl">
-      <div class="border-t border-slate-800 pt-8 text-center text-slate-500 text-sm">
+      <div style="border-top: 1px solid var(--color-ink-soft); padding-top: 2rem; text-align: center; color: var(--color-ink-muted); font-size: 0.875rem;">
         <p>&copy; 2023 StoryForge. 保留所有权利。</p>
       </div>
     </div>
@@ -316,23 +264,23 @@
     // 密码强度验证
     const passwordInput = document.getElementById('reg-password');
     const passwordTips = document.getElementById('password-tips');
-    
+
     passwordInput.addEventListener('input', function() {
       const password = this.value;
       const requirements = [];
-      
+
       if (password.length >= 8) {
         requirements.push('✓ 长度符合要求');
       } else {
         requirements.push('✗ 长度至少8位');
       }
-      
+
       if (/[A-Za-z]/.test(password) && /[0-9]/.test(password)) {
         requirements.push('✓ 包含字母和数字');
       } else {
         requirements.push('✗ 必须包含字母和数字');
       }
-      
+
       passwordTips.innerHTML = requirements.join('<br>');
     });
 
@@ -409,5 +357,12 @@
       });
     })();
   </script>
+<script>
+  (function() {
+    if (typeof ReadingHistory !== 'undefined') {
+      ReadingHistory.applyTheme();
+    }
+  })();
+</script>
 </body>
 </html>

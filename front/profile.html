@@ -6,20 +6,28 @@
   <title>个人中心 - StoryForge</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/design-system.css">
   <script src="assets/js/auth.js"></script>
   <script src="assets/js/navbar.js"></script>
+  <script src="assets/js/reading-history.js"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            primary: '#6366f1',
-            secondary: '#ec4899',
-            accent: '#10b981'
+            primary: '#C67B3C',
+            secondary: '#6B8E7B',
+            dark: '#2C1810',
+            light: '#FBF7F2',
+            paper: '#F5EDE3',
+            ink: '#4A3728',
+            muted: '#7A6B5D',
+            border: '#E0D5C7',
           },
           fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-            display: ['Playfair Display', 'serif']
+            display: ["'Playfair Display'", "'Noto Serif SC'", 'Georgia', 'serif'],
+            body: ["'Lora'", "'Noto Serif SC'", 'Georgia', 'serif'],
+            sans: ['system-ui', '-apple-system', 'sans-serif'],
           }
         }
       }
@@ -279,6 +287,24 @@
       50% { transform: translateY(-15px); }
       100% { transform: translateY(0px); }
     }
+  </style>
+  <style>
+    html.dark body { background: #0f172a; color: #e2e8f0; }
+    html.dark .bg-white, html.dark .bg-white\/95, html.dark .bg-white\/98 { background: #1e293b !important; }
+    html.dark .bg-slate-50 { background: #0f172a !important; }
+    html.dark .bg-gradient-to-br.from-slate-50 { background: linear-gradient(to bottom right, #0f172a, #1e293b) !important; }
+    html.dark .text-slate-800, html.dark .text-gray-900 { color: #e2e8f0 !important; }
+    html.dark .text-slate-600, html.dark .text-slate-700 { color: #94a3b8 !important; }
+    html.dark .text-slate-500 { color: #64748b !important; }
+    html.dark .border-slate-200, html.dark .border-gray-300 { border-color: #334155 !important; }
+    html.dark .navbar-modern { background: rgba(30,41,59,0.98); border-bottom-color: #334155; }
+    html.dark .navbar-link { color: #94a3b8; }
+    html.dark .navbar-link:hover, html.dark .navbar-link.active { color: #818cf8; }
+    html.dark input, html.dark textarea, html.dark select { background: #1e293b; color: #e2e8f0; border-color: #475569; }
+    html.dark .hover\:bg-slate-50:hover { background: #1e293b !important; }
+    html.dark .hover\:bg-gray-50:hover { background: #1e293b !important; }
+    html.dark .shadow-sm { box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+    html.dark .shadow-md { box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
   </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-white to-slate-100 min-h-screen text-slate-800 font-sans">
@@ -1099,6 +1125,9 @@
 
     // 页面加载完成后初始化
     document.addEventListener('DOMContentLoaded', function() {
+      if (typeof ReadingHistory !== 'undefined') {
+        ReadingHistory.applyTheme();
+      }
       console.log('DOM加载完成，开始初始化...');
       
       // 设置导航栏活动状态

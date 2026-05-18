@@ -3,6 +3,8 @@ const User = require('../models/User');
 const { errorFormat } = require('../utils/errorFormat');
 
 module.exports = async function authGuard(req, res, next) {
+  const isDebug = process.env.NODE_ENV !== 'production';
+  if (isDebug) {
   console.log('=== AuthGuard middleware hit ==='); // 调试日志
   console.log('Path:', req.path);
   console.log('Original URL:', req.originalUrl);
@@ -11,6 +13,7 @@ module.exports = async function authGuard(req, res, next) {
   console.log('Auth header:', req.headers.authorization ? 'Present' : 'Missing');
   
   // 安全日志记录（不记录敏感信息）
+  }
   const clientInfo = {
     ip: req.ip || req.connection.remoteAddress,
     userAgent: req.headers['user-agent'],
@@ -87,7 +90,7 @@ module.exports = async function authGuard(req, res, next) {
     };
 
     // 记录成功的认证
-    if (process.env.NODE_ENV !== 'production') {
+    if (isDebug) {
       console.info('用户认证成功:', { userId: user.id, path: req.path });
     }
 

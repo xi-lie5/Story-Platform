@@ -1,6 +1,9 @@
 // API配置文件
+const DEFAULT_API_BASE_URL = 'http://localhost:5000';
+const RUNTIME_API_BASE_URL = window.__API_BASE__ || window.API_BASE_URL || DEFAULT_API_BASE_URL;
+
 const API_CONFIG = {
-  BASE_URL: 'http://localhost:5000',
+  BASE_URL: RUNTIME_API_BASE_URL,
   API_VERSION: 'v1',
   
   // 构建完整的API URL

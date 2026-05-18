@@ -6,151 +6,137 @@
     <title>故事阅览 - StoryForge</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/design-system.css">
     <script src="assets/js/auth.js"></script>
     <script src="assets/js/navbar.js"></script>
-    <script src="assets/js/navbar.js"></script>
+    <script src="assets/js/reading-history.js"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#6366f1',
-                        secondary: '#ec4899',
+                        primary: '#C67B3C',
+                        secondary: '#6B8E7B',
+                        dark: '#2C1810',
+                        light: '#FBF7F2',
+                        paper: '#F5EDE3',
+                        ink: '#4A3728',
+                        muted: '#7A6B5D',
+                        border: '#E0D5C7',
+                    },
+                    fontFamily: {
+                        display: ["'Playfair Display'", "'Noto Serif SC'", 'Georgia', 'serif'],
+                        body: ["'Lora'", "'Noto Serif SC'", 'Georgia', 'serif'],
+                        sans: ['system-ui', '-apple-system', 'sans-serif'],
                     },
                 },
             }
         }
     </script>
-    <style type="text/tailwindcss">
-        @layer utilities {
-            .backdrop-blur {
-                backdrop-filter: blur(8px);
-            }
-            .navbar-modern {
-                background: rgba(255,255,255,0.98);
-                backdrop-filter: blur(10px);
-                border-bottom: 1px solid rgba(0,0,0,0.08);
-                box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            }
-            .navbar-link {
-                transition: color 0.2s ease;
-            }
-            .navbar-link.active {
-                color: #6366f1;
-                font-weight: 600;
-            }
-            .story-card {
-                transition: all 0.3s ease;
-            }
-            .story-card:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-            }
-            .loading-spinner {
-                border: 4px solid #f3f4f6;
-                border-top: 4px solid #6366f1;
-                border-radius: 50%;
-                animation: spin 1s linear infinite;
-            }
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-        }
-    </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen text-slate-800 font-sans">
+<body class="min-h-screen font-body">
+
     <!-- 导航栏 -->
-    <nav class="navbar-modern">
+    <nav class="nav-library">
         <div class="container mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
-                <!-- Logo区域 -->
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
-                        <i class="fa fa-book text-white text-xl"></i>
+                <a href="index.html" class="flex items-center gap-2 no-underline">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #8B5E3C, #C67B3C); box-shadow: 0 2px 8px rgba(139,94,60,0.3);">
+                        <i class="fa fa-book text-white text-lg"></i>
                     </div>
                     <div>
-                        <h1 class="text-xl md:text-2xl font-display font-bold text-gray-900">StoryForge</h1>
-                        <p class="text-xs text-slate-500 hidden md:block">AI故事创作平台</p>
+                        <h1 class="text-xl font-display font-bold" style="color: var(--color-ink);">StoryForge</h1>
+                        <p class="text-xs text-muted hidden md:block">AI 故事创作平台</p>
                     </div>
-                </div>
-                
+                </a>
+
                 <!-- 桌面端导航链接 -->
-                <div class="hidden lg:flex items-center space-x-8">
-                    <a href="index.html" class="navbar-link font-medium text-slate-600 hover:text-primary">首页</a>
-                    <a href="browse.html" class="navbar-link active font-medium text-slate-700">故事阅览</a>
-                    <a href="create.html" class="navbar-link font-medium text-slate-600 hover:text-primary">创建故事</a>
-                    <a href="my_stories.html" class="navbar-link font-medium text-slate-600 hover:text-primary">我的作品</a>
-                    <a href="profile.html" class="navbar-link font-medium text-slate-600 hover:text-primary">个人中心</a>
+                <div class="hidden lg:flex items-center gap-6">
+                    <a href="index.html" class="nav-link">首页</a>
+                    <a href="browse.html" class="nav-link active">故事阅览</a>
+                    <a href="create.html" class="nav-link">创建故事</a>
+                    <a href="my_stories.html" class="nav-link">我的作品</a>
+                    <a href="profile.html" class="nav-link">个人中心</a>
                 </div>
-                
+
                 <!-- 认证区域 -->
-                <div id="auth-area-desktop" class="flex items-center space-x-3">
-                    <!-- AuthUI会动态渲染登录状态或用户信息 -->
-                </div>
-                
+                <div id="auth-area-desktop" class="hidden lg:flex items-center gap-3"></div>
+
                 <!-- 移动端菜单按钮 -->
-                <button id="mobile-menu-button" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors">
-                    <i class="fa fa-bars text-slate-600 text-xl"></i>
+                <button id="mobile-menu-button" class="lg:hidden btn-icon">
+                    <i class="fa fa-bars"></i>
                 </button>
             </div>
         </div>
-        
+
         <!-- 移动端菜单 -->
-        <div class="lg:hidden hidden bg-white/95 backdrop-blur-md border-t border-slate-200" id="mobile-menu">
-            <div class="container mx-auto px-4 py-4 space-y-3">
-                <a href="index.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">首页</a>
-                <a href="browse.html" class="block py-3 px-4 rounded-lg font-medium text-primary bg-primary/5">故事阅览</a>
-                <a href="create.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary user-only" style="display: none;">创建故事</a>
-                <a href="my_stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary user-only" style="display: none;">我的作品</a>
-                <a href="review.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary admin-only" style="display: none;">故事审核</a>
-                <a href="profile.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">个人中心</a>
-                <div class="flex flex-col space-y-3 pt-3 border-t border-slate-200">
-                    <div id="auth-area-mobile">
-                        <!-- AuthUI会动态渲染移动端登录状态或用户信息 -->
-                    </div>
+        <div class="lg:hidden hidden border-t border-[var(--color-border-light)] bg-[var(--color-cream)]/95 backdrop-blur-md" id="mobile-menu">
+            <div class="container mx-auto px-4 py-4 space-y-2">
+                <a href="index.html" class="nav-link block py-3 px-4 rounded-lg">首页</a>
+                <a href="browse.html" class="nav-link active block py-3 px-4 rounded-lg">故事阅览</a>
+                <a href="create.html" class="nav-link block py-3 px-4 rounded-lg user-only" style="display: none;">创建故事</a>
+                <a href="my_stories.html" class="nav-link block py-3 px-4 rounded-lg user-only" style="display: none;">我的作品</a>
+                <a href="review.html" class="nav-link block py-3 px-4 rounded-lg admin-only" style="display: none;">故事审核</a>
+                <a href="profile.html" class="nav-link block py-3 px-4 rounded-lg">个人中心</a>
+                <div class="flex flex-col space-y-3 pt-3 border-t border-[var(--color-border-light)]">
+                    <div id="auth-area-mobile"></div>
                 </div>
             </div>
         </div>
     </nav>
 
+    <!-- 继续阅读 -->
+    <section id="continue-reading-section" class="container mx-auto px-4 pt-6" style="display:none;">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="display-md flex items-center gap-2">
+                    <i class="fa fa-bookmark" style="color: var(--color-amber);"></i> 继续阅读
+                </h2>
+                <button onclick="ReadingHistory.clearAll();document.getElementById('continue-reading-grid').innerHTML='';document.getElementById('continue-reading-section').style.display='none';" class="btn btn-ghost text-sm" style="color: var(--color-clay);">
+                    <i class="fa fa-trash-o"></i> 清除
+                </button>
+            </div>
+            <div id="continue-reading-grid" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"></div>
+        </div>
+    </section>
+
     <!-- 主要内容区域 -->
     <main class="container mx-auto px-4 py-8 max-w-7xl">
         <!-- 页面标题 -->
-        <div class="mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2 flex items-center">
-                <i class="fa fa-book-open mr-3 text-primary"></i>故事阅览
+        <div class="mb-8 animate-fade-in-up stagger-1">
+            <h1 class="display-lg mb-2 flex items-center gap-3">
+                <i class="fa fa-book-open" style="color: var(--color-amber);"></i>故事阅览
             </h1>
-            <p class="text-slate-600">浏览平台已通过审核的精彩故事</p>
+            <p class="text-muted body-lg">浏览平台已通过审核的精彩故事</p>
         </div>
 
         <!-- 筛选和搜索区域 -->
-        <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <div class="card p-6 mb-6 animate-fade-in-up stagger-2">
             <div class="flex flex-col md:flex-row gap-4">
                 <div class="flex-1">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">搜索故事</label>
+                    <label class="block text-sm font-medium mb-2" style="color: var(--color-ink-soft);">搜索故事</label>
                     <div class="relative">
-                        <input type="text" id="searchInput" placeholder="输入故事标题或关键词..." 
-                            class="w-full px-4 py-2 pl-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none">
-                        <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="searchInput" placeholder="输入故事标题或关键词..."
+                            class="input w-full pl-10">
+                        <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2" style="color: var(--color-ink-muted);"></i>
                     </div>
                 </div>
                 <div class="md:w-48">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">分类筛选</label>
-                    <select id="categoryFilter" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none">
+                    <label class="block text-sm font-medium mb-2" style="color: var(--color-ink-soft);">分类筛选</label>
+                    <select id="categoryFilter" class="input w-full">
                         <option value="">全部分类</option>
                     </select>
                 </div>
                 <div class="md:w-48">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">排序方式</label>
-                    <select id="sortFilter" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none">
+                    <label class="block text-sm font-medium mb-2" style="color: var(--color-ink-soft);">排序方式</label>
+                    <select id="sortFilter" class="input w-full">
                         <option value="latest">最新发布</option>
                         <option value="popular">最受欢迎</option>
                         <option value="rating">评分最高</option>
                     </select>
                 </div>
                 <div class="flex items-end">
-                    <button onclick="applyFilters()" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                    <button onclick="applyFilters()" class="btn btn-primary">
                         <i class="fa fa-filter mr-2"></i>筛选
                     </button>
                 </div>
@@ -158,10 +144,10 @@
         </div>
 
         <!-- 故事统计 -->
-        <div class="mb-6">
-            <p class="text-slate-600">
-                共找到 <span id="storyCount" class="font-semibold text-primary">0</span> 个已审核通过的故事
-            </p>
+        <div class="mb-6 animate-fade-in-up stagger-3">
+            <div class="divider-ornament">
+                <span>共找到 <strong id="storyCount" style="color: var(--color-amber);">0</strong> 个已审核通过的故事</span>
+            </div>
         </div>
 
         <!-- 故事列表 -->
@@ -169,24 +155,38 @@
             <!-- 加载中状态 -->
             <div class="col-span-full flex flex-col items-center justify-center py-20">
                 <div class="loading-spinner w-12 h-12 mb-4"></div>
-                <p class="text-slate-600">正在加载故事...</p>
+                <p style="color: var(--color-ink-muted);">正在加载故事...</p>
             </div>
         </div>
 
         <!-- 分页 -->
-        <div id="paginationContainer" class="flex justify-center items-center space-x-2 mt-8">
-            <!-- 分页按钮将通过JavaScript动态生成 -->
-        </div>
+        <div id="paginationContainer" class="flex justify-center items-center gap-2 mt-8"></div>
     </main>
 
     <!-- 页脚 -->
-    <footer class="bg-slate-900 text-white py-12 px-4 mt-20">
+    <footer style="background: var(--color-ink); color: var(--color-cream); padding: 3rem 1rem; margin-top: 5rem;">
         <div class="container mx-auto max-w-6xl">
-            <div class="border-t border-slate-800 pt-8 text-center text-slate-500 text-sm">
+            <div style="border-top: 1px solid var(--color-ink-soft); padding-top: 2rem; text-align: center; color: var(--color-ink-muted); font-size: 0.875rem;">
                 <p>&copy; 2024 StoryForge. 保留所有权利。</p>
             </div>
         </div>
     </footer>
+
+    <!-- 加载动画样式 -->
+    <style>
+        .loading-spinner {
+            border: 4px solid var(--color-border-light);
+            border-top: 4px solid var(--color-amber);
+            border-radius: 50%;
+            width: 3rem;
+            height: 3rem;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 
     <script>
         // 全局变量
@@ -212,7 +212,13 @@
                     avatarSize: 'medium'
                 });
             }
-            
+
+            // 恢复主题 & 渲染继续阅读
+            if (typeof ReadingHistory !== 'undefined') {
+              ReadingHistory.applyTheme();
+              ReadingHistory.renderContinueReading('continue-reading-grid', 4);
+            }
+
             // 根据用户角色更新导航栏
             if (typeof updateNavigationByRole === 'function') {
                 updateNavigationByRole();
@@ -278,12 +284,12 @@
         async function loadStories(page = 1) {
             currentPage = page;
             const storiesContainer = document.getElementById('storiesContainer');
-            
+
             // 显示加载状态
             storiesContainer.innerHTML = `
                 <div class="col-span-full flex flex-col items-center justify-center py-20">
                     <div class="loading-spinner w-12 h-12 mb-4"></div>
-                    <p class="text-slate-600">正在加载故事...</p>
+                    <p style="color: var(--color-ink-muted);">正在加载故事...</p>
                 </div>
             `;
 
@@ -310,14 +316,14 @@
                 }
 
                 const data = await response.json();
-                
+
                 console.log('API响应数据:', data);
 
                 if (data.success) {
                     const stories = data.data.stories || [];
                     totalStories = data.data.pagination?.total || 0;
                     totalPages = data.data.pagination?.pages || 1;
-                    
+
                     console.log('故事列表:', stories);
                     console.log('故事总数:', totalStories);
                     console.log('总页数:', totalPages);
@@ -337,10 +343,10 @@
                 console.error('加载故事列表失败:', error);
                 storiesContainer.innerHTML = `
                     <div class="col-span-full text-center py-20">
-                        <i class="fa fa-exclamation-circle text-4xl text-red-500 mb-4"></i>
-                        <p class="text-red-600 mb-2">加载失败</p>
-                        <p class="text-sm text-slate-500">${error.message}</p>
-                        <button onclick="loadStories()" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                        <i class="fa fa-exclamation-circle text-4xl mb-4" style="color: var(--color-clay);"></i>
+                        <p style="color: var(--color-clay);" class="mb-2">加载失败</p>
+                        <p class="text-sm" style="color: var(--color-ink-muted);">${error.message}</p>
+                        <button onclick="loadStories()" class="btn btn-primary mt-4">
                             重试
                         </button>
                     </div>
@@ -355,9 +361,9 @@
             if (!stories || stories.length === 0) {
                 storiesContainer.innerHTML = `
                     <div class="col-span-full text-center py-20">
-                        <i class="fa fa-book text-6xl text-slate-300 mb-4"></i>
-                        <p class="text-slate-600 text-lg mb-2">暂无故事</p>
-                        <p class="text-sm text-slate-500">尝试修改搜索条件或筛选条件</p>
+                        <i class="fa fa-book text-6xl mb-4" style="color: var(--color-border);"></i>
+                        <p style="color: var(--color-ink-muted);" class="text-lg mb-2">暂无故事</p>
+                        <p class="text-sm" style="color: var(--color-ink-muted);">尝试修改搜索条件或筛选条件</p>
                     </div>
                 `;
                 return;
@@ -375,8 +381,8 @@
         // 创建故事卡片
         function createStoryCard(story) {
             const card = document.createElement('div');
-            card.className = 'story-card bg-white rounded-xl shadow-md overflow-hidden cursor-pointer';
-            
+            card.className = 'card overflow-hidden cursor-pointer';
+
             // 获取故事图片，如果没有则使用默认图片
             const coverImage = story.coverImage || '/coverImage/1.png';
             // 获取作者信息
@@ -391,39 +397,38 @@
             const description = story.description || '暂无描述';
 
             card.innerHTML = `
-                <div class="relative h-48 overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/20">
+                <div class="relative h-48 overflow-hidden" style="background: linear-gradient(135deg, var(--color-amber-glow), rgba(107,142,123,0.1));">
                     ${coverImage && coverImage !== '/coverImage/1.png' ? `
-                        <img src="${coverImage.startsWith('http') ? coverImage : `http://localhost:5000${coverImage}`}" 
-                            alt="${storyTitle}" 
+                        <img src="${coverImage.startsWith('http') ? coverImage : `http://localhost:5000${coverImage}`}"
+                            alt="${storyTitle}"
                             class="w-full h-full object-cover"
                             onerror="this.onerror=null; this.src='http://localhost:5000/coverImage/1.png';">
                     ` : `
-                        <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
-                            <i class="fa fa-book text-6xl text-primary/30"></i>
+                        <div class="w-full h-full flex items-center justify-center" style="background: linear-gradient(135deg, rgba(198,123,60,0.1), rgba(107,142,123,0.1));">
+                            <i class="fa fa-book text-6xl" style="color: var(--color-amber); opacity: 0.25;"></i>
                         </div>
                     `}
                     <div class="absolute top-3 left-3">
-                        <span class="px-3 py-1 bg-white/90 backdrop-blur-sm text-primary text-xs font-medium rounded-full">
-                            ${categoryName}
-                        </span>
+                        <span class="badge badge-amber">${categoryName}</span>
                     </div>
                 </div>
                 <div class="p-5">
-                    <h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-2 min-h-[3.5rem]">${storyTitle}</h3>
-                    <p class="text-sm text-slate-600 mb-4 line-clamp-2 min-h-[2.5rem]">${description}</p>
-                    <div class="flex items-center justify-between text-xs text-slate-500 mb-4">
+                    <h3 class="text-lg font-bold mb-2 line-clamp-2 min-h-[3.5rem]" style="color: var(--color-ink); font-family: var(--font-display);">${storyTitle}</h3>
+                    <p class="text-sm mb-4 line-clamp-2 min-h-[2.5rem]" style="color: var(--color-ink-muted);">${description}</p>
+                    <div class="flex items-center justify-between text-xs mb-4" style="color: var(--color-ink-muted);">
                         <div class="flex items-center">
-                            <img src="${authorAvatar.startsWith('http') ? authorAvatar : `http://localhost:5000${authorAvatar}`}" 
-                                alt="${authorName}" 
-                                class="w-6 h-6 rounded-full mr-2 border border-slate-300"
+                            <img src="${authorAvatar.startsWith('http') ? authorAvatar : `http://localhost:5000${authorAvatar}`}"
+                                alt="${authorName}"
+                                class="w-6 h-6 rounded-full mr-2 border"
+                                style="border-color: var(--color-border);"
                                 onerror="this.onerror=null; this.src='http://localhost:5000/avatar/default.png';">
-                            <span class="font-medium text-slate-700">${authorName}</span>
+                            <span class="font-medium" style="color: var(--color-ink-soft);">${authorName}</span>
                         </div>
-                        <span class="text-slate-500">${createdAt}</span>
+                        <span>${createdAt}</span>
                     </div>
-                    <div class="pt-4 border-t border-slate-200">
-                        <a href="story-reader.html?id=${story.id}" 
-                            class="block w-full text-center px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition-colors">
+                    <div class="pt-4 border-t" style="border-color: var(--color-border-light);">
+                        <a href="story-reader.html?id=${story.id}"
+                            class="btn btn-secondary w-full justify-center text-sm">
                             <i class="fa fa-book-open mr-1"></i>阅读故事
                         </a>
                     </div>
@@ -468,10 +473,11 @@
 
             // 上一页按钮
             html += `
-                <button 
+                <button
                     onclick="loadStories(${currentPage - 1})"
                     ${currentPage === 1 ? 'disabled' : ''}
-                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="btn btn-secondary text-sm"
+                    style="${currentPage === 1 ? 'opacity:0.5; cursor:not-allowed;' : ''}">
                     <i class="fa fa-chevron-left"></i>
                 </button>
             `;
@@ -481,17 +487,17 @@
             const endPage = Math.min(totalPages, startPage + 4);
 
             if (startPage > 1) {
-                html += `<button onclick="loadStories(1)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">1</button>`;
+                html += `<button onclick="loadStories(1)" class="btn btn-secondary text-sm">1</button>`;
                 if (startPage > 2) {
-                    html += `<span class="px-2 text-slate-500">...</span>`;
+                    html += `<span class="px-2" style="color: var(--color-ink-muted);">...</span>`;
                 }
             }
 
             for (let i = startPage; i <= endPage; i++) {
                 html += `
-                    <button 
+                    <button
                         onclick="loadStories(${i})"
-                        class="px-4 py-2 text-sm font-medium ${i === currentPage ? 'bg-primary text-white' : 'text-gray-700 bg-white'} border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        class="${i === currentPage ? 'btn btn-primary' : 'btn btn-secondary'} text-sm">
                         ${i}
                     </button>
                 `;
@@ -499,17 +505,18 @@
 
             if (endPage < totalPages) {
                 if (endPage < totalPages - 1) {
-                    html += `<span class="px-2 text-slate-500">...</span>`;
+                    html += `<span class="px-2" style="color: var(--color-ink-muted);">...</span>`;
                 }
-                html += `<button onclick="loadStories(${totalPages})" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">${totalPages}</button>`;
+                html += `<button onclick="loadStories(${totalPages})" class="btn btn-secondary text-sm">${totalPages}</button>`;
             }
 
             // 下一页按钮
             html += `
-                <button 
+                <button
                     onclick="loadStories(${currentPage + 1})"
                     ${currentPage === totalPages ? 'disabled' : ''}
-                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="btn btn-secondary text-sm"
+                    style="${currentPage === totalPages ? 'opacity:0.5; cursor:not-allowed;' : ''}">
                     <i class="fa fa-chevron-right"></i>
                 </button>
             `;
@@ -519,4 +526,3 @@
     </script>
 </body>
 </html>
-
