@@ -159,11 +159,11 @@ label { display: block; font-size: 0.85rem; font-weight: 600; color: #a5b4fc; ma
 
 <script>
 // State
-let currentStep = 1;
-let characters = [];
+var currentStep = 1;
+var characters = [];
 
 // Init
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
   AuthUI.requireAuth();
   loadCategories();
   initStyleGrid();
@@ -188,12 +188,17 @@ async function loadCategories() {
     console.error('[AI Workshop] Categories load failed:', e);
     showError('分类加载失败，但不影响创建故事');
   }
+}
 
+function showError(msg) {
+  var t = document.getElementById('errorToast');
+  if (t) { t.textContent = msg; t.style.display = 'block'; setTimeout(function() { t.style.display = 'none'; }, 5000); }
+  console.error('[AI Workshop]', msg);
 }
 
 // Mood tags
 function initMoodTags() {
-  document.querySelectorAll('#moodTags .tag').forEach(tag => {
+  document.querySelectorAll('#moodTags .tag').forEach(function(tag) {
     tag.addEventListener('click', function(e) {
       if (e.target.classList.contains('remove-tag')) return;
       this.classList.toggle('opacity-40');
@@ -203,42 +208,47 @@ function initMoodTags() {
 
 // Style grid
 function initStyleGrid() {
-  document.querySelectorAll('#toneGrid .style-option').forEach(opt => {
-    opt.addEventListener('click', () => {
-      document.querySelectorAll('#toneGrid .style-option').forEach(o => o.classList.remove('selected'));
+  document.querySelectorAll('#toneGrid .style-option').forEach(function(opt) {
+    opt.addEventListener('click', function() {
+      document.querySelectorAll('#toneGrid .style-option').forEach(function(o) { o.classList.remove('selected'); });
       opt.classList.add('selected');
     });
   });
 }
 
 // Characters
-function addCharacter(data = null) {
-  const id = Date.now();
-  characters.push({
-    id, name: data?.name || '', personality_tags: data?.personality_tags || [],
-    description: data?.description || '', relationships: data?.relationships || {}
-  });
+function addCharacter(data) {
+  data = data || {};
+  var id = Date.now();
+  characters.push({ id: id, name: data.name || '', personality_tags: data.personality_tags || [], description: data.description || '', relationships: data.relationships || {} });
   renderCharacters();
 }
 
-function removeCharacter(id) { characters = characters.filter(c => c.id !== id); renderCharacters(); }
+function removeCharacter(id) {
+  characters = characters.filter(function(c) { return c.id !== id; });
+  renderCharacters();
+}
 
 function renderCharacters() {
-  const container = document.getElementById('characterList');
-  container.innerHTML = characters.map(c => 
-    <div class="character-card">
-      <span class="char-remove" onclick="removeCharacter()"><i class="fas fa-times"></i></span>
-      <input class="input-field mb-2" placeholder="角色名" value="" onchange="updateChar(,'name',this.value)" style="max-width:300px">
-      <input class="input-field mb-2" placeholder="性格标签（逗号分隔，如：勇敢,冲动,善良）" value="" onchange="updateChar(,'personality_tags',this.value.split(',').map(s=>s.trim()).filter(Boolean))">
-      <textarea class="input-field" placeholder="角色描述" onchange="updateChar(,'description',this.value)"></textarea>
-    </div>
-  ).join('');
+  var container = document.getElementById('characterList');
+  var html = '';
+  for (var j = 0; j < characters.length; j++) {
+    var c = characters[j];
+    html += '<div class="character-card">';
+    html += '<span class="char-remove" onclick="removeCharacter(' + c.id + ')"><i class="fas fa-times"></i></span>';
+    html += '<input class="input-field mb-2" placeholder="角色名" value="' + c.name + '" onchange="updateChar(' + c.id + ','name',this.value)" style="max-width:300px">';
+    html += '<input class="input-field mb-2" placeholder="性格标签" value="' + (c.personality_tags || []).join(',') + '" onchange="updateChar(' + c.id + ','personality_tags',this.value.split(',').map(function(s){return s.trim()}).filter(Boolean))">';
+    html += '<textarea class="input-field" placeholder="角色描述" onchange="updateChar(' + c.id + ','description',this.value)">' + (c.description || '') + '</textarea>';
+    html += '</div>';
+  }
+  container.innerHTML = html;
   if (characters.length === 0) addCharacter();
 }
 
 function updateChar(id, key, val) {
-  const idx = characters.findIndex(c => c.id === id);
-  if (idx >= 0) characters[idx][key] = val;
+  for (var j = 0; j < characters.length; j++) {
+    if (characters[j].id === id) { characters[j][key] = val; break; }
+  }
 }
 
 // Navigation
@@ -254,7 +264,7 @@ function validateStep() {
     if (!document.getElementById('worldSetting').value.trim()) { showError('请输入世界观设定'); return false; }
   }
   if (currentStep === 3) {
-    const valid = characters.filter(c => c.name.trim() !== '');
+    var valid = characters.filter(function(c) { return c.name.trim() !== ''; });
     if (valid.length === 0) { showError('请至少添加一个有名有姓的角色'); return false; }
     characters = valid;
   }
@@ -262,79 +272,77 @@ function validateStep() {
 }
 
 function renderStep() {
-  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
-  document.querySelector(.step-panel[data-step=""]).classList.add('active');
-  document.querySelectorAll('.step-dot').forEach((d,i) => {
-    d.classList.remove('active','done');
-    if (i+1 < currentStep) d.classList.add('done');
-    if (i+1 === currentStep) d.classList.add('active');
+  document.querySelectorAll('.step-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelector('.step-panel[data-step="' + currentStep + '"]').classList.add('active');
+  document.querySelectorAll('.step-dot').forEach(function(d, i) {
+    d.classList.remove('active', 'done');
+    if (i + 1 < currentStep) d.classList.add('done');
+    if (i + 1 === currentStep) d.classList.add('active');
   });
-  document.querySelectorAll('.step-line').forEach((l,i) => {
-    l.classList.toggle('done', i+1 < currentStep);
+  document.querySelectorAll('.step-line').forEach(function(l, i) {
+    if (i + 1 < currentStep) l.classList.add('done'); else l.classList.remove('done');
   });
-  // Update summary
   if (currentStep === 5) {
-    const title = document.getElementById('storyTitle').value;
-    const world = document.getElementById('worldSetting').value;
-    const outline = document.getElementById('storyOutline').value;
-    const narrative = document.getElementById('narrative').value;
-    const tone = document.querySelector('#toneGrid .style-option.selected')?.dataset.tone || '自然流畅';
-    const length = document.getElementById('lengthControl').value;
-    const activeMoods = Array.from(document.querySelectorAll('#moodTags .tag:not(.opacity-40)')).map(t => t.dataset.mood);
-    document.getElementById('summaryBox').innerHTML = 
-      <div><strong class="text-indigo-300">标题：</strong></div>
-      <div><strong class="text-indigo-300">世界观：</strong>...</div>
-      <div><strong class="text-indigo-300">角色 ()：</strong></div>
-      <div><strong class="text-indigo-300">大纲：</strong></div>
-      <div><strong class="text-indigo-300">风格：</strong> /  / </div>
-      <div><strong class="text-indigo-300">氛围：</strong></div>
-    ;
+    var title = document.getElementById('storyTitle').value;
+    var world = document.getElementById('worldSetting').value;
+    var outline = document.getElementById('storyOutline').value;
+    var narrative = document.getElementById('narrative').value;
+    var toneEl = document.querySelector('#toneGrid .style-option.selected');
+    var tone = toneEl ? toneEl.dataset.tone : '自然流畅';
+    var length = document.getElementById('lengthControl').value;
+    var activeMoods = Array.from(document.querySelectorAll('#moodTags .tag:not(.opacity-40)')).map(function(t) { return t.dataset.mood; });
+    var charNames = characters.map(function(c) { return c.name; }).join('、');
+    var html = '<div><strong class="text-indigo-300">标题：</strong>' + title + '</div>';
+    html += '<div><strong class="text-indigo-300">世界观：</strong>' + world.substring(0, 200) + '...</div>';
+    html += '<div><strong class="text-indigo-300">角色 (' + characters.length + ')：</strong>' + charNames + '</div>';
+    html += '<div><strong class="text-indigo-300">大纲：</strong>' + (outline ? outline.substring(0, 150) + '...' : '（未设置）') + '</div>';
+    html += '<div><strong class="text-indigo-300">风格：</strong>' + narrative + ' / ' + tone + ' / ' + length + '</div>';
+    html += '<div><strong class="text-indigo-300">氛围：</strong>' + (activeMoods.join('、') || '默认') + '</div>';
+    document.getElementById('summaryBox').innerHTML = html;
   }
 }
 
 // Create AI Story
 async function createAIStory() {
-  console.log("[AI Workshop] Creating AI story...");
-  const title = document.getElementById('storyTitle').value.trim();
-  const catEl = document.getElementById('storyCategory');
-  const category_id = catEl.value ? parseInt(catEl.value) : null;
-  const worldSetting = document.getElementById('worldSetting').value.trim();
-  const startPrompt = document.getElementById('startPrompt').value.trim();
-  const outline = document.getElementById('storyOutline').value.trim();
-  const narrative = document.getElementById('narrative').value;
-  const tone = document.querySelector('#toneGrid .style-option.selected')?.dataset.tone || '自然流畅';
-  const length = document.getElementById('lengthControl').value;
-  const activeMoods = Array.from(document.querySelectorAll('#moodTags .tag:not(.opacity-40)')).map(t => t.dataset.mood);
+  console.log('[AI Workshop] Creating AI story...');
+  var title = document.getElementById('storyTitle').value.trim();
+  var catEl = document.getElementById('storyCategory');
+  var category_id = catEl.value ? parseInt(catEl.value) : null;
+  var worldSetting = document.getElementById('worldSetting').value.trim();
+  var startPrompt = document.getElementById('startPrompt').value.trim();
+  var outline = document.getElementById('storyOutline').value.trim();
+  var narrative = document.getElementById('narrative').value;
+  var toneEl = document.querySelector('#toneGrid .style-option.selected');
+  var tone = toneEl ? toneEl.dataset.tone : '自然流畅';
+  var length = document.getElementById('lengthControl').value;
+  var activeMoods = Array.from(document.querySelectorAll('#moodTags .tag:not(.opacity-40)')).map(function(t) { return t.dataset.mood; });
 
-  const payload = {
-    title, category_id, worldSetting, startPrompt,
-    outline,
-    characters: characters.filter(c => c.name.trim()),
-    style: { narrative, tone, length, tags: activeMoods }
+  var payload = {
+    title: title,
+    category_id: category_id,
+    worldSetting: worldSetting,
+    startPrompt: startPrompt,
+    outline: outline,
+    characters: characters.filter(function(c) { return c.name.trim(); }),
+    style: { narrative: narrative, tone: tone, length: length, tags: activeMoods }
   };
 
   document.getElementById('loadingOverlay').classList.add('active');
   document.getElementById('createBtn').disabled = true;
 
   try {
-    const res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/story'), payload);
+    var res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/story'), payload);
     if (res.success) {
       document.getElementById('loadingSub').textContent = '生成完成！正在跳转...';
-      setTimeout(() => {
-        window.location.href = i-reader.html?storyId=;
+      setTimeout(function() {
+        window.location.href = 'ai-reader.html?storyId=' + res.data.storyId;
       }, 800);
     }
   } catch(e) {
-    showError('' + (e.message || '未知错误'));
+    showError('创建失败: ' + (e.message || '未知错误'));
     document.getElementById('loadingOverlay').classList.remove('active');
     document.getElementById('createBtn').disabled = false;
   }
-}
-
-function showError(msg) {
-  var t = document.getElementById("errorToast");
-  if (t) { t.textContent = msg; t.style.display = "block"; setTimeout(function() { t.style.display = "none"; }, 5000); }
-  console.error("[AI Workshop]", msg);
 }
 
 // Init
