@@ -172,12 +172,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Categories
 async function loadCategories() {
+  var sel = document.getElementById('storyCategory');
+  sel.innerHTML = '<option value="">-- 选择分类（可选） --</option>';
   try {
-    const res = await API_CONFIG.get(API_CONFIG.buildUrl('/categories'));
-    const cats = res.data || [];
-    const sel = document.getElementById('storyCategory');
-    cats.forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; sel.appendChild(o); });
-  } catch(e) { console.warn('Categories load failed', e); }
+    var res = await API_CONFIG.get(API_CONFIG.buildUrl('/categories'));
+    var cats = res.data || [];
+    cats.forEach(function(c) {
+      var o = document.createElement('option');
+      o.value = c.id;
+      o.textContent = c.name;
+      sel.appendChild(o);
+    });
+    console.log('[AI Workshop] Loaded ' + cats.length + ' categories');
+  } catch(e) {
+    console.error('[AI Workshop] Categories load failed:', e);
+    showError('分类加载失败，但不影响创建故事');
+  }
+
 }
 
 // Mood tags
@@ -236,15 +247,15 @@ function nextStep() { if (currentStep < 5) { if (!validateStep()) return; curren
 
 function validateStep() {
   if (currentStep === 1) {
-    if (!document.getElementById('storyTitle').value.trim()) { alert('请输入故事标题'); return false; }
-    if (!document.getElementById('startPrompt').value.trim()) { alert('请输入开端提示'); return false; }
+    if (!document.getElementById('storyTitle').value.trim()) { showError('请输入故事标题'); return false; }
+    if (!document.getElementById('startPrompt').value.trim()) { showError('请输入开端提示'); return false; }
   }
   if (currentStep === 2) {
-    if (!document.getElementById('worldSetting').value.trim()) { alert('请输入世界观设定'); return false; }
+    if (!document.getElementById('worldSetting').value.trim()) { showError('请输入世界观设定'); return false; }
   }
   if (currentStep === 3) {
     const valid = characters.filter(c => c.name.trim() !== '');
-    if (valid.length === 0) { alert('请至少添加一个有名有姓的角色'); return false; }
+    if (valid.length === 0) { showError('请至少添加一个有名有姓的角色'); return false; }
     characters = valid;
   }
   return true;
