@@ -7,9 +7,9 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="styles.css">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<script src="assets/js/api-config.js"></script>
 <script src="assets/js/auth.js"></script>
 <script src="assets/js/navbar.js"></script>
-<script src="assets/js/api-config.js"></script>
 <style>
 :root { --step-active: #6366f1; --step-done: #22c55e; }
 body { background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d0d2b 100%); min-height: 100vh; color: #e2e8f0; }
@@ -150,6 +150,7 @@ label { display: block; font-size: 0.85rem; font-weight: 600; color: #a5b4fc; ma
   </div>
 </div>
 
+<div id="errorToast" style="display:none;position:fixed;top:1rem;left:50%;transform:translateX(-50%);background:#dc2626;color:#fff;padding:0.75rem 1.5rem;border-radius:10px;z-index:200;font-size:0.9rem;max-width:90%;text-align:center;box-shadow:0 4px 16px rgba(220,38,38,0.4);"></div>
 <div class="loading-overlay" id="loadingOverlay">
   <div class="spinner"></div>
   <p class="text-white text-lg font-medium">AI 正在构思你的故事...</p>
@@ -282,6 +283,7 @@ function renderStep() {
 
 // Create AI Story
 async function createAIStory() {
+  console.log("[AI Workshop] Creating AI story...");
   const title = document.getElementById('storyTitle').value.trim();
   const catEl = document.getElementById('storyCategory');
   const category_id = catEl.value ? parseInt(catEl.value) : null;
@@ -312,10 +314,16 @@ async function createAIStory() {
       }, 800);
     }
   } catch(e) {
-    alert('AI 故事创建失败: ' + (e.message || '未知错误'));
+    showError('' + (e.message || '未知错误'));
     document.getElementById('loadingOverlay').classList.remove('active');
     document.getElementById('createBtn').disabled = false;
   }
+}
+
+function showError(msg) {
+  var t = document.getElementById("errorToast");
+  if (t) { t.textContent = msg; t.style.display = "block"; setTimeout(function() { t.style.display = "none"; }, 5000); }
+  console.error("[AI Workshop]", msg);
 }
 
 // Init

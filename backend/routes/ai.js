@@ -179,4 +179,36 @@ ${content}
   }
 });
 
+// 大纲/世界观/角色润色 - 复用 DashScope Qwen-Max
+router.post('/polish-outline', authGuard, [
+  body('type').isIn(['outline', 'world', 'character']).withMessage('type 必须是 outline/world/character'),
+  body('content').trim().notEmpty().withMessage('内容不能为空'),
+  body('context').optional().trim()
+], async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return next(errorFormat(400, '参数错误', errors.array().map(e => ({ field: e.path, message: e.msg })), 10001));
+  }
+  try {
+    const { type, content, context } = req.body;
+    const DASHSCOPE_API_KEY = process.env.DASHSCOPE_API_KEY;
+    if (!DASHSCOPE_API_KEY) return next(errorFormat(500, 'AI服务未配置', [], 10013));
+    const labels = { outline: '故事大纲', world: '世界观设定', character: '角色描述' };
+    const prompt = '你是专业文学策划。请将以下' + labels[type] + '润色为更丰富、更具故事张力的版本。' + (context ? '\n故事背景：' + context : '') + '\n\n原文：\n' + content + '\n\n要求：保持核心创意不变，增强叙事吸引力，补充合理细节。直接返回润色后文本。';
+    const dashscopeModule = await import('dashscope');
+    const payload = dashscopeModule.payload;
+    const response = await payload('https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation', {
+      model: 'qwen-max', input: { messages: [{ role: 'user', content: prompt }] },
+      parameters: { temperature: 0.8, max_tokens: 2000 }
+    }, DASHSCOPE_API_KEY);
+    let polished = response?.output?.choices?.[0]?.message?.content || response?.output?.text || response?.text;
+    if (!polished) return next(errorFormat(500, 'AI返回格式异常', [], 10013));
+    res.json({ success: true, message: '润色成功', data: { content: polished.trim() } });
+  } catch(e) {
+    console.error('大纲润色失败:', e);
+    next(errorFormat(500, 'AI服务调用失败: ' + e.message, [], 10013));
+  }
+});
+
+
 module.exports = router;
