@@ -194,6 +194,7 @@ function showError(msg) {
   var t = document.getElementById('errorToast');
   if (t) { t.textContent = msg; t.style.display = 'block'; setTimeout(function() { t.style.display = 'none'; }, 5000); }
   console.error('[AI Workshop]', msg);
+  alert(msg);
 }
 
 // Mood tags
