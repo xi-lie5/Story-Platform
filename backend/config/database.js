@@ -211,6 +211,15 @@ async function initTables() {
     `);
 
     await connection.commit();
+
+    // AI�������� stories ������
+    try {
+      await connection.query("ALTER TABLE stories ADD COLUMN creation_mode ENUM('manual', 'ai') DEFAULT 'manual' COMMENT '������'");
+      await connection.query("ALTER TABLE stories ADD COLUMN ai_config JSON COMMENT 'AI������'");
+      console.log('✅ stories ��AI����������');
+    } catch (e) {
+      console.warn('⚠️ stories ��AI��������������������):', e.message);
+    }
     console.log('✅ 数据库表初始化成功');
   } catch (error) {
     await connection.rollback();
@@ -221,9 +230,25 @@ async function initTables() {
   }
 }
 
+// AI ������ž �����Ӧ
+async function createAiStoryTables() {
+  const conn = await pool.getConnection();
+  try {
+    await conn.execute("CREATE TABLE IF NOT EXISTS ai_story_sessions (id INT AUTO_INCREMENT PRIMARY KEY, story_id INT NOT NULL, user_id INT NOT NULL, context_messages JSON, summary TEXT, current_node_id VARCHAR(255), total_nodes INT DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, INDEX idx_story_id(story_id), INDEX idx_user_id(user_id), UNIQUE KEY uk_user_story(user_id, story_id), FOREIGN KEY(story_id) REFERENCES stories(id) ON DELETE CASCADE, FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI��������'");
+    await conn.execute("CREATE TABLE IF NOT EXISTS ai_story_characters (id INT AUTO_INCREMENT PRIMARY KEY, story_id INT NOT NULL, name VARCHAR(100) NOT NULL, personality_tags JSON, description TEXT, relationships JSON, avatar_prompt TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, INDEX idx_story_id(story_id), FOREIGN KEY(story_id) REFERENCES stories(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI����������'");
+    console.log('\u2705 AI ����ž���������');
+  } catch(e) {
+    console.error('\u274c AI ����������������:', e.message);
+    throw e;
+  } finally {
+    conn.release();
+  }
+}
+
 module.exports = {
   pool,
   testConnection,
-  initTables
+  initTables,
+  createAiStoryTables
 };
 

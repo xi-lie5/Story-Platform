@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 
 const errorHandler = require('./middleware/errorHandler');
-const { testConnection, initTables } = require('./config/database');
+const { testConnection, initTables, createAiStoryTables } = require('./config/database');
 const Category = require('./models/Category');
 
 // server.js从server根目录加载.env
@@ -53,7 +53,8 @@ app.get(BASE_URL, (req, res) => {
       `${BASE_URL}/interactions`,
       `${BASE_URL}/admin`,
       `${BASE_URL}/branches`,
-      `${BASE_URL}/characters`
+      `${BASE_URL}/characters`,
+      `${BASE_URL}/ai/story`
     ]
   });
 });
@@ -128,10 +129,17 @@ try {
 }
 
 try {
-  app.use(`${BASE_URL}/ai`, require('./routes/ai')); // AI服务路由
+  app.use(`${BASE_URL}/ai`, require('./routes/ai')); // AI服务路由 (润色)
   console.log('✅ ai路由注册成功');
 } catch(e) {
   console.error('❌ ai路由注册失败:', e.message);
+}
+
+try {
+  app.use(`${BASE_URL}/aiStory`, require('./routes/aiStory')); // AI故事模式路由
+  console.log('✅ aiStory路由注册成功');
+} catch(e) {
+  console.error('❌ aiStory路由注册失败:', e.message);
 }
 
 console.log('所有路由注册完成');
@@ -263,6 +271,7 @@ async function startServer() {
 
     // 初始化数据库表结构
     await initTables();
+    await createAiStoryTables();
     console.log('✅ 数据库表初始化完成');
 
     // 初始化默认分类
