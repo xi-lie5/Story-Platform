@@ -28,6 +28,7 @@ router.post('/story', authGuard, [
 
   const conn = await pool.getConnection();
   try {
+    await conn.beginTransaction();
     const { title, category_id, worldSetting, characters, outline, style, startPrompt } = req.body;
 
     // 构建 AI 配置
@@ -147,6 +148,7 @@ router.post('/story/:storyId/generate', authGuard, [
 
   const conn = await pool.getConnection();
   try {
+    await conn.beginTransaction();
     const { storyId } = req.params;
     const { nodeId, choice } = req.body;
 
