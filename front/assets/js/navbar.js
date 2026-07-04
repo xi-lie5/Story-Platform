@@ -20,6 +20,7 @@
     const userNavItems = `
       <a href="index.html" class="navbar-link text-slate-600 hover:text-primary font-medium transition-colors">首页</a>
       <a href="browse.html" class="navbar-link text-slate-600 hover:text-primary font-medium transition-colors">故事阅览</a>
+      <a href="ai-workshop.html" class="navbar-link text-slate-600 hover:text-primary font-medium transition-colors">AI 工坊</a>
       <a href="create.html" class="navbar-link text-slate-600 hover:text-primary font-medium transition-colors">创建故事</a>
       <a href="my_stories.html" class="navbar-link text-slate-600 hover:text-primary font-medium transition-colors">我的作品</a>
       <a href="profile.html" class="navbar-link text-slate-600 hover:text-primary font-medium transition-colors">个人中心</a>
@@ -43,6 +44,7 @@
         ? `
           <a href="index.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">首页</a>
           <a href="browse.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">故事阅览</a>
+          <a href="ai-workshop.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">AI 工坊</a>
           <a href="create.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">创建故事</a>
           <a href="my_stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">我的作品</a>
           <a href="profile.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">个人中心</a>

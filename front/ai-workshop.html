@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 故事工坊 - StoryForge</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="styles.css">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/navbar.js"></script>
+<script src="assets/js/api-config.js"></script>
+<style>
+:root { --step-active: #6366f1; --step-done: #22c55e; }
+body { background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d0d2b 100%); min-height: 100vh; color: #e2e8f0; }
+.workshop-container { max-width: 800px; margin: 0 auto; padding: 2rem 1rem; }
+.step-indicator { display: flex; gap: 0.5rem; margin-bottom: 2rem; justify-content: center; }
+.step-dot { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; background: rgba(255,255,255,0.1); color: #94a3b8; transition: all 0.3s; }
+.step-dot.active { background: var(--step-active); color: #fff; box-shadow: 0 0 16px rgba(99,102,241,0.4); }
+.step-dot.done { background: var(--step-done); color: #fff; }
+.step-line { flex: 1; max-width: 40px; height: 2px; background: rgba(255,255,255,0.15); align-self: center; }
+.step-line.done { background: var(--step-done); }
+.step-panel { display: none; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 2rem; backdrop-filter: blur(10px); }
+.step-panel.active { display: block; }
+.input-field { width: 100%; padding: 0.85rem 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #e2e8f0; font-size: 0.95rem; outline: none; transition: border 0.2s; }
+.input-field:focus { border-color: var(--step-active); box-shadow: 0 0 0 3px rgba(99,102,241,0.2); }
+textarea.input-field { min-height: 120px; resize: vertical; }
+.btn-primary { padding: 0.75rem 1.75rem; border-radius: 10px; border: none; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; font-weight: 600; cursor: pointer; transition: opacity 0.2s, transform 0.15s; }
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-secondary { padding: 0.75rem 1.75rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); color: #e2e8f0; font-weight: 600; cursor: pointer; }
+.character-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.25rem; margin-bottom: 0.75rem; position: relative; }
+.tag { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.8rem; margin: 0.15rem; background: rgba(99,102,241,0.2); color: #a5b4fc; }
+.tag .remove-tag { margin-left: 0.3rem; cursor: pointer; opacity: 0.6; }
+.tag .remove-tag:hover { opacity: 1; }
+.char-remove { position: absolute; top: 0.5rem; right: 0.75rem; cursor: pointer; color: #f87171; font-size: 1.1rem; opacity: 0.6; }
+.char-remove:hover { opacity: 1; }
+label { display: block; font-size: 0.85rem; font-weight: 600; color: #a5b4fc; margin-bottom: 0.4rem; }
+.style-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; }
+.style-option { padding: 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); cursor: pointer; text-align: center; transition: all 0.2s; }
+.style-option.selected { border-color: var(--step-active); background: rgba(99,102,241,0.12); }
+.loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; flex-direction: column; }
+.loading-overlay.active { display: flex; }
+.spinner { width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.2); border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 1rem; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div id="navbar"></div>
+
+<div class="workshop-container">
+  <h1 class="text-2xl font-bold text-center mb-1">AI 故事工坊</h1>
+  <p class="text-center text-slate-400 text-sm mb-6">配置你的世界观，让 AI 帮你创作互动故事</p>
+
+  <div class="step-indicator" id="stepIndicator">
+    <div class="step-dot active" data-step="1">1</div><div class="step-line"></div>
+    <div class="step-dot" data-step="2">2</div><div class="step-line"></div>
+    <div class="step-dot" data-step="3">3</div><div class="step-line"></div>
+    <div class="step-dot" data-step="4">4</div><div class="step-line"></div>
+    <div class="step-dot" data-step="5">5</div>
+  </div>
+
+  <!-- Step 1: Basic Info -->
+  <div class="step-panel active" data-step="1">
+    <h2 class="text-lg font-semibold mb-4">故事基本信息</h2>
+    <label>故事标题</label>
+    <input class="input-field mb-4" id="storyTitle" placeholder="给你的故事起个名字..." maxlength="100">
+    <label>故事分类</label>
+    <select class="input-field mb-4" id="storyCategory"></select>
+    <label>开端提示</label>
+    <textarea class="input-field mb-6" id="startPrompt" placeholder="告诉 AI 故事从哪里开始，比如：一个雨夜，独居的程序员收到了来自未来的第一条消息..."></textarea>
+    <div class="flex justify-end gap-3">
+      <button class="btn-primary" onclick="nextStep()">下一步 - 世界观  <i class="fas fa-arrow-right ml-1"></i></button>
+    </div>
+  </div>
+
+  <!-- Step 2: World Setting -->
+  <div class="step-panel" data-step="2">
+    <h2 class="text-lg font-semibold mb-4">世界观设定</h2>
+    <label>世界观描述</label>
+    <textarea class="input-field mb-2" id="worldSetting" placeholder="描述故事的时代背景、世界规则、社会结构..."></textarea>
+    <p class="text-slate-500 text-xs mb-4">越详细的设定，AI 生成的故事越有沉浸感</p>
+    <label>氛围标签（可选）</label>
+    <div class="flex gap-2 mb-4 flex-wrap" id="moodTags">
+      <span class="tag" data-mood="黑暗">黑暗 <span class="remove-tag" onclick="this.parentElement.remove()">x</span></span>
+      <span class="tag" data-mood="轻松">轻松 <span class="remove-tag" onclick="this.parentElement.remove()">x</span></span>
+      <span class="tag" data-mood="史诗">史诗 <span class="remove-tag" onclick="this.parentElement.remove()">x</span></span>
+      <span class="tag" data-mood="温馨">温馨 <span class="remove-tag" onclick="this.parentElement.remove()">x</span></span>
+      <span class="tag" data-mood="紧张">紧张 <span class="remove-tag" onclick="this.parentElement.remove()">x</span></span>
+    </div>
+    <p class="text-slate-500 text-xs mb-6">点击标签选择/取消氛围</p>
+    <div class="flex justify-between">
+      <button class="btn-secondary" onclick="prevStep()"><i class="fas fa-arrow-left mr-1"></i> 上一步</button>
+      <button class="btn-primary" onclick="nextStep()">下一步 - 角色工坊  <i class="fas fa-arrow-right ml-1"></i></button>
+    </div>
+  </div>
+
+  <!-- Step 3: Characters -->
+  <div class="step-panel" data-step="3">
+    <h2 class="text-lg font-semibold mb-4">角色工坊</h2>
+    <div id="characterList"></div>
+    <button class="btn-secondary w-full mt-2" onclick="addCharacter()"><i class="fas fa-plus mr-1"></i> 添加角色</button>
+    <p class="text-slate-500 text-xs mt-2 mb-6">为故事中的每个重要角色创建卡片</p>
+    <div class="flex justify-between">
+      <button class="btn-secondary" onclick="prevStep()"><i class="fas fa-arrow-left mr-1"></i> 上一步</button>
+      <button class="btn-primary" onclick="nextStep()">下一步 - 大纲与风格  <i class="fas fa-arrow-right ml-1"></i></button>
+    </div>
+  </div>
+
+  <!-- Step 4: Outline & Style -->
+  <div class="step-panel" data-step="4">
+    <h2 class="text-lg font-semibold mb-4">故事大纲与风格</h2>
+    <label>故事大纲（可选）</label>
+    <textarea class="input-field mb-4" id="storyOutline" placeholder="列出关键的情节点，每行一个：&#10;&#8226; 主角发现神秘信件&#10;&#8226; 踏上寻找真相的旅程&#10;&#8226; 遇见关键人物&#10;&#8226; 最终对峙 / 和解"></textarea>
+    <label>叙事视角</label>
+    <select class="input-field mb-4" id="narrative">
+      <option value="第三人称">第三人称</option>
+      <option value="第一人称">第一人称</option>
+      <option value="第二人称">第二人称（沉浸式）</option>
+    </select>
+    <label>文风基调</label>
+    <div class="style-grid mb-4" id="toneGrid">
+      <div class="style-option selected" data-tone="自然流畅">自然流畅</div>
+      <div class="style-option" data-tone="诗意悠远">诗意悠远</div>
+      <div class="style-option" data-tone="紧张刺激">紧张刺激</div>
+      <div class="style-option" data-tone="幽默诙谐">幽默诙谐</div>
+      <div class="style-option" data-tone="冷峻克制">冷峻克制</div>
+      <div class="style-option" data-tone="温暖治愈">温暖治愈</div>
+    </div>
+    <label>篇幅控制</label>
+    <select class="input-field mb-6" id="lengthControl">
+      <option value="800-1500字/段">标准（800-1500字/段）</option>
+      <option value="500-1000字/段">简洁（500-1000字/段）</option>
+      <option value="1500-2500字/段">详细（1500-2500字/段）</option>
+    </select>
+    <div class="flex justify-between">
+      <button class="btn-secondary" onclick="prevStep()"><i class="fas fa-arrow-left mr-1"></i> 上一步</button>
+      <button class="btn-primary" onclick="nextStep()">下一步 - 确认创建  <i class="fas fa-arrow-right ml-1"></i></button>
+    </div>
+  </div>
+
+  <!-- Step 5: Confirm -->
+  <div class="step-panel" data-step="5">
+    <h2 class="text-lg font-semibold mb-4">确认与创建</h2>
+    <div id="summaryBox" class="bg-white/5 rounded-xl p-4 mb-6 text-sm space-y-3"></div>
+    <div class="flex justify-between">
+      <button class="btn-secondary" onclick="prevStep()"><i class="fas fa-arrow-left mr-1"></i> 上一步</button>
+      <button class="btn-primary" id="createBtn" onclick="createAIStory()"><i class="fas fa-magic mr-1"></i> 生成第一章</button>
+    </div>
+  </div>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p class="text-white text-lg font-medium">AI 正在构思你的故事...</p>
+  <p class="text-slate-400 text-sm mt-1" id="loadingSub">这可能需要 20-60 秒</p>
+</div>
+
+<script>
+// State
+let currentStep = 1;
+let characters = [];
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+  AuthUI.requireAuth();
+  loadCategories();
+  initStyleGrid();
+  initMoodTags();
+});
+
+// Categories
+async function loadCategories() {
+  try {
+    const res = await API_CONFIG.get(API_CONFIG.buildUrl('/categories'));
+    const cats = res.data || [];
+    const sel = document.getElementById('storyCategory');
+    cats.forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; sel.appendChild(o); });
+  } catch(e) { console.warn('Categories load failed', e); }
+}
+
+// Mood tags
+function initMoodTags() {
+  document.querySelectorAll('#moodTags .tag').forEach(tag => {
+    tag.addEventListener('click', function(e) {
+      if (e.target.classList.contains('remove-tag')) return;
+      this.classList.toggle('opacity-40');
+    });
+  });
+}
+
+// Style grid
+function initStyleGrid() {
+  document.querySelectorAll('#toneGrid .style-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      document.querySelectorAll('#toneGrid .style-option').forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+    });
+  });
+}
+
+// Characters
+function addCharacter(data = null) {
+  const id = Date.now();
+  characters.push({
+    id, name: data?.name || '', personality_tags: data?.personality_tags || [],
+    description: data?.description || '', relationships: data?.relationships || {}
+  });
+  renderCharacters();
+}
+
+function removeCharacter(id) { characters = characters.filter(c => c.id !== id); renderCharacters(); }
+
+function renderCharacters() {
+  const container = document.getElementById('characterList');
+  container.innerHTML = characters.map(c => 
+    <div class="character-card">
+      <span class="char-remove" onclick="removeCharacter()"><i class="fas fa-times"></i></span>
+      <input class="input-field mb-2" placeholder="角色名" value="" onchange="updateChar(,'name',this.value)" style="max-width:300px">
+      <input class="input-field mb-2" placeholder="性格标签（逗号分隔，如：勇敢,冲动,善良）" value="" onchange="updateChar(,'personality_tags',this.value.split(',').map(s=>s.trim()).filter(Boolean))">
+      <textarea class="input-field" placeholder="角色描述" onchange="updateChar(,'description',this.value)"></textarea>
+    </div>
+  ).join('');
+  if (characters.length === 0) addCharacter();
+}
+
+function updateChar(id, key, val) {
+  const idx = characters.findIndex(c => c.id === id);
+  if (idx >= 0) characters[idx][key] = val;
+}
+
+// Navigation
+function prevStep() { if (currentStep > 1) { currentStep--; renderStep(); } }
+function nextStep() { if (currentStep < 5) { if (!validateStep()) return; currentStep++; renderStep(); } }
+
+function validateStep() {
+  if (currentStep === 1) {
+    if (!document.getElementById('storyTitle').value.trim()) { alert('请输入故事标题'); return false; }
+    if (!document.getElementById('startPrompt').value.trim()) { alert('请输入开端提示'); return false; }
+  }
+  if (currentStep === 2) {
+    if (!document.getElementById('worldSetting').value.trim()) { alert('请输入世界观设定'); return false; }
+  }
+  if (currentStep === 3) {
+    const valid = characters.filter(c => c.name.trim() !== '');
+    if (valid.length === 0) { alert('请至少添加一个有名有姓的角色'); return false; }
+    characters = valid;
+  }
+  return true;
+}
+
+function renderStep() {
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(.step-panel[data-step=""]).classList.add('active');
+  document.querySelectorAll('.step-dot').forEach((d,i) => {
+    d.classList.remove('active','done');
+    if (i+1 < currentStep) d.classList.add('done');
+    if (i+1 === currentStep) d.classList.add('active');
+  });
+  document.querySelectorAll('.step-line').forEach((l,i) => {
+    l.classList.toggle('done', i+1 < currentStep);
+  });
+  // Update summary
+  if (currentStep === 5) {
+    const title = document.getElementById('storyTitle').value;
+    const world = document.getElementById('worldSetting').value;
+    const outline = document.getElementById('storyOutline').value;
+    const narrative = document.getElementById('narrative').value;
+    const tone = document.querySelector('#toneGrid .style-option.selected')?.dataset.tone || '自然流畅';
+    const length = document.getElementById('lengthControl').value;
+    const activeMoods = Array.from(document.querySelectorAll('#moodTags .tag:not(.opacity-40)')).map(t => t.dataset.mood);
+    document.getElementById('summaryBox').innerHTML = 
+      <div><strong class="text-indigo-300">标题：</strong></div>
+      <div><strong class="text-indigo-300">世界观：</strong>...</div>
+      <div><strong class="text-indigo-300">角色 ()：</strong></div>
+      <div><strong class="text-indigo-300">大纲：</strong></div>
+      <div><strong class="text-indigo-300">风格：</strong> /  / </div>
+      <div><strong class="text-indigo-300">氛围：</strong></div>
+    ;
+  }
+}
+
+// Create AI Story
+async function createAIStory() {
+  const title = document.getElementById('storyTitle').value.trim();
+  const catEl = document.getElementById('storyCategory');
+  const category_id = catEl.value ? parseInt(catEl.value) : null;
+  const worldSetting = document.getElementById('worldSetting').value.trim();
+  const startPrompt = document.getElementById('startPrompt').value.trim();
+  const outline = document.getElementById('storyOutline').value.trim();
+  const narrative = document.getElementById('narrative').value;
+  const tone = document.querySelector('#toneGrid .style-option.selected')?.dataset.tone || '自然流畅';
+  const length = document.getElementById('lengthControl').value;
+  const activeMoods = Array.from(document.querySelectorAll('#moodTags .tag:not(.opacity-40)')).map(t => t.dataset.mood);
+
+  const payload = {
+    title, category_id, worldSetting, startPrompt,
+    outline,
+    characters: characters.filter(c => c.name.trim()),
+    style: { narrative, tone, length, tags: activeMoods }
+  };
+
+  document.getElementById('loadingOverlay').classList.add('active');
+  document.getElementById('createBtn').disabled = true;
+
+  try {
+    const res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/story'), payload);
+    if (res.success) {
+      document.getElementById('loadingSub').textContent = '生成完成！正在跳转...';
+      setTimeout(() => {
+        window.location.href = i-reader.html?storyId=;
+      }, 800);
+    }
+  } catch(e) {
+    alert('AI 故事创建失败: ' + (e.message || '未知错误'));
+    document.getElementById('loadingOverlay').classList.remove('active');
+    document.getElementById('createBtn').disabled = false;
+  }
+}
+
+// Init
+renderCharacters();
+</script>
+</body>
+</html>
