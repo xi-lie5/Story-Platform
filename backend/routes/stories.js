@@ -50,13 +50,14 @@ router.get('/', cacheMiddleware(300), async (req, res, next) => {
       filter.$text = { $search: req.query.search.trim() };
     }
 
+    const findOptions = {
+      sort: buildSortOption(req.query.sort),
+      skip: skip,
+      limit: limit,
+      populate: ['author', 'category']
+    };
     const [stories, total] = await Promise.all([
-      Story.find(filter)
-        .sort(buildSortOption(req.query.sort))
-        .skip(skip)
-        .limit(limit)
-        .populate('author', 'username avatar')
-        .populate('category', 'name'),
+      Story.find(filter, findOptions),
       Story.countDocuments(filter)
     ]);
     
