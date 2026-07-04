@@ -157,32 +157,22 @@ function renderChoices(choices) {
     return;
   }
   document.getElementById('choicesSection').style.display = 'block';
-  document.getElementById('choicesList').innerHTML = choices.map((ch, i) => {
-    const safeText = (ch.text || '').replace(/'/g, "\\'");
-    return '<button class="choice-btn fade-in" style="animation-delay:' + (i*0.1) + 's" onclick="selectChoice(\'' + safeText + '\')">' + (ch.text || '') + (ch.hint ? '<span class="hint">' + ch.hint + '</span>' : '') + '</button>';
-  }).join('');
-}
-
-async function selectChoice(choiceText) {
-  history.push({ nodeId: currentNodeId, title: currentNodeTitle, content: currentContent });
-  document.getElementById('choicesSection').style.display = 'none';
-  document.getElementById('contentArea').innerHTML = '<div class="loading-state fade-in"><p class="text-slate-400 mb-2">AI is writing the next chapter...</p><div class="dots mt-3"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>';
-  try {
-    const res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/story/' + storyId + '/generate'), { nodeId: currentNodeId, choice: choiceText });
-    if (res.success) {
-      currentNodeId = res.data.nodeId;
-      currentContent = res.data.content;
-      currentNodeTitle = res.data.title;
-      document.getElementById('storyTitle').textContent = currentNodeTitle;
-      document.getElementById('progressText').textContent = 'Nodes: ' + (res.data.totalNodes || 0);
-      document.getElementById('toolbar').style.display = 'flex';
-      renderContent();
-    }
-  } catch(e) {
-    const prev = history.pop();
-    if (prev) { currentNodeId = prev.nodeId; currentContent = prev.content; currentNodeTitle = prev.title; }
-    document.getElementById('contentArea').innerHTML = '<p class="text-center text-red-400 mt-8">Generation failed: ' + e.message + '<br><button class="btn-primary mt-3" onclick="renderContent()">Retry</button></p>';
+  window._readerChoices = choices;
+  var html = '';
+  for (var i = 0; i < choices.length; i++) {
+    var ch = choices[i];
+    html += '<button class="choice-btn fade-in" style="animation-delay:' + (i*0.1) + 's" data-choice="' + i + '">' + (ch.text || '') + (ch.hint ? '<span class="hint">' + ch.hint + '</span>' : '') + '</button>';
   }
+  document.getElementById('choicesList').innerHTML = html;
+  document.getElementById('choicesList').onclick = function(e) {
+    var btn = e.target.closest('.choice-btn');
+    if (btn && window._readerChoices) {
+      var idx = parseInt(btn.getAttribute('data-choice'));
+      if (!isNaN(idx) && window._readerChoices[idx]) {
+        selectChoice(window._readerChoices[idx].text);
+      }
+    }
+  };
 }
 
 function goBack() {
