@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -46,7 +46,47 @@ label { display: block; font-size: 0.85rem; font-weight: 600; color: #a5b4fc; ma
 </style>
 </head>
 <body>
-<div id="navbar"></div>
+<!-- Navigation Bar -->
+<nav style="background: rgba(15,15,35,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.08); box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+  <div class="container mx-auto px-4 py-4">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+          <i class="fas fa-book text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-xl md:text-2xl font-bold text-white">StoryForge</h1>
+          <p class="text-xs text-slate-400 hidden md:block">AI故事创作平台</p>
+        </div>
+      </div>
+      <div class="hidden lg:flex items-center space-x-8" id="main-nav-desktop">
+        <a href="index.html" class="text-slate-300 hover:text-white font-medium transition-colors">首页</a>
+        <a href="browse.html" class="text-slate-300 hover:text-white font-medium transition-colors">故事阅览</a>
+        <a href="ai-workshop.html" class="text-indigo-400 font-medium transition-colors">AI 工坊</a>
+        <a href="create.html" class="text-slate-300 hover:text-white font-medium transition-colors">创建故事</a>
+        <a href="my_stories.html" class="text-slate-300 hover:text-white font-medium transition-colors">我的作品</a>
+        <a href="profile.html" class="text-slate-300 hover:text-white font-medium transition-colors">个人中心</a>
+      </div>
+      <div id="auth-area-desktop" class="flex items-center space-x-3"></div>
+      <button id="mobile-menu-button" class="lg:hidden p-2 rounded-lg hover:bg-white/10 transition-colors">
+        <i class="fas fa-bars text-slate-300 text-xl"></i>
+      </button>
+    </div>
+  </div>
+  <div class="lg:hidden hidden bg-black/95 backdrop-blur-md border-t border-white/10" id="mobile-menu">
+    <div class="container mx-auto px-4 py-4 space-y-3">
+      <a href="index.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">首页</a>
+      <a href="browse.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">故事阅览</a>
+      <a href="ai-workshop.html" class="block py-3 px-4 rounded-lg font-medium text-indigo-400 bg-indigo-500/10">AI 工坊</a>
+      <a href="create.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">创建故事</a>
+      <a href="my_stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">我的作品</a>
+      <a href="profile.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">个人中心</a>
+      <div class="flex flex-col space-y-3 pt-3 border-t border-white/10">
+        <div id="auth-area-mobile"></div>
+      </div>
+    </div>
+  </div>
+</nav>
 
 <div class="workshop-container">
   <h1 class="text-2xl font-bold text-center mb-1">AI 故事工坊</h1>
@@ -164,11 +204,118 @@ var characters = [];
 
 // Init
 document.addEventListener('DOMContentLoaded', function() {
-  AuthUI.requireAuth();
+  // Init auth UI and navbar
+  AuthUI.init();
+  if (!AuthUI.requireAuth()) return;
+  if (typeof updateNavigationByRole === 'function') {
+    setTimeout(updateNavigationByRole, 300);
+  }
+  // Mobile menu toggle
+  var mobileBtn = document.getElementById('mobile-menu-button');
+  var mobileMenu = document.getElementById('mobile-menu');
+  if (mobileBtn && mobileMenu) {
+    mobileBtn.addEventListener('click', function() { mobileMenu.classList.toggle('hidden'); });
+  }
   loadCategories();
+  restoreWorkshopState();
   initStyleGrid();
   initMoodTags();
+
+  // Check for edit mode
+  var editId = new URLSearchParams(window.location.search).get('edit');
+  if (editId) {
+    loadConfigForEdit(editId);
+  }
 });
+
+async function loadConfigForEdit(configId) {
+  try {
+    var res = await API_CONFIG.get(API_CONFIG.buildUrl('/aiStory/configs/' + configId));
+    if (!res.success || !res.data) return;
+    var cfg = res.data;
+    document.getElementById('storyTitle').value = cfg.title || '';
+    document.getElementById('worldSetting').value = cfg.world_setting || '';
+    document.getElementById('startPrompt').value = cfg.start_prompt || '';
+    document.getElementById('storyOutline').value = cfg.outline || '';
+    if (cfg.style) {
+      if (cfg.style.narrative) document.getElementById('narrative').value = cfg.style.narrative;
+      if (cfg.style.tone) {
+        document.querySelectorAll('#toneGrid .style-option').forEach(function(o) {
+          o.classList.toggle('selected', o.dataset.tone === cfg.style.tone);
+        });
+      }
+      if (cfg.style.length) document.getElementById('lengthControl').value = cfg.style.length;
+    }
+    if (cfg.mood_tags && cfg.mood_tags.length > 0) {
+      document.querySelectorAll('#moodTags .tag').forEach(function(t) {
+        t.classList.toggle('opacity-40', cfg.mood_tags.indexOf(t.dataset.mood) === -1);
+      });
+    }
+    if (cfg.characters_config && cfg.characters_config.length > 0) {
+      characters = cfg.characters_config.map(function(c, i) {
+        return { id: Date.now() + i, name: c.name || '', personality_tags: c.personality_tags || c.personalityTags || [], description: c.description || '', relationships: c.relationships || {} };
+      });
+      renderCharacters();
+    }
+    if (cfg.category_id) {
+      // Wait for categories to load, then set value
+      setTimeout(function() {
+        document.getElementById('storyCategory').value = cfg.category_id;
+      }, 500);
+    }
+    // Store config ID for update mode
+    window._editingConfigId = configId;
+    // Update step 5 button text and handler
+    document.getElementById('createBtn').innerHTML = '<i class="fas fa-save mr-1"></i> 保存修改';
+    document.getElementById('createBtn').onclick = updateAIStory;
+  } catch(e) {
+    console.error('Load config for edit failed:', e);
+  }
+}
+
+async function updateAIStory() {
+  if (!window._editingConfigId) return;
+  var title = document.getElementById('storyTitle').value.trim();
+  var catEl = document.getElementById('storyCategory');
+  var category_id = catEl.value ? parseInt(catEl.value) : null;
+  var worldSetting = document.getElementById('worldSetting').value.trim();
+  var startPrompt = document.getElementById('startPrompt').value.trim();
+  var outline = document.getElementById('storyOutline').value.trim();
+  var narrative = document.getElementById('narrative').value;
+  var toneEl = document.querySelector('#toneGrid .style-option.selected');
+  var tone = toneEl ? toneEl.dataset.tone : '';
+  var length = document.getElementById('lengthControl').value;
+  var activeMoods = Array.from(document.querySelectorAll('#moodTags .tag:not(.opacity-40)')).map(function(t) { return t.dataset.mood; });
+
+  var payload = {
+    title: title,
+    category_id: category_id,
+    worldSetting: worldSetting,
+    startPrompt: startPrompt,
+    outline: outline,
+    moodTags: activeMoods,
+    characters: characters.filter(function(c) { return c.name.trim(); }),
+    style: { narrative: narrative, tone: tone, length: length }
+  };
+
+  document.getElementById('loadingOverlay').classList.add('active');
+  document.getElementById('createBtn').disabled = true;
+
+  try {
+    var res = await API_CONFIG.put(API_CONFIG.buildUrl('/aiStory/config/' + window._editingConfigId), payload);
+    if (res.success) {
+      document.getElementById('loadingSub').textContent = '配置已更新！';
+      setTimeout(function() {
+        clearWorkshopState();
+        window.location.href = 'my_stories.html?tab=ai-configs';
+      }, 500);
+    }
+  } catch(e) {
+    showError('更新失败: ' + (e.message || ''));
+    document.getElementById('loadingOverlay').classList.remove('active');
+    document.getElementById('createBtn').disabled = false;
+  }
+}
 
 // Categories
 async function loadCategories() {
@@ -194,7 +341,6 @@ function showError(msg) {
   var t = document.getElementById('errorToast');
   if (t) { t.textContent = msg; t.style.display = 'block'; setTimeout(function() { t.style.display = 'none'; }, 5000); }
   console.error('[AI Workshop]', msg);
-  alert(msg);
 }
 
 // Mood tags
@@ -235,14 +381,38 @@ function renderCharacters() {
   var html = '';
   for (var j = 0; j < characters.length; j++) {
     var c = characters[j];
-    html += '<div class="character-card">';
+    html += '<div class="character-card" data-char-id="' + c.id + '">';
     html += '<span class="char-remove" onclick="removeCharacter(' + c.id + ')"><i class="fas fa-times"></i></span>';
-    html += '<input class="input-field mb-2" placeholder="角色名" value="' + c.name + '" onchange="updateChar(' + c.id + ','name',this.value)" style="max-width:300px">';
-    html += '<input class="input-field mb-2" placeholder="性格标签" value="' + (c.personality_tags || []).join(',') + '" onchange="updateChar(' + c.id + ','personality_tags',this.value.split(',').map(function(s){return s.trim()}).filter(Boolean))">';
-    html += '<textarea class="input-field" placeholder="角色描述" onchange="updateChar(' + c.id + ','description',this.value)">' + (c.description || '') + '</textarea>';
+    html += '<input class="input-field mb-2 char-name" placeholder="角色名" value="' + c.name + '" data-char-id="' + c.id + '" style="max-width:300px">';
+    html += '<input class="input-field mb-2 char-tags" placeholder="性格标签（逗号分隔）" value="' + (c.personality_tags || []).join(',') + '" data-char-id="' + c.id + '">';
+    html += '<textarea class="input-field char-desc" placeholder="角色描述" data-char-id="' + c.id + '">' + (c.description || '') + '</textarea>';
     html += '</div>';
   }
   container.innerHTML = html;
+
+  // Bind event listeners for character card inputs
+  var nameInputs = container.querySelectorAll('.char-name');
+  for (var i = 0; i < nameInputs.length; i++) {
+    nameInputs[i].addEventListener('change', function() {
+      var cid = parseInt(this.getAttribute('data-char-id'));
+      updateChar(cid, 'name', this.value);
+    });
+  }
+  var tagInputs = container.querySelectorAll('.char-tags');
+  for (var i = 0; i < tagInputs.length; i++) {
+    tagInputs[i].addEventListener('change', function() {
+      var cid = parseInt(this.getAttribute('data-char-id'));
+      updateChar(cid, 'personality_tags', this.value.split(',').map(function(s){return s.trim()}).filter(Boolean));
+    });
+  }
+  var descTextareas = container.querySelectorAll('.char-desc');
+  for (var i = 0; i < descTextareas.length; i++) {
+    descTextareas[i].addEventListener('change', function() {
+      var cid = parseInt(this.getAttribute('data-char-id'));
+      updateChar(cid, 'description', this.value);
+    });
+  }
+
   if (characters.length === 0) addCharacter();
 }
 
@@ -253,8 +423,8 @@ function updateChar(id, key, val) {
 }
 
 // Navigation
-function prevStep() { if (currentStep > 1) { currentStep--; renderStep(); } }
-function nextStep() { if (currentStep < 5) { if (!validateStep()) return; currentStep++; renderStep(); } }
+function prevStep() { saveWorkshopState(); if (currentStep > 1) { currentStep--; renderStep(); } }
+function nextStep() { saveWorkshopState(); if (currentStep < 5) { if (!validateStep()) return; currentStep++; renderStep(); } }
 
 function validateStep() {
   if (currentStep === 1) {
@@ -318,25 +488,28 @@ async function createAIStory() {
   var length = document.getElementById('lengthControl').value;
   var activeMoods = Array.from(document.querySelectorAll('#moodTags .tag:not(.opacity-40)')).map(function(t) { return t.dataset.mood; });
 
+  var charactersData = characters.filter(function(c) { return c.name.trim(); });
   var payload = {
     title: title,
     category_id: category_id,
     worldSetting: worldSetting,
     startPrompt: startPrompt,
     outline: outline,
-    characters: characters.filter(function(c) { return c.name.trim(); }),
-    style: { narrative: narrative, tone: tone, length: length, tags: activeMoods }
+    moodTags: activeMoods,
+    characters: charactersData,
+    style: { narrative: narrative, tone: tone, length: length }
   };
 
+  document.getElementById('loadingSub').textContent = '正在保存配置...';
   document.getElementById('loadingOverlay').classList.add('active');
   document.getElementById('createBtn').disabled = true;
 
   try {
-    var res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/story'), payload);
+    var res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/config'), payload);
     if (res.success) {
-      document.getElementById('loadingSub').textContent = '生成完成！正在跳转...';
+      document.getElementById('loadingSub').textContent = '配置已保存！正在跳转...';
       setTimeout(function() {
-        window.location.href = 'ai-reader.html?storyId=' + res.data.storyId;
+        clearWorkshopState(); window.location.href = 'my_stories.html?tab=ai-configs';
       }, 800);
     }
   } catch(e) {
@@ -346,6 +519,66 @@ async function createAIStory() {
   }
 }
 
+
+// ── Save / restore workshop state ──
+function saveWorkshopState() {
+  var state = {
+    currentStep: currentStep,
+    title: document.getElementById('storyTitle').value,
+    category: document.getElementById('storyCategory').value,
+    startPrompt: document.getElementById('startPrompt').value,
+    worldSetting: document.getElementById('worldSetting').value,
+    activeMoods: Array.from(document.querySelectorAll('#moodTags .tag:not(.opacity-40)')).map(function(t) { return t.dataset.mood; }),
+    storyOutline: document.getElementById('storyOutline').value,
+    narrative: document.getElementById('narrative').value,
+    tone: (function() { var el = document.querySelector('#toneGrid .style-option.selected'); return el ? el.dataset.tone : '自然流畅'; })(),
+    lengthControl: document.getElementById('lengthControl').value,
+    characters: characters.map(function(c) { return { id: c.id, name: c.name, personality_tags: c.personality_tags, description: c.description, relationships: c.relationships }; })
+  };
+  try { localStorage.setItem('ai_workshop_draft', JSON.stringify(state)); } catch(e) {}
+}
+
+function restoreWorkshopState() {
+  try {
+    var raw = localStorage.getItem('ai_workshop_draft');
+    if (!raw) return;
+    var state = JSON.parse(raw);
+    if (state.title) document.getElementById('storyTitle').value = state.title;
+    if (state.startPrompt) document.getElementById('startPrompt').value = state.startPrompt;
+    if (state.worldSetting) document.getElementById('worldSetting').value = state.worldSetting;
+    if (state.storyOutline) document.getElementById('storyOutline').value = state.storyOutline;
+    if (state.narrative) document.getElementById('narrative').value = state.narrative;
+    if (state.lengthControl) document.getElementById('lengthControl').value = state.lengthControl;
+    if (state.category) document.getElementById('storyCategory').value = state.category;
+    // Restore characters
+    if (state.characters && state.characters.length > 0) {
+      characters = state.characters;
+      renderCharacters();
+    }
+    // Restore tone
+    if (state.tone) {
+      document.querySelectorAll('#toneGrid .style-option').forEach(function(o) {
+        o.classList.toggle('selected', o.dataset.tone === state.tone);
+      });
+    }
+    // Restore mood tags
+    if (state.activeMoods) {
+      document.querySelectorAll('#moodTags .tag').forEach(function(t) {
+        t.classList.toggle('opacity-40', state.activeMoods.indexOf(t.dataset.mood) === -1);
+      });
+    }
+    // Restore step
+    if (state.currentStep && state.currentStep > 1) {
+      currentStep = state.currentStep;
+      renderStep();
+    }
+    console.log('[AI Workshop] Draft restored from step ' + (state.currentStep || 1));
+  } catch(e) { /* ignore corrupt data */ }
+}
+
+function clearWorkshopState() {
+  try { localStorage.removeItem('ai_workshop_draft'); } catch(e) {}
+}
 // Init
 renderCharacters();
 </script>
