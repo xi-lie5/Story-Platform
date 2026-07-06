@@ -138,6 +138,15 @@
                 </a>
             </div>
 
+            <!-- Tab Navigation -->
+            <div id="storyTabs" style="display:flex;gap:0.5rem;margin-bottom:1.5rem;flex-wrap:wrap;border-bottom:1px solid rgba(0,0,0,0.06);padding-bottom:0.75rem">
+              <button class="story-tab active" data-tab="manual" style="padding:0.5rem 1.25rem;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:rgba(99,102,241,0.1);color:#6366f1;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s">手动创作</button>
+              <button class="story-tab" data-tab="ai-adventures" style="padding:0.5rem 1.25rem;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:rgba(0,0,0,0.02);color:#64748b;cursor:pointer;font-size:0.9rem;transition:all 0.2s">我的AI冒险</button>
+              <button class="story-tab" data-tab="ai-configs" style="padding:0.5rem 1.25rem;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:rgba(0,0,0,0.02);color:#64748b;cursor:pointer;font-size:0.9rem;transition:all 0.2s">我的AI规则书</button>
+            </div>
+
+            <div id="tab-manual" class="tab-panel">
+
             <!-- 筛选和搜索区域 -->
             <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
                 <div class="flex flex-col md:flex-row gap-4 mb-4">
@@ -227,6 +236,14 @@
             <div id="paginationContainer" class="flex justify-center items-center space-x-2 mt-8">
                 <!-- 分页按钮将通过JavaScript动态生成 -->
             </div>
+            </div><!-- end tab-manual -->
+
+            <div id="tab-ai-adventures" class="tab-panel" style="display:none">
+              <div style="text-align:center;padding:2rem;color:#64748b">加载中...</div>
+            </div>
+            <div id="tab-ai-configs" class="tab-panel" style="display:none">
+              <div style="text-align:center;padding:2rem;color:#64748b">加载中...</div>
+            </div>
         </div>
     </section>
 
@@ -240,6 +257,7 @@
     </footer>
 
     <script src="assets/js/auth.js"></script>
+    <script src="assets/js/api-config.js"></script>
     <script>
         const mobileMenuButton = document.getElementById('mobile-menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
@@ -331,6 +349,17 @@
                 if (loadingState) loadingState.classList.add('hidden');
                 if (notLoggedInState) notLoggedInState.classList.remove('hidden');
             }
+
+            // Initialize tab switching
+            var urlParams = new URLSearchParams(window.location.search);
+            var activeTab = urlParams.get('tab') || 'manual';
+            switchTab(activeTab);
+
+            document.querySelectorAll('.story-tab').forEach(function(btn) {
+              btn.addEventListener('click', function() {
+                switchTab(this.getAttribute('data-tab'));
+              });
+            });
         }
 
         // 更新认证UI显示
@@ -1557,6 +1586,125 @@
                 }
             });
         }
+
+        // ═══════════════════════════════════════════
+        //  Tab Switching & AI Data Loading
+        // ═══════════════════════════════════════════
+
+        function switchTab(tabName) {
+          // Update button styles
+          document.querySelectorAll('.story-tab').forEach(function(btn) {
+            var isActive = btn.getAttribute('data-tab') === tabName;
+            btn.classList.toggle('active', isActive);
+            btn.style.background = isActive ? 'rgba(99,102,241,0.1)' : 'rgba(0,0,0,0.02)';
+            btn.style.color = isActive ? '#6366f1' : '#64748b';
+            btn.style.borderColor = isActive ? 'rgba(99,102,241,0.3)' : 'rgba(0,0,0,0.06)';
+          });
+          // Show/hide panels
+          document.querySelectorAll('.tab-panel').forEach(function(panel) { panel.style.display = 'none'; });
+          var target = document.getElementById('tab-' + tabName);
+          if (target) target.style.display = 'block';
+          // Load data for AI tabs
+          if (tabName === 'ai-adventures') loadAiAdventures();
+          if (tabName === 'ai-configs') loadAiConfigs();
+        }
+
+        // ── AI Adventures (Sessions) ──
+        async function loadAiAdventures() {
+          var container = document.getElementById('tab-ai-adventures');
+          if (!container) return;
+          container.innerHTML = '<div style="text-align:center;padding:2rem;color:#64748b"><i class="fa fa-spinner fa-spin" style="font-size:1.5rem;display:block;margin-bottom:0.75rem;opacity:0.3"></i>加载中...</div>';
+          try {
+            var res = await API_CONFIG.get(API_CONFIG.buildUrl('/aiStory/sessions'));
+            var sessions = res.data || [];
+            if (sessions.length === 0) {
+              container.innerHTML = '<div style="text-align:center;padding:3rem;color:#64748b"><i class="fa fa-book-open" style="font-size:2rem;display:block;margin-bottom:0.75rem;opacity:0.3"></i>还没有 AI 冒险记录<br><a href="ai-stories.html" style="display:inline-block;margin-top:1rem;color:#6366f1;text-decoration:none;font-weight:600">去 AI 广场探索</a></div>';
+              return;
+            }
+            var html = '';
+            for (var i = 0; i < sessions.length; i++) {
+              var s = sessions[i];
+              html += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:1.25rem;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem">';
+              html += '<div style="flex:1;min-width:200px"><div style="font-weight:600;color:#1e293b;margin-bottom:0.25rem">' + escapeHtml(s.story_title || '未命名故事') + '</div>';
+              html += '<div style="font-size:0.78rem;color:#64748b">探索了 ' + (s.total_nodes || 1) + ' 个节点 | 更新于 ' + new Date(s.updated_at).toLocaleDateString() + '</div></div>';
+              html += '<div style="display:flex;gap:0.5rem">';
+              html += '<a href="ai-story-reader.html?storyId=' + s.story_id + '" style="padding:0.4rem 1rem;border-radius:8px;background:rgba(99,102,241,0.1);color:#6366f1;text-decoration:none;font-size:0.85rem;font-weight:600">继续冒险</a>';
+              html += '<button onclick="deleteAdventure(' + s.id + ')" style="padding:0.4rem 1rem;border-radius:8px;border:1px solid rgba(239,68,68,0.2);background:transparent;color:#ef4444;cursor:pointer;font-size:0.85rem"><i class="fa fa-trash"></i></button>';
+              html += '</div></div>';
+            }
+            container.innerHTML = html;
+          } catch(e) {
+            container.innerHTML = '<div style="text-align:center;padding:2rem;color:#ef4444">加载失败: ' + escapeHtml(e.message) + '<br><button onclick="loadAiAdventures()" style="margin-top:0.75rem;padding:0.4rem 1rem;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#1e293b;cursor:pointer">重试</button></div>';
+          }
+        }
+
+        async function deleteAdventure(id) {
+          if (!confirm('确定删除这个冒险记录吗？')) return;
+          try {
+            await API_CONFIG.delete(API_CONFIG.buildUrl('/aiStory/sessions/' + id));
+            loadAiAdventures();
+          } catch(e) { alert('删除失败: ' + e.message); }
+        }
+
+        // ── AI Configs (Rulebooks) ──
+        async function loadAiConfigs() {
+          var container = document.getElementById('tab-ai-configs');
+          if (!container) return;
+          container.innerHTML = '<div style="text-align:center;padding:2rem;color:#64748b"><i class="fa fa-spinner fa-spin" style="font-size:1.5rem;display:block;margin-bottom:0.75rem;opacity:0.3"></i>加载中...</div>';
+          try {
+            var res = await API_CONFIG.get(API_CONFIG.buildUrl('/aiStory/configs/my'));
+            var data = res.data;
+            var configs = data && data.stories ? data.stories : [];
+            if (configs.length === 0) {
+              container.innerHTML = '<div style="text-align:center;padding:3rem;color:#64748b"><i class="fa fa-magic" style="font-size:2rem;display:block;margin-bottom:0.75rem;opacity:0.3"></i>还没有 AI 故事规则书<br><a href="ai-workshop.html" style="display:inline-block;margin-top:1rem;color:#6366f1;text-decoration:none;font-weight:600">去工坊创建</a></div>';
+              return;
+            }
+            var html = '';
+            for (var i = 0; i < configs.length; i++) {
+              var c = configs[i];
+              var statusLabel = c.status === 'published' ? '已发布' : c.status === 'unpublished' ? '已下架' : '草稿';
+              var statusColor = c.status === 'published' ? '#22c55e' : c.status === 'unpublished' ? '#f59e0b' : '#64748b';
+              html += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:1.25rem;margin-bottom:0.75rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem">';
+              html += '<div style="flex:1;min-width:200px"><div style="font-weight:600;color:#1e293b;margin-bottom:0.25rem">' + escapeHtml(c.title) + '</div>';
+              html += '<div style="font-size:0.78rem;color:#64748b">' + (c.total_sessions || 0) + ' 次冒险 | <span style="color:' + statusColor + '">' + statusLabel + '</span> | 创建于 ' + new Date(c.created_at).toLocaleDateString() + '</div></div>';
+              html += '<div style="display:flex;gap:0.4rem;flex-wrap:wrap">';
+              html += '<a href="ai-workshop.html?edit=' + c.id + '" style="padding:0.4rem 0.8rem;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#64748b;text-decoration:none;font-size:0.8rem">编辑</a>';
+              if (c.status === 'published') {
+                html += '<button onclick="togglePublish(\'' + c.id + '\', \'unpublish\')" style="padding:0.4rem 0.8rem;border-radius:8px;border:1px solid rgba(245,158,11,0.3);background:rgba(245,158,11,0.1);color:#f59e0b;cursor:pointer;font-size:0.8rem">下架</button>';
+              } else {
+                html += '<button onclick="togglePublish(\'' + c.id + '\', \'publish\')" style="padding:0.4rem 0.8rem;border-radius:8px;border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.1);color:#22c55e;cursor:pointer;font-size:0.8rem">发布</button>';
+              }
+              html += '<button onclick="deleteConfig(\'' + c.id + '\')" style="padding:0.4rem 0.8rem;border-radius:8px;border:1px solid rgba(239,68,68,0.2);background:transparent;color:#ef4444;cursor:pointer;font-size:0.8rem"><i class="fa fa-trash"></i></button>';
+              html += '</div></div>';
+            }
+            container.innerHTML = html;
+          } catch(e) {
+            container.innerHTML = '<div style="text-align:center;padding:2rem;color:#ef4444">加载失败: ' + escapeHtml(e.message) + '<br><button onclick="loadAiConfigs()" style="margin-top:0.75rem;padding:0.4rem 1rem;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#1e293b;cursor:pointer">重试</button></div>';
+          }
+        }
+
+        async function togglePublish(id, action) {
+          try {
+            var res = await API_CONFIG.patch(API_CONFIG.buildUrl('/aiStory/configs/' + id + '/publish'), { action: action });
+            if (res.success) { loadAiConfigs(); }
+          } catch(e) { alert('操作失败: ' + e.message); }
+        }
+
+        async function deleteConfig(id) {
+          if (!confirm('确定删除这个规则书吗？所有关联的冒险记录也会被删除。')) return;
+          try {
+            await API_CONFIG.delete(API_CONFIG.buildUrl('/aiStory/configs/' + id));
+            loadAiConfigs();
+          } catch(e) { alert('删除失败: ' + e.message); }
+        }
+
+        // Ensure new functions are available globally
+        window.switchTab = switchTab;
+        window.deleteAdventure = deleteAdventure;
+        window.loadAiAdventures = loadAiAdventures;
+        window.togglePublish = togglePublish;
+        window.deleteConfig = deleteConfig;
+        window.loadAiConfigs = loadAiConfigs;
 
     </script>
 </body>

@@ -68,6 +68,15 @@ const API_CONFIG = {
       body: JSON.stringify(data)
     });
   },
+
+  // PATCH请求
+  patch(url, data = {}, options = {}) {
+    return this.request(url, {
+      ...options,
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    });
+  },
   
   // DELETE请求
   delete(url, options = {}) {
