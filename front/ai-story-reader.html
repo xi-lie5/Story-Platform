@@ -1,0 +1,369 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 互动故事 - StoryForge</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<script src="assets/js/api-config.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/navbar.js"></script>
+<style>
+:root { --bg: #0a0a14; --accent: #818cf8; --surface: rgba(255,255,255,0.04); }
+* { box-sizing: border-box; }
+body { background: var(--bg); min-height: 100vh; color: #d1d5db; font-family: Georgia, "Noto Serif SC", serif; margin: 0; padding: 0; }
+/* Nav */
+.nav { position: sticky; top: 0; z-index: 50; background: rgba(10,10,20,0.95); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0.75rem 1.25rem; display: flex; align-items: center; justify-content: space-between; }
+.nav-brand { display: flex; align-items: center; gap: 0.5rem; color: #e2e8f0; text-decoration: none; font-weight: 700; font-size: 1.1rem; font-family: system-ui, sans-serif; }
+.nav-brand i { color: var(--accent); }
+.nav-links { display: flex; gap: 1.25rem; align-items: center; font-family: system-ui, sans-serif; }
+.nav-links a { color: #94a3b8; text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+.nav-links a:hover, .nav-links a.active { color: #e2e8f0; }
+/* Reader */
+.container { max-width: 720px; margin: 0 auto; padding: 1.5rem 1rem 10rem; }
+.story-header { text-align: center; margin-bottom: 1rem; }
+.badge { display: inline-block; padding: 0.2rem 0.7rem; border-radius: 6px; font-size: 0.7rem; background: rgba(99,102,241,0.2); color: #a5b4fc; font-family: system-ui, sans-serif; text-transform: uppercase; letter-spacing: 0.1em; }
+.title { font-size: 1.4rem; font-weight: 700; color: #e2e8f0; margin: 0.75rem 0 0.25rem; }
+.subtitle { font-size: 0.8rem; color: #64748b; font-family: system-ui, sans-serif; }
+.toolbar { display: flex; gap: 0.5rem; justify-content: center; margin: 1rem 0; flex-wrap: wrap; }
+.toolbar button { padding: 0.4rem 0.9rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: var(--surface); color: #94a3b8; cursor: pointer; font-size: 0.8rem; font-family: system-ui, sans-serif; transition: all 0.15s; }
+.toolbar button:hover { color: #e2e8f0; border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); }
+/* Content */
+.story-content { font-size: 1.1rem; line-height: 2; white-space: pre-wrap; }
+.chapter-title { font-size: 1.25rem; font-weight: 700; color: #e2e8f0; margin-bottom: 1.5rem; text-align: center; }
+/* Choices */
+.choices-panel { position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(10,10,20,0.97) 20%, rgba(10,10,20,1)); padding: 1.5rem 1.25rem 2rem; z-index: 10; }
+.choices-panel::before { content: ""; display: block; height: 1px; background: linear-gradient(90deg, transparent, rgba(129,140,248,0.3), transparent); margin-bottom: 1rem; }
+.choice-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--accent); margin-bottom: 0.5rem; font-family: system-ui, sans-serif; }
+.choice-btn { display: block; width: 100%; text-align: left; padding: 0.85rem 1.1rem; margin-bottom: 0.5rem; border-radius: 10px; border: 1px solid rgba(129,140,248,0.15); background: rgba(129,140,248,0.05); color: #d1d5db; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; font-family: system-ui, sans-serif; }
+.choice-btn:hover { border-color: var(--accent); background: rgba(129,140,248,0.1); }
+.choice-btn:active { transform: scale(0.98); }
+/* Loading */
+.loading { text-align: center; padding: 3rem 1rem; }
+.dots { display: inline-flex; gap: 0.3rem; margin-top: 0.75rem; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(129,140,248,0.5); animation: pulse 1.2s infinite; }
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse { 0%,100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.3); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn 0.5s ease-out; }
+.error { color: #f87171; text-align: center; padding: 2rem; font-family: system-ui, sans-serif; }
+.error button { margin-top: 1rem; padding: 0.5rem 1.25rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: var(--surface); color: #e2e8f0; cursor: pointer; font-family: system-ui, sans-serif; }
+/* Skip hint */
+.skip-hint { text-align: center; font-size: 0.75rem; color: #475569; margin-top: 0.5rem; font-family: system-ui, sans-serif; opacity: 0.7; }
+#storyText { cursor: pointer; }
+#storyText:hover .skip-hint { opacity: 1; }
+</style>
+</head>
+<body>
+
+<nav style="background: rgba(15,15,35,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.08); box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+  <div class="container mx-auto px-4 py-4" style="max-width:1100px">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+          <i class="fas fa-book text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-xl md:text-2xl font-bold text-white">StoryForge</h1>
+          <p class="text-xs text-slate-400 hidden md:block">AI故事创作平台</p>
+        </div>
+      </div>
+      <div class="hidden lg:flex items-center space-x-8" id="main-nav-desktop">
+        <a href="index.html" class="text-slate-300 hover:text-white font-medium transition-colors">首页</a>
+        <a href="browse.html" class="text-slate-300 hover:text-white font-medium transition-colors">故事阅览</a>
+        <a href="ai-workshop.html" class="text-slate-300 hover:text-white font-medium transition-colors">AI 工坊</a>
+        <a href="ai-stories.html" class="text-slate-300 hover:text-white font-medium transition-colors">AI 广场</a>
+        <a href="my_stories.html" class="text-slate-300 hover:text-white font-medium transition-colors">我的作品</a>
+        <a href="profile.html" class="text-slate-300 hover:text-white font-medium transition-colors">个人中心</a>
+      </div>
+      <div id="auth-area-desktop" class="flex items-center space-x-3"></div>
+      <button id="mobile-menu-button" class="lg:hidden p-2 rounded-lg hover:bg-white/10 transition-colors">
+        <i class="fas fa-bars text-slate-300 text-xl"></i>
+      </button>
+    </div>
+  </div>
+  <div class="lg:hidden hidden bg-black/95 backdrop-blur-md border-t border-white/10" id="mobile-menu">
+    <div class="container mx-auto px-4 py-4 space-y-3">
+      <a href="index.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">首页</a>
+      <a href="browse.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">故事阅览</a>
+      <a href="ai-workshop.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">AI 工坊</a>
+      <a href="ai-stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">AI 广场</a>
+      <a href="my_stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">我的作品</a>
+      <a href="profile.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">个人中心</a>
+      <div class="flex flex-col space-y-3 pt-3 border-t border-white/10">
+        <div id="auth-area-mobile"></div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="container" id="app">
+  <div class="story-header">
+    <span class="badge"><i class="fas fa-robot" style="margin-right:4px"></i>AI Interactive Story</span>
+    <h1 class="title" id="storyTitle">Loading...</h1>
+    <p class="subtitle" id="progressText"></p>
+  </div>
+
+  <div class="toolbar" id="toolbar" style="display:none">
+    <button onclick="goBack()"><i class="fas fa-undo" style="margin-right:4px"></i>返回</button>
+    <button onclick="regenerateCurrent()"><i class="fas fa-redo" style="margin-right:4px"></i>重试</button>
+    <button onclick="window.location.href='my_stories.html?tab=ai-adventures'"><i class="fas fa-sign-out-alt" style="margin-right:4px"></i>退出阅读</button>
+  </div>
+
+  <div id="contentArea">
+    <div class="loading"><p style="color:#94a3b8;font-family:system-ui,sans-serif;font-size:0.9rem">Loading story...</p><div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>
+  </div>
+</div>
+
+<div class="choices-panel" id="choicesPanel" style="display:none">
+  <div class="choice-label">Make your choice</div>
+  <div id="choicesList"></div>
+  <div style="margin-top:0.75rem;border-top:1px solid rgba(255,255,255,0.06);padding-top:0.75rem;font-family:system-ui,sans-serif">
+    <div style="display:flex;gap:0.5rem">
+      <input type="text" id="freeInput" placeholder="Or type your own action..." style="flex:1;padding:0.6rem 0.8rem;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#d1d5db;font-size:0.85rem;outline:none;font-family:system-ui,sans-serif" onkeydown="if(event.key==='Enter')submitFreeChoice()">
+      <button onclick="submitFreeChoice()" style="padding:0.6rem 1rem;border-radius:8px;border:1px solid rgba(129,140,248,0.3);background:rgba(129,140,248,0.1);color:#a5b4fc;cursor:pointer;font-size:0.85rem;font-family:system-ui,sans-serif;white-space:nowrap"><i class="fas fa-arrow-right"></i></button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ──────────── AI Story Reader ────────────
+var storyId = null;
+var currentNodeId = null;
+var currentContent = '';
+var currentNodeTitle = '';
+var history = [];
+var typewriterTimer = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+  AuthUI.init();
+  if (!AuthUI.getAuthState()) {
+    AuthUI.goToLogin();
+    return;
+  }
+  if (typeof updateNavigationByRole === 'function') {
+    setTimeout(updateNavigationByRole, 300);
+  }
+  var mobileBtn = document.getElementById('mobile-menu-button');
+  var mobileMenu = document.getElementById('mobile-menu');
+  if (mobileBtn && mobileMenu) {
+    mobileBtn.addEventListener('click', function() { mobileMenu.classList.toggle('hidden'); });
+  }
+
+  var params = new URLSearchParams(window.location.search);
+  storyId = params.get('storyId');
+  if (!storyId) {
+    document.getElementById('contentArea').innerHTML = '<div class="error">Missing story ID in URL</div>';
+    return;
+  }
+  loadStoryMeta();
+  loadSession();
+});
+
+// ── Load session ──
+async function loadSession() {
+  try {
+    var res = await API_CONFIG.get(API_CONFIG.buildUrl('/aiStory/story/' + storyId + '/session'));
+    if (!res.success || !res.data || !res.data.currentNode) {
+      document.getElementById('contentArea').innerHTML = '<div class="error">No story session found.<br><small>Create a story in AI Workshop first.</small></div>';
+      document.getElementById('storyTitle').textContent = 'No Story';
+      return;
+    }
+    var node = res.data.currentNode;
+    currentNodeId = node.id;
+    currentContent = node.content;
+    currentNodeTitle = node.title;
+    document.getElementById('storyTitle').textContent = currentNodeTitle;
+    document.getElementById('progressText').textContent = 'Explored ' + (res.data.session.totalNodes || 1) + ' nodes';
+    document.getElementById('toolbar').style.display = 'flex';
+    renderContent();
+  } catch(e) {
+    document.getElementById('contentArea').innerHTML = '<div class="error">Failed to load story.<br><small>' + escapeHtml(e.message) + '</small><br><button onclick="loadSession()">Retry</button></div>';
+    document.getElementById('storyTitle').textContent = 'Error';
+  }
+}
+
+async function loadStoryMeta() {
+  try {
+    var res = await API_CONFIG.get(API_CONFIG.buildUrl('/stories/' + storyId));
+    if (res.success && res.data) {
+      document.getElementById('storyTitle').textContent = res.data.title || 'AI 互动故事';
+    }
+  } catch(e) {
+    console.warn('Failed to load story meta:', e);
+  }
+}
+
+// ── Render content with typewriter ──
+function renderContent() {
+  document.getElementById('choicesPanel').style.display = 'none';
+  document.getElementById('contentArea').innerHTML = '';
+
+  var wrapper = document.createElement('div');
+  wrapper.className = 'fade-in';
+
+  var titleEl = document.createElement('div');
+  titleEl.className = 'chapter-title';
+  titleEl.textContent = currentNodeTitle;
+  wrapper.appendChild(titleEl);
+
+  var contentEl = document.createElement('div');
+  contentEl.className = 'story-content';
+  contentEl.id = 'storyText';
+  wrapper.appendChild(contentEl);
+
+  var hintEl = document.createElement('div');
+  hintEl.className = 'skip-hint';
+  hintEl.textContent = 'Tap anywhere to skip';
+  wrapper.appendChild(hintEl);
+
+  document.getElementById('contentArea').appendChild(wrapper);
+
+  // Typewriter
+  if (typewriterTimer) clearInterval(typewriterTimer);
+  var i = 0;
+  var speed = 8;
+  var textEl = document.getElementById('storyText');
+  typewriterTimer = setInterval(function() {
+    if (i < currentContent.length) {
+      textEl.textContent += currentContent.charAt(i);
+      i++;
+      if (i % 120 === 0) window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    } else {
+      clearInterval(typewriterTimer);
+      typewriterTimer = null;
+      document.querySelector('.skip-hint').style.display = 'none';
+      loadChoices();
+    }
+  }, speed);
+
+  // Click to skip
+  textEl.onclick = function() {
+    if (typewriterTimer) {
+      clearInterval(typewriterTimer);
+      typewriterTimer = null;
+      textEl.textContent = currentContent;
+      document.querySelector('.skip-hint').style.display = 'none';
+      loadChoices();
+    }
+  };
+}
+
+// ── Load choices ──
+async function loadChoices() {
+  if (!currentNodeId) return;
+  document.getElementById('choicesPanel').style.display = 'block';
+  document.getElementById('choicesList').innerHTML = '<div style="text-align:center;color:#64748b;padding:0.5rem;font-family:system-ui,sans-serif;font-size:0.85rem"><div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>Loading choices...</div>';
+  try {
+    var branchRes = await API_CONFIG.get(API_CONFIG.buildUrl('/branches/nodes/' + currentNodeId + '/branches/outgoing'));
+    var branches = branchRes.data || [];
+    if (branches.length > 0) {
+      renderChoices(branches.map(function(b) {
+        return { text: b.context || 'Continue', nodeId: b.target_node_id, hint: '' };
+      }));
+      return;
+    }
+  } catch(e) {
+    console.warn('Branch load failed:', e);
+  }
+  // No preset choices — show end-of-segment message but KEEP free input visible
+  document.getElementById('choicesList').innerHTML = '<div style="text-align:center;color:#64748b;padding:1rem;font-family:system-ui,sans-serif"><p style="margin-bottom:0.5rem;font-style:italic">这段故事暂告段落</p><p style="font-size:0.8rem;color:#475569">你可以输入自己的行动继续推进剧情，或返回前面的选择</p></div>';
+}
+
+// ── Render choices ──
+function renderChoices(choices) {
+  if (!choices || choices.length === 0) {
+    document.getElementById('choicesPanel').style.display = 'none';
+    return;
+  }
+  window._choices = choices;
+  var html = '';
+  for (var i = 0; i < choices.length; i++) {
+    var ch = choices[i];
+    html += '<button class="choice-btn fade-in" style="animation-delay:' + (i * 0.1) + 's" data-idx="' + i + '">' + escapeHtml(ch.text || '') + '</button>';
+  }
+  document.getElementById('choicesList').innerHTML = html;
+  // Set individual onclick on each button
+    var btns = document.getElementById('choicesList').querySelectorAll('.choice-btn');
+    for (var j = 0; j < btns.length; j++) {
+      (function(idx) {
+        btns[j].onclick = function() { selectChoice(window._choices[idx].text); };
+      })(j);
+    }
+}
+
+// ── Select choice ──
+async function selectChoice(choiceText) {
+  if (!currentNodeId) return;
+  history.push({ nodeId: currentNodeId, content: currentContent, title: currentNodeTitle });
+  document.getElementById('choicesPanel').style.display = 'none';
+  document.getElementById('contentArea').innerHTML = '<div class="loading fade-in"><p style="color:#94a3b8;font-family:system-ui,sans-serif;font-size:0.9rem">AI is crafting the next chapter...</p><div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>';
+  try {
+    var res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/story/' + storyId + '/generate'), {
+      nodeId: currentNodeId,
+      choice: choiceText
+    });
+    if (res.success) {
+      currentNodeId = res.data.nodeId;
+      currentContent = res.data.content;
+      currentNodeTitle = res.data.title;
+      document.getElementById('storyTitle').textContent = currentNodeTitle;
+      document.getElementById('progressText').textContent = 'Explored ' + (res.data.totalNodes || 1) + ' nodes';
+      renderContent();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  } catch(e) {
+    document.getElementById('contentArea').innerHTML = '<div class="error">Generation failed.<br><small>' + escapeHtml(e.message) + '</small><br><button onclick="renderContent()">Back</button></div>';
+  }
+}
+
+// ── Go back ──
+function goBack() {
+  if (history.length === 0) return;
+  var prev = history.pop();
+  currentNodeId = prev.nodeId;
+  currentContent = prev.content;
+  currentNodeTitle = prev.title;
+  document.getElementById('storyTitle').textContent = currentNodeTitle;
+  document.getElementById('choicesPanel').style.display = 'none';
+  renderContent();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Regenerate ──
+async function regenerateCurrent() {
+  if (!currentNodeId) return;
+  document.getElementById('choicesPanel').style.display = 'none';
+  document.getElementById('contentArea').innerHTML = '<div class="loading fade-in"><p style="color:#94a3b8;font-family:system-ui,sans-serif;font-size:0.9rem">Regenerating...</p><div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>';
+  try {
+    var res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/story/' + storyId + '/generate'), { nodeId: currentNodeId, choice: '(regenerate: continue the story)' });
+    if (res.success) {
+      currentContent = res.data.content;
+      currentNodeTitle = res.data.title;
+      renderContent();
+    }
+  } catch(e) {
+    document.getElementById('contentArea').innerHTML = '<div class="error">Regenerate failed.<br><small>' + escapeHtml(e.message) + '</small><br><button onclick="renderContent()">Back</button></div>';
+  }
+}
+
+function submitFreeChoice() {
+  var input = document.getElementById('freeInput');
+  if (!input) return;
+  var text = input.value.trim();
+  if (text) {
+    selectChoice(text);
+    input.value = '';
+  }
+}
+
+function escapeHtml(text) {
+  var d = document.createElement('div');
+  d.textContent = text;
+  return d.innerHTML;
+}
+</script>
+</body>
+</html>
