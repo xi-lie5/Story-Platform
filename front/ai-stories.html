@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 故事广场 - StoryForge</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="styles.css">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<script src="assets/js/api-config.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/navbar.js"></script>
+<style>
+body { background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d0d2b 100%); min-height: 100vh; color: #e2e8f0; font-family: system-ui, sans-serif; }
+.page-container { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem; }
+.page-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.25rem; }
+.page-subtitle { color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem; }
+.search-row { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.search-row input, .search-row select { padding: 0.6rem 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: #e2e8f0; font-size: 0.9rem; outline: none; }
+.search-row input:focus, .search-row select:focus { border-color: rgba(99,102,241,0.5); }
+.search-row input { flex: 1; min-width: 200px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
+.card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 1.5rem; transition: all 0.2s; cursor: pointer; display: flex; flex-direction: column; }
+.card:hover { border-color: rgba(129,140,248,0.35); background: rgba(129,140,248,0.06); transform: translateY(-2px); }
+.card-title { font-size: 1.1rem; font-weight: 700; color: #e2e8f0; margin-bottom: 0.35rem; }
+.card-author { font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem; }
+.card-author img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
+.card-desc { font-size: 0.85rem; color: #94a3b8; line-height: 1.5; flex: 1; margin-bottom: 0.75rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.card-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+.card-tag { padding: 0.15rem 0.5rem; border-radius: 5px; font-size: 0.7rem; background: rgba(99,102,241,0.15); color: #a5b4fc; }
+.card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.06); }
+.card-stats { font-size: 0.75rem; color: #64748b; display: flex; gap: 0.8rem; }
+.btn-start { padding: 0.5rem 1.25rem; border-radius: 8px; border: none; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; font-weight: 600; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
+.btn-start:hover { opacity: 0.9; transform: scale(1.02); }
+.btn-start:disabled { opacity: 0.5; cursor: not-allowed; }
+.pagination { display: flex; justify-content: center; gap: 0.5rem; margin-top: 2rem; }
+.pagination button { padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: #94a3b8; cursor: pointer; font-size: 0.85rem; }
+.pagination button:hover { color: #e2e8f0; border-color: rgba(255,255,255,0.25); }
+.pagination button.active { background: rgba(99,102,241,0.2); border-color: rgba(99,102,241,0.4); color: #a5b4fc; }
+.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+.empty { text-align: center; padding: 4rem 1rem; color: #64748b; }
+.empty i { font-size: 2.5rem; display: block; margin-bottom: 1rem; opacity: 0.3; }
+/* Modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; justify-content: center; align-items: center; padding: 1rem; }
+.modal-overlay.active { display: flex; }
+.modal-box { background: #1a1a3e; border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 2rem; max-width: 700px; width: 100%; max-height: 85vh; overflow-y: auto; position: relative; }
+.modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: #94a3b8; font-size: 1.3rem; cursor: pointer; }
+.modal-close:hover { color: #e2e8f0; }
+.modal-section { margin-bottom: 1.5rem; }
+.modal-section h3 { font-size: 0.85rem; font-weight: 700; color: #a5b4fc; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.modal-section p, .modal-section div { font-size: 0.9rem; color: #cbd5e1; line-height: 1.7; }
+.char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; }
+.char-item { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.75rem; }
+.char-name { font-weight: 600; color: #e2e8f0; font-size: 0.9rem; }
+.char-desc { font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem; }
+.loading { text-align: center; padding: 3rem; color: #64748b; }
+.toast { display: none; position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); background: #dc2626; color: #fff; padding: 0.75rem 1.5rem; border-radius: 10px; z-index: 200; font-size: 0.85rem; box-shadow: 0 4px 16px rgba(220,38,38,0.4); }
+</style>
+</head>
+<body>
+<!-- Navigation Bar — EXACT same structure as ai-workshop.html -->
+<nav style="background: rgba(15,15,35,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.08); box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+  <div class="container mx-auto px-4 py-4" style="max-width:1100px">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+          <i class="fas fa-book text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-xl md:text-2xl font-bold text-white">StoryForge</h1>
+          <p class="text-xs text-slate-400 hidden md:block">AI故事创作平台</p>
+        </div>
+      </div>
+      <div class="hidden lg:flex items-center space-x-8" id="main-nav-desktop">
+        <a href="index.html" class="text-slate-300 hover:text-white font-medium transition-colors">首页</a>
+        <a href="browse.html" class="text-slate-300 hover:text-white font-medium transition-colors">故事阅览</a>
+        <a href="ai-workshop.html" class="text-slate-300 hover:text-white font-medium transition-colors">AI 工坊</a>
+        <a href="ai-stories.html" class="text-indigo-400 font-medium transition-colors">AI 广场</a>
+        <a href="my_stories.html" class="text-slate-300 hover:text-white font-medium transition-colors">我的作品</a>
+        <a href="profile.html" class="text-slate-300 hover:text-white font-medium transition-colors">个人中心</a>
+      </div>
+      <div id="auth-area-desktop" class="flex items-center space-x-3"></div>
+      <button id="mobile-menu-button" class="lg:hidden p-2 rounded-lg hover:bg-white/10 transition-colors">
+        <i class="fas fa-bars text-slate-300 text-xl"></i>
+      </button>
+    </div>
+  </div>
+  <div class="lg:hidden hidden bg-black/95 backdrop-blur-md border-t border-white/10" id="mobile-menu">
+    <div class="container mx-auto px-4 py-4 space-y-3">
+      <a href="index.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">首页</a>
+      <a href="browse.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">故事阅览</a>
+      <a href="ai-workshop.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">AI 工坊</a>
+      <a href="ai-stories.html" class="block py-3 px-4 rounded-lg font-medium text-indigo-400 bg-indigo-500/10">AI 广场</a>
+      <a href="my_stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">我的作品</a>
+      <a href="profile.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">个人中心</a>
+      <div class="flex flex-col space-y-3 pt-3 border-t border-white/10">
+        <div id="auth-area-mobile"></div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="page-container">
+  <h1 class="page-title">AI 故事广场</h1>
+  <p class="page-subtitle">探索其他作者创作的 AI 故事设定，开启属于你自己的冒险</p>
+
+  <div class="search-row">
+    <input type="text" id="searchInput" placeholder="搜索故事标题或描述..." onkeydown="if(event.key==='Enter')doSearch()">
+    <select id="categoryFilter" onchange="doSearch()">
+      <option value="">全部分类</option>
+    </select>
+    <button class="btn-start" onclick="doSearch()" style="padding:0.6rem 1.5rem"><i class="fas fa-search mr-1"></i> 搜索</button>
+  </div>
+
+  <div class="grid" id="storyGrid">
+    <div class="loading"><i class="fas fa-spinner fa-spin" style="font-size:2rem;display:block;margin-bottom:1rem;opacity:0.3"></i>加载中...</div>
+  </div>
+
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-box" id="detailContent"></div>
+</div>
+
+<div class="toast" id="errorToast"></div>
+
+<script>
+var currentPage = 1;
+var totalPages = 1;
+var currentSearch = '';
+var currentCategory = '';
+
+document.addEventListener('DOMContentLoaded', function() {
+  AuthUI.init();
+  if (typeof updateNavigationByRole === 'function') {
+    setTimeout(updateNavigationByRole, 300);
+  }
+  var mobileBtn = document.getElementById('mobile-menu-button');
+  var mobileMenu = document.getElementById('mobile-menu');
+  if (mobileBtn && mobileMenu) {
+    mobileBtn.addEventListener('click', function() { mobileMenu.classList.toggle('hidden'); });
+  }
+  // Modal overlay click to close
+  document.getElementById('detailModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+  loadCategories();
+  loadStories();
+});
+
+async function loadCategories() {
+  var sel = document.getElementById('categoryFilter');
+  sel.innerHTML = '<option value="">全部分类</option>';
+  try {
+    var res = await API_CONFIG.get(API_CONFIG.buildUrl('/categories'));
+    var cats = res.data || [];
+    cats.forEach(function(c) {
+      var o = document.createElement('option');
+      o.value = c.id || c._id;
+      o.textContent = c.name;
+      sel.appendChild(o);
+    });
+  } catch(e) {
+    console.error('Categories load failed:', e);
+  }
+}
+
+async function loadStories() {
+  document.getElementById('storyGrid').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin" style="font-size:2rem;display:block;margin-bottom:1rem;opacity:0.3"></i>加载中...</div>';
+  try {
+    var params = '?page=' + currentPage + '&limit=12';
+    if (currentSearch) params += '&search=' + encodeURIComponent(currentSearch);
+    if (currentCategory) params += '&category=' + encodeURIComponent(currentCategory);
+    var res = await API_CONFIG.get(API_CONFIG.buildUrl('/aiStory/configs' + params));
+    var data = res.data;
+    var stories = data.stories || [];
+    totalPages = data.pagination ? data.pagination.pages : 1;
+
+    if (stories.length === 0) {
+      document.getElementById('storyGrid').innerHTML = '<div class="empty"><i class="fas fa-book-open"></i><p>还没有公开的 AI 故事</p><a href="ai-workshop.html" style="display:inline-block;margin-top:1rem" class="btn-start">去创建第一个</a></div>';
+      document.getElementById('pagination').innerHTML = '';
+      return;
+    }
+
+    var html = '';
+    for (var i = 0; i < stories.length; i++) {
+      var s = stories[i];
+      var moods = (s.mood_tags || []).map(function(t) {
+        return '<span class="card-tag">' + escHtml(t) + '</span>';
+      }).join('');
+      var charNames = (s.characters_config || []).map(function(c) { return c.name; }).filter(Boolean).join('、');
+      var desc = s.description || s.start_prompt || '';
+
+      html += '<div class="card" onclick="showDetail(\'' + s.id + '\')">';
+      html += '<div class="card-title">' + escHtml(s.title) + '</div>';
+      html += '<div class="card-author">';
+      html += '<img src="' + escHtml(getAvatar(s.author_avatar, s.author_name)) + '" alt="" onerror="this.src=\'assets/img/default-avatar.png\'">';
+      html += escHtml(s.author_name || '未知作者');
+      html += '</div>';
+      html += '<div class="card-desc">' + escHtml(desc.substring(0, 200)) + '</div>';
+      if (moods || charNames) {
+        html += '<div class="card-tags">' + moods + (charNames ? '<span class="card-tag"><i class="fas fa-users mr-1"></i>' + escHtml(charNames) + '</span>' : '') + '</div>';
+      }
+      html += '<div class="card-footer">';
+      html += '<div class="card-stats">';
+      html += '<span><i class="fas fa-eye"></i> ' + (s.view_count || 0) + '</span>';
+      html += '<span><i class="fas fa-play"></i> ' + (s.total_sessions || 0) + '</span>';
+      html += '</div>';
+      html += '<button class="btn-start" onclick="event.stopPropagation();startAdv(\'' + s.id + '\')"><i class="fas fa-play mr-1"></i> 开始冒险</button>';
+      html += '</div>';
+      html += '</div>';
+    }
+    document.getElementById('storyGrid').innerHTML = html;
+    renderPagination();
+  } catch(e) {
+    document.getElementById('storyGrid').innerHTML = '<div class="empty"><p style="color:#f87171">加载失败: ' + escHtml(e.message) + '</p><button onclick="loadStories()" class="btn-start" style="margin-top:1rem">重试</button></div>';
+  }
+}
+
+function renderPagination() {
+  if (totalPages <= 1) { document.getElementById('pagination').innerHTML = ''; return; }
+  var html = '';
+  html += '<button ' + (currentPage <= 1 ? 'disabled' : '') + ' onclick="goPage(' + (currentPage - 1) + ')"><i class="fas fa-chevron-left"></i></button>';
+  for (var p = 1; p <= totalPages; p++) {
+    html += '<button class="' + (p === currentPage ? 'active' : '') + '" onclick="goPage(' + p + ')">' + p + '</button>';
+  }
+  html += '<button ' + (currentPage >= totalPages ? 'disabled' : '') + ' onclick="goPage(' + (currentPage + 1) + ')"><i class="fas fa-chevron-right"></i></button>';
+  document.getElementById('pagination').innerHTML = html;
+}
+
+function goPage(page) {
+  if (page < 1 || page > totalPages) return;
+  currentPage = page;
+  loadStories();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function doSearch() {
+  currentSearch = document.getElementById('searchInput').value.trim();
+  currentCategory = document.getElementById('categoryFilter').value;
+  currentPage = 1;
+  loadStories();
+}
+
+async function showDetail(id) {
+  document.getElementById('detailModal').classList.add('active');
+  document.getElementById('detailContent').innerHTML = '<div class="loading" style="padding:3rem"><i class="fas fa-spinner fa-spin" style="display:block;font-size:2rem;margin-bottom:1rem;opacity:0.3"></i>加载详情...</div>';
+  try {
+    var res = await API_CONFIG.get(API_CONFIG.buildUrl('/aiStory/configs/' + id));
+    var cfg = res.data;
+    if (!cfg) { closeModal(); return; }
+
+    var moodsHtml = (cfg.mood_tags || []).map(function(t) { return '<span class="card-tag">' + escHtml(t) + '</span>'; }).join(' ');
+    var chars = cfg.characters_config || [];
+    var charsHtml = '';
+    for (var i = 0; i < chars.length; i++) {
+      var c = chars[i];
+      charsHtml += '<div class="char-item"><div class="char-name">' + escHtml(c.name) + '</div>';
+      charsHtml += '<div class="char-desc">' + escHtml((c.personality_tags || c.personalityTags || []).join('、') || c.description || '') + '</div></div>';
+    }
+    var style = cfg.style || {};
+
+    var html = '';
+    html += '<button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>';
+    html += '<h2 style="font-size:1.3rem;font-weight:700;margin-bottom:0.25rem">' + escHtml(cfg.title) + '</h2>';
+    html += '<p style="color:#94a3b8;font-size:0.85rem;margin-bottom:1.5rem">作者: ' + escHtml(cfg.author_name || '未知') + ' | ' + (cfg.total_sessions || 0) + ' 次冒险</p>';
+
+    html += '<div class="modal-section"><h3>世界观设定</h3><p>' + escHtml(cfg.world_setting || '').replace(/\n/g, '<br>') + '</p></div>';
+
+    if (chars.length > 0) {
+      html += '<div class="modal-section"><h3>角色设定 (' + chars.length + ')</h3><div class="char-grid">' + charsHtml + '</div></div>';
+    }
+
+    if (cfg.outline) {
+      html += '<div class="modal-section"><h3>故事大纲</h3><p>' + escHtml(cfg.outline).replace(/\n/g, '<br>') + '</p></div>';
+    }
+
+    html += '<div class="modal-section"><h3>风格</h3><p>';
+    html += '叙事视角: ' + escHtml(style.narrative || '第三人称') + '<br>';
+    html += '文风: ' + escHtml(style.tone || '自然流畅') + '<br>';
+    html += '篇幅: ' + escHtml(style.length || '800-1500字/段');
+    html += '</p></div>';
+
+    if (moodsHtml) {
+      html += '<div class="modal-section"><h3>氛围标签</h3><div class="card-tags">' + moodsHtml + '</div></div>';
+    }
+
+    html += '<div style="margin-top:1.5rem;text-align:center">';
+    html += '<button class="btn-start" id="modalStartBtn" onclick="startAdv(\'' + cfg.id + '\')" style="padding:0.85rem 2.5rem;font-size:1rem"><i class="fas fa-play mr-1"></i> 开始我的冒险</button>';
+    html += '</div>';
+
+    document.getElementById('detailContent').innerHTML = html;
+  } catch(e) {
+    document.getElementById('detailContent').innerHTML = '<div class="empty" style="padding:3rem"><p style="color:#f87171">加载详情失败: ' + escHtml(e.message) + '</p><button onclick="closeModal()" class="btn-start">关闭</button></div>';
+  }
+}
+
+function closeModal() {
+  document.getElementById('detailModal').classList.remove('active');
+}
+
+async function startAdv(configId) {
+  // Disable all start buttons
+  var btns = document.querySelectorAll('.btn-start');
+  for (var i = 0; i < btns.length; i++) { btns[i].disabled = true; }
+  try {
+    var res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/configs/' + configId + '/start'), {});
+    if (res.success && res.data) {
+      window.location.href = 'ai-story-reader.html?storyId=' + res.data.storyId;
+    }
+  } catch(e) {
+    showToast('开始冒险失败: ' + (e.message || '未知错误'));
+    for (var i = 0; i < btns.length; i++) { btns[i].disabled = false; }
+  }
+}
+
+function getAvatar(avatar, name) {
+  if (!avatar) return 'https://ui-avatars.com/api/?background=6366f1&color=fff&name=' + encodeURIComponent(name || 'U');
+  if (/^https?:\/\//i.test(avatar)) return avatar;
+  var normalized = avatar.startsWith('/') ? avatar : '/' + avatar;
+  return API_CONFIG.BASE_URL + normalized;
+}
+
+function showToast(msg) {
+  var t = document.getElementById('errorToast');
+  if (t) { t.textContent = msg; t.style.display = 'block'; setTimeout(function() { t.style.display = 'none'; }, 5000); }
+}
+
+function escHtml(text) {
+  var d = document.createElement('div');
+  d.textContent = text || '';
+  return d.innerHTML;
+}
+</script>
+</body>
+</html>
