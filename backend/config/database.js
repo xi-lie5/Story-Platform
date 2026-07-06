@@ -245,10 +245,52 @@ async function createAiStoryTables() {
   }
 }
 
+// AI 故事配置表（规则书）
+async function createAiStoriesTable() {
+  const conn = await pool.getConnection();
+  try {
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS ai_stories (
+        id CHAR(36) PRIMARY KEY,
+        title VARCHAR(100) NOT NULL COMMENT '故事标题',
+        author_id INT NOT NULL COMMENT '作者ID',
+        world_setting TEXT NOT NULL COMMENT '世界观设定',
+        start_prompt TEXT NOT NULL COMMENT '开端提示',
+        outline TEXT COMMENT '故事大纲',
+        style JSON COMMENT '风格配置 {narrative, tone, length}',
+        mood_tags JSON COMMENT '氛围标签数组',
+        characters_config JSON COMMENT '角色卡数组',
+        category_id INT COMMENT '分类ID',
+        cover_image VARCHAR(255) DEFAULT '/coverImage/1.png' COMMENT '封面图片',
+        description VARCHAR(500) COMMENT '简介',
+        status ENUM('draft', 'published', 'unpublished') DEFAULT 'draft' COMMENT '状态',
+        is_public BOOLEAN DEFAULT FALSE COMMENT '是否公开',
+        total_sessions INT DEFAULT 0 COMMENT '总游玩次数',
+        view_count INT DEFAULT 0 COMMENT '浏览次数',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+        INDEX idx_author (author_id),
+        INDEX idx_status (status),
+        INDEX idx_category (category_id),
+        INDEX idx_created (created_at),
+        FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI故事配置表-规则书'
+    `);
+    console.log('✅ AI 故事配置表初始化成功');
+  } catch(e) {
+    console.error('❌ AI 故事配置表初始化失败:', e.message);
+    throw e;
+  } finally {
+    conn.release();
+  }
+}
+
 module.exports = {
   pool,
   testConnection,
   initTables,
-  createAiStoryTables
+  createAiStoryTables,
+  createAiStoriesTable
 };
 

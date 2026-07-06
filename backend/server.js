@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 
 const errorHandler = require('./middleware/errorHandler');
-const { testConnection, initTables, createAiStoryTables } = require('./config/database');
+const { testConnection, initTables, createAiStoryTables, createAiStoriesTable } = require('./config/database');
 const Category = require('./models/Category');
 
 // server.js从server根目录加载.env
@@ -272,6 +272,7 @@ async function startServer() {
     // 初始化数据库表结构
     await initTables();
     await createAiStoryTables();
+    await createAiStoriesTable();
     console.log('✅ 数据库表初始化完成');
 
     // 初始化默认分类
