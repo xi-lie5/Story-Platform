@@ -1,6 +1,7 @@
-(function (window) {
+﻿(function (window) {
   const global = window || {};
   const BACKEND_BASE_URL = global.AUTH_BACKEND_BASE_URL || 'http://localhost:5000';
+  global.AUTH_BACKEND_BASE_URL = BACKEND_BASE_URL;
   const AUTH_STORAGE_KEYS = ['token', 'refreshToken', 'userInfo'];
 
   function escapeHtml(text) {
@@ -62,6 +63,15 @@
     }
     const encodedUrl = encodeURIComponent(currentUrl);
     window.location.href = `login.html?redirect=${encodedUrl}`;
+  }
+
+  function requireAuth(redirectUrl) {
+    const authState = getAuthState();
+    if (!authState) {
+      goToLogin(redirectUrl || window.location.href);
+      return false;
+    }
+    return true;
   }
 
   function renderAreas(context) {
@@ -268,6 +278,7 @@
     getAuthState,
     resolveAvatarUrl,
     clearAuthStorage,
+    requireAuth,
     goToLogin,
     BACKEND_BASE_URL,
     AUTH_STORAGE_KEYS: [...AUTH_STORAGE_KEYS]

@@ -78,15 +78,14 @@ class AiStory {
         params.push(pattern, pattern);
       }
 
-      // Count
+      // Count — use query() to avoid MySQL prepared-statement LIMIT/OFFSET bug
       const countSql = sql.replace('SELECT a.*, u.username AS author_name, u.avatar AS author_avatar', 'SELECT COUNT(*) AS total');
-      const [countRows] = await conn.execute(countSql, params);
+      const [countRows] = await conn.query(countSql, params);
       const total = countRows[0].total;
 
-      // Fetch
-      sql += ' ORDER BY a.created_at DESC LIMIT ? OFFSET ?';
-      params.push(limit, offset);
-      const [rows] = await conn.execute(sql, params);
+      // Fetch — embed LIMIT/OFFSET as integers to avoid prepared-statement protocol bug
+      sql += ' ORDER BY a.created_at DESC LIMIT ' + limit + ' OFFSET ' + offset;
+      const [rows] = await conn.query(sql, params);
 
       return {
         stories: rows.map(r => this._formatRow(r)),
@@ -117,12 +116,11 @@ class AiStory {
       }
 
       const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) AS total');
-      const [countRows] = await conn.execute(countSql, params);
+      const [countRows] = await conn.query(countSql, params);
       const total = countRows[0].total;
 
-      sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-      params.push(limit, offset);
-      const [rows] = await conn.execute(sql, params);
+      sql += ' ORDER BY created_at DESC LIMIT ' + limit + ' OFFSET ' + offset;
+      const [rows] = await conn.query(sql, params);
 
       return {
         stories: rows.map(r => this._formatRow(r)),

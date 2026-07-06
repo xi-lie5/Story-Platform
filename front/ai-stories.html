@@ -307,8 +307,11 @@ async function startAdv(configId) {
   for (var i = 0; i < btns.length; i++) { btns[i].disabled = true; }
   try {
     var res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/configs/' + configId + '/start'), {});
-    if (res.success && res.data) {
+    if (res.success && res.data && res.data.storyId) {
       window.location.href = 'ai-story-reader.html?storyId=' + res.data.storyId;
+    } else {
+      showToast('开始冒险失败: 服务器返回数据异常');
+      for (var i = 0; i < btns.length; i++) { btns[i].disabled = false; }
     }
   } catch(e) {
     showToast('开始冒险失败: ' + (e.message || '未知错误'));

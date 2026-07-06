@@ -552,7 +552,13 @@ router.post('/story/:storyId/generate', authGuard, [
 /**
  * GET /story/:storyId/session — Get reading session (PRESERVED from original logic)
  */
-router.get('/story/:storyId/session', authGuard, async (req, res, next) => {
+router.get('/story/:storyId/session', authGuard, [
+  param('storyId').isInt().withMessage('故事 ID 格式不正确')
+], async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return next(errorFormat(400, '参数错误', errors.array().map(e => ({ field: e.path, message: e.msg })), 10001));
+  }
   try {
     const { storyId } = req.params;
     const conn = await pool.getConnection();
@@ -608,21 +614,21 @@ router.get('/sessions', authGuard, [
 
     const conn = await pool.getConnection();
     try {
-      const [countRows] = await conn.execute(
+      const [countRows] = await conn.query(
         'SELECT COUNT(*) AS total FROM ai_story_sessions WHERE user_id = ?',
         [req.user.id]
       );
       const total = countRows[0].total;
 
-      const [rows] = await conn.execute(
+      const [rows] = await conn.query(
         `SELECT s.id, s.story_id, s.current_node_id, s.total_nodes, s.summary,
                 s.created_at, s.updated_at, st.title AS story_title
          FROM ai_story_sessions s
          JOIN stories st ON s.story_id = st.id
          WHERE s.user_id = ?
          ORDER BY s.updated_at DESC
-         LIMIT ? OFFSET ?`,
-        [req.user.id, limit, offset]
+         LIMIT ` + limit + ` OFFSET ` + offset,
+        [req.user.id]
       );
 
       res.json({
