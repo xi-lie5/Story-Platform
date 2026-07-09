@@ -3,127 +3,139 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI 故事广场 - StoryForge</title>
+<title>AI &#25925;&#20107;&#24191;&#22330; - StoryForge</title>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { primary: '#6366f1', secondary: '#ec4899' },
+        fontFamily: { display: ['Playfair Display', 'serif'] }
+      }
+    }
+  };
+</script>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="styles.css">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-<script src="assets/js/api-config.js"></script>
-<script src="assets/js/auth.js"></script>
-<script src="assets/js/navbar.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+<script src="assets/js/api-config.js?v=20260708"></script>
+<script src="assets/js/auth.js?v=20260708"></script>
+<script src="assets/js/navbar.js?v=20260708"></script>
 <style>
-body { background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d0d2b 100%); min-height: 100vh; color: #e2e8f0; font-family: system-ui, sans-serif; }
-.page-container { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem; }
-.page-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.25rem; }
-.page-subtitle { color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem; }
-.search-row { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-.search-row input, .search-row select { padding: 0.6rem 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: #e2e8f0; font-size: 0.9rem; outline: none; }
-.search-row input:focus, .search-row select:focus { border-color: rgba(99,102,241,0.5); }
-.search-row input { flex: 1; min-width: 200px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
-.card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 1.5rem; transition: all 0.2s; cursor: pointer; display: flex; flex-direction: column; }
-.card:hover { border-color: rgba(129,140,248,0.35); background: rgba(129,140,248,0.06); transform: translateY(-2px); }
-.card-title { font-size: 1.1rem; font-weight: 700; color: #e2e8f0; margin-bottom: 0.35rem; }
-.card-author { font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem; }
-.card-author img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
-.card-desc { font-size: 0.85rem; color: #94a3b8; line-height: 1.5; flex: 1; margin-bottom: 0.75rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.card-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
-.card-tag { padding: 0.15rem 0.5rem; border-radius: 5px; font-size: 0.7rem; background: rgba(99,102,241,0.15); color: #a5b4fc; }
-.card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.06); }
-.card-stats { font-size: 0.75rem; color: #64748b; display: flex; gap: 0.8rem; }
-.btn-start { padding: 0.5rem 1.25rem; border-radius: 8px; border: none; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; font-weight: 600; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
-.btn-start:hover { opacity: 0.9; transform: scale(1.02); }
-.btn-start:disabled { opacity: 0.5; cursor: not-allowed; }
+body { min-height: 100vh; color: #1e293b; }
+.navbar-modern { background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,0,0,0.08); box-shadow: 0 2px 8px rgba(0,0,0,0.04); position: sticky; top: 0; z-index: 50; }
+.navbar-link { position: relative; padding: 0.5rem 0; white-space: nowrap; }
+.navbar-link.active::after { content: ''; position: absolute; bottom: -0.25rem; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, #6366f1, #a855f7); border-radius: 999px; }
+.page-container { max-width: 1180px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+.page-title { font-size: clamp(1.85rem, 3vw, 2.5rem); line-height: 1.1; font-weight: 800; color: #0f172a; margin-bottom: 0.45rem; }
+.page-subtitle { color: #64748b; font-size: 0.98rem; max-width: 680px; }
+.search-row { display: grid; grid-template-columns: minmax(0, 1fr) 220px auto; gap: 0.75rem; margin-bottom: 1.25rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; box-shadow: 0 8px 24px rgba(15,23,42,0.06); }
+.search-row input, .search-row select { width: 100%; padding: 0.7rem 0.95rem; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; color: #1e293b; font-size: 0.9rem; outline: none; }
+.search-row input:focus, .search-row select:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.14); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+.card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; transition: all 0.2s; cursor: pointer; display: flex; flex-direction: column; box-shadow: 0 10px 24px rgba(15,23,42,0.05); min-height: 260px; }
+.card:hover { border-color: #c7d2fe; box-shadow: 0 16px 30px rgba(99,102,241,0.12); transform: translateY(-2px); }
+.card-title { font-size: 1.08rem; font-weight: 700; color: #0f172a; margin-bottom: 0.4rem; }
+.card-author { font-size: 0.8rem; color: #64748b; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.45rem; }
+.card-author img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
+.card-desc { font-size: 0.88rem; color: #64748b; line-height: 1.55; flex: 1; margin-bottom: 0.85rem; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.card-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
+.card-tag { padding: 0.18rem 0.55rem; border-radius: 6px; font-size: 0.72rem; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; }
+.card-footer { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding-top: 0.85rem; border-top: 1px solid #e2e8f0; }
+.card-stats { font-size: 0.78rem; color: #64748b; display: flex; gap: 0.8rem; }
+.btn-start { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.55rem 1.05rem; border-radius: 9px; border: none; background: #6366f1; color: #fff; font-weight: 600; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; text-decoration: none; }
+.btn-start:hover { background: #4f46e5; transform: translateY(-1px); }
+.btn-start:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+.btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.65rem 1rem; border-radius: 9px; border: 1px solid #cbd5e1; background: #fff; color: #475569; font-weight: 600; text-decoration: none; transition: all 0.2s; }
+.btn-secondary:hover { background: #eef2ff; border-color: #6366f1; color: #4338ca; }
 .pagination { display: flex; justify-content: center; gap: 0.5rem; margin-top: 2rem; }
-.pagination button { padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: #94a3b8; cursor: pointer; font-size: 0.85rem; }
-.pagination button:hover { color: #e2e8f0; border-color: rgba(255,255,255,0.25); }
-.pagination button.active { background: rgba(99,102,241,0.2); border-color: rgba(99,102,241,0.4); color: #a5b4fc; }
-.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
-.empty { text-align: center; padding: 4rem 1rem; color: #64748b; }
-.empty i { font-size: 2.5rem; display: block; margin-bottom: 1rem; opacity: 0.3; }
-/* Modal */
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; justify-content: center; align-items: center; padding: 1rem; }
+.pagination button { padding: 0.5rem 0.9rem; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #475569; cursor: pointer; font-size: 0.85rem; }
+.pagination button:hover { color: #4338ca; border-color: #a5b4fc; }
+.pagination button.active { background: #eef2ff; border-color: #6366f1; color: #4338ca; font-weight: 700; }
+.pagination button:disabled { opacity: 0.45; cursor: not-allowed; }
+.empty, .loading { text-align: center; padding: 4rem 1rem; color: #64748b; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; grid-column: 1 / -1; }
+.empty i, .loading i { font-size: 2.4rem; display: block; margin-bottom: 1rem; opacity: 0.35; }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.68); z-index: 100; justify-content: center; align-items: center; padding: 1rem; }
 .modal-overlay.active { display: flex; }
-.modal-box { background: #1a1a3e; border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 2rem; max-width: 700px; width: 100%; max-height: 85vh; overflow-y: auto; position: relative; }
-.modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: #94a3b8; font-size: 1.3rem; cursor: pointer; }
-.modal-close:hover { color: #e2e8f0; }
-.modal-section { margin-bottom: 1.5rem; }
-.modal-section h3 { font-size: 0.85rem; font-weight: 700; color: #a5b4fc; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
-.modal-section p, .modal-section div { font-size: 0.9rem; color: #cbd5e1; line-height: 1.7; }
+.modal-box { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 2rem; max-width: 720px; width: 100%; max-height: 85vh; overflow-y: auto; position: relative; box-shadow: 0 22px 60px rgba(15,23,42,0.24); }
+.modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: #64748b; font-size: 1.25rem; cursor: pointer; }
+.modal-close:hover { color: #0f172a; }
+.modal-section { margin-bottom: 1.35rem; }
+.modal-section h3 { font-size: 0.82rem; font-weight: 800; color: #4338ca; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.modal-section p, .modal-section div { font-size: 0.92rem; color: #334155; line-height: 1.7; }
+.rate-star { color: #cbd5e1; cursor: pointer; transition: color 0.15s, transform 0.1s; }
+.rate-star:hover { transform: scale(1.15); }
+.rate-star.active { color: #f59e0b; }
 .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; }
-.char-item { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.75rem; }
-.char-name { font-weight: 600; color: #e2e8f0; font-size: 0.9rem; }
-.char-desc { font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem; }
-.loading { text-align: center; padding: 3rem; color: #64748b; }
-.toast { display: none; position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); background: #dc2626; color: #fff; padding: 0.75rem 1.5rem; border-radius: 10px; z-index: 200; font-size: 0.85rem; box-shadow: 0 4px 16px rgba(220,38,38,0.4); }
+.char-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.75rem; }
+.char-name { font-weight: 700; color: #0f172a; font-size: 0.9rem; }
+.char-desc { font-size: 0.78rem; color: #64748b; margin-top: 0.25rem; }
+.toast { display: none; position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); background: #dc2626; color: #fff; padding: 0.75rem 1.5rem; border-radius: 10px; z-index: 200; font-size: 0.85rem; box-shadow: 0 4px 16px rgba(220,38,38,0.32); }
+@media (max-width: 760px) { .page-header { flex-direction: column; } .search-row { grid-template-columns: 1fr; } .card-footer { align-items: flex-start; flex-direction: column; } }
 </style>
 </head>
-<body>
-<!-- Navigation Bar — EXACT same structure as ai-workshop.html -->
-<nav style="background: rgba(15,15,35,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.08); box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
-  <div class="container mx-auto px-4 py-4" style="max-width:1100px">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
-          <i class="fas fa-book text-white text-xl"></i>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen text-slate-800 font-sans">
+<nav class="navbar-modern" aria-label="&#20027;&#23548;&#33322;">
+  <div class="container mx-auto px-4 py-4">
+    <div class="flex items-center justify-between gap-4">
+      <div class="flex items-center space-x-3 shrink-0">
+        <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+          <i class="fa fa-book text-white text-xl"></i>
         </div>
         <div>
-          <h1 class="text-xl md:text-2xl font-bold text-white">StoryForge</h1>
-          <p class="text-xs text-slate-400 hidden md:block">AI故事创作平台</p>
+          <h1 class="text-xl md:text-2xl font-bold text-gray-900">StoryForge</h1>
+          <p class="text-xs text-slate-500 hidden md:block">AI&#25925;&#20107;&#21019;&#20316;&#24179;&#21488;</p>
         </div>
       </div>
-      <div class="hidden lg:flex items-center space-x-8" id="main-nav-desktop">
-        <a href="index.html" class="text-slate-300 hover:text-white font-medium transition-colors">首页</a>
-        <a href="browse.html" class="text-slate-300 hover:text-white font-medium transition-colors">故事阅览</a>
-        <a href="ai-workshop.html" class="text-slate-300 hover:text-white font-medium transition-colors">AI 工坊</a>
-        <a href="ai-stories.html" class="text-indigo-400 font-medium transition-colors">AI 广场</a>
-        <a href="my_stories.html" class="text-slate-300 hover:text-white font-medium transition-colors">我的作品</a>
-        <a href="profile.html" class="text-slate-300 hover:text-white font-medium transition-colors">个人中心</a>
+      <div class="hidden lg:flex items-center gap-4 xl:gap-7 text-sm xl:text-base" id="main-nav-desktop">
+        <a href="index.html" class="navbar-link font-medium text-slate-600 hover:text-primary transition-colors">&#39318;&#39029;</a>
+        <a href="browse.html" class="navbar-link font-medium text-slate-600 hover:text-primary transition-colors">&#25925;&#20107;&#38405;&#35272;</a>
+        <a href="ai-stories.html" class="navbar-link active font-medium text-primary transition-colors">AI &#24191;&#22330;</a>
+        <a href="create.html" class="navbar-link font-medium text-slate-600 hover:text-primary transition-colors">&#21019;&#24314;&#25925;&#20107;</a>
+        <a href="my_stories.html" class="navbar-link font-medium text-slate-600 hover:text-primary transition-colors">&#25105;&#30340;&#20316;&#21697;</a>
+        <a href="profile.html" class="navbar-link font-medium text-slate-600 hover:text-primary transition-colors">&#20010;&#20154;&#20013;&#24515;</a>
       </div>
-      <div id="auth-area-desktop" class="flex items-center space-x-3"></div>
-      <button id="mobile-menu-button" class="lg:hidden p-2 rounded-lg hover:bg-white/10 transition-colors">
-        <i class="fas fa-bars text-slate-300 text-xl"></i>
+      <div id="auth-area-desktop" class="flex items-center space-x-3 shrink-0"></div>
+      <button id="mobile-menu-button" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors" aria-label="&#25171;&#24320;&#23548;&#33322;&#33756;&#21333;">
+        <i class="fa fa-bars text-slate-600 text-xl"></i>
       </button>
     </div>
   </div>
-  <div class="lg:hidden hidden bg-black/95 backdrop-blur-md border-t border-white/10" id="mobile-menu">
+  <div class="lg:hidden hidden bg-white/95 backdrop-blur-md border-t border-slate-200" id="mobile-menu">
     <div class="container mx-auto px-4 py-4 space-y-3">
-      <a href="index.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">首页</a>
-      <a href="browse.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">故事阅览</a>
-      <a href="ai-workshop.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">AI 工坊</a>
-      <a href="ai-stories.html" class="block py-3 px-4 rounded-lg font-medium text-indigo-400 bg-indigo-500/10">AI 广场</a>
-      <a href="my_stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">我的作品</a>
-      <a href="profile.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">个人中心</a>
-      <div class="flex flex-col space-y-3 pt-3 border-t border-white/10">
-        <div id="auth-area-mobile"></div>
-      </div>
+      <a href="index.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">&#39318;&#39029;</a>
+      <a href="browse.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">&#25925;&#20107;&#38405;&#35272;</a>
+      <a href="ai-stories.html" class="block py-3 px-4 rounded-lg font-medium text-primary bg-primary/5">AI &#24191;&#22330;</a>
+      <a href="create.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">&#21019;&#24314;&#25925;&#20107;</a>
+      <a href="my_stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">&#25105;&#30340;&#20316;&#21697;</a>
+      <a href="profile.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">&#20010;&#20154;&#20013;&#24515;</a>
+      <div class="flex flex-col space-y-3 pt-3 border-t border-slate-200"><div id="auth-area-mobile"></div></div>
     </div>
   </div>
 </nav>
 
 <div class="page-container">
-  <h1 class="page-title">AI 故事广场</h1>
-  <p class="page-subtitle">探索其他作者创作的 AI 故事设定，开启属于你自己的冒险</p>
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">AI &#25925;&#20107;&#24191;&#22330;</h1>
+      <p class="page-subtitle">&#27983;&#35272;&#24050;&#20844;&#24320;&#30340; AI &#25925;&#20107;&#35268;&#21017;&#20070;&#65292;&#36873;&#19968;&#20010;&#35774;&#23450;&#24320;&#22987;&#33258;&#24049;&#30340;&#20114;&#21160;&#20882;&#38505;&#12290;</p>
+    </div>
+    <a href="ai-workshop.html" class="btn-secondary"><i class="fa fa-magic"></i><span>&#36827;&#20837; AI &#24037;&#22346;</span></a>
+  </div>
 
   <div class="search-row">
-    <input type="text" id="searchInput" placeholder="搜索故事标题或描述..." onkeydown="if(event.key==='Enter')doSearch()">
-    <select id="categoryFilter" onchange="doSearch()">
-      <option value="">全部分类</option>
-    </select>
-    <button class="btn-start" onclick="doSearch()" style="padding:0.6rem 1.5rem"><i class="fas fa-search mr-1"></i> 搜索</button>
+    <input type="text" id="searchInput" placeholder="&#25628;&#32034;&#25925;&#20107;&#26631;&#39064;&#25110;&#25551;&#36848;..." onkeydown="if(event.key==='Enter')doSearch()">
+    <select id="categoryFilter" onchange="doSearch()"><option value="">&#20840;&#37096;&#20998;&#31867;</option></select>
+    <button class="btn-start" onclick="doSearch()"><i class="fa fa-search"></i><span>&#25628;&#32034;</span></button>
   </div>
 
   <div class="grid" id="storyGrid">
-    <div class="loading"><i class="fas fa-spinner fa-spin" style="font-size:2rem;display:block;margin-bottom:1rem;opacity:0.3"></i>加载中...</div>
+    <div class="loading"><i class="fa fa-spinner fa-spin"></i>&#21152;&#36733;&#20013;...</div>
   </div>
-
   <div class="pagination" id="pagination"></div>
 </div>
 
-<!-- Detail Modal -->
-<div class="modal-overlay" id="detailModal">
-  <div class="modal-box" id="detailContent"></div>
-</div>
-
+<div class="modal-overlay" id="detailModal"><div class="modal-box" id="detailContent"></div></div>
 <div class="toast" id="errorToast"></div>
 
 <script>
@@ -132,27 +144,49 @@ var totalPages = 1;
 var currentSearch = '';
 var currentCategory = '';
 
+var TXT = {
+  allCategories: '\u5168\u90e8\u5206\u7c7b',
+  loading: '\u52a0\u8f7d\u4e2d...',
+  loadingDetail: '\u52a0\u8f7d\u8be6\u60c5...',
+  noPublicStories: '\u8fd8\u6ca1\u6709\u516c\u5f00\u7684 AI \u6545\u4e8b',
+  createFirst: '\u53bb\u521b\u5efa\u7b2c\u4e00\u4e2a',
+  unknownAuthor: '\u672a\u77e5\u4f5c\u8005',
+  startAdventure: '\u5f00\u59cb\u5192\u9669',
+  startMyAdventure: '\u5f00\u59cb\u6211\u7684\u5192\u9669',
+  loadFailed: '\u52a0\u8f7d\u5931\u8d25',
+  retry: '\u91cd\u8bd5',
+  close: '\u5173\u95ed',
+  author: '\u4f5c\u8005',
+  adventureCount: '\u6b21\u5192\u9669',
+  worldSetting: '\u4e16\u754c\u89c2\u8bbe\u5b9a',
+  characters: '\u89d2\u8272\u8bbe\u5b9a',
+  outline: '\u6545\u4e8b\u5927\u7eb2',
+  style: '\u98ce\u683c',
+  narrative: '\u53d9\u4e8b\u89c6\u89d2',
+  tone: '\u6587\u98ce',
+  length: '\u7bc7\u5e45',
+  thirdPerson: '\u7b2c\u4e09\u4eba\u79f0',
+  naturalTone: '\u81ea\u7136\u6d41\u7545',
+  defaultLength: '800-1500\u5b57/\u6bb5',
+  moods: '\u6c1b\u56f4\u6807\u7b7e',
+  badStartResponse: '\u5f00\u59cb\u5192\u9669\u5931\u8d25: \u670d\u52a1\u5668\u8fd4\u56de\u6570\u636e\u5f02\u5e38',
+  startFailed: '\u5f00\u59cb\u5192\u9669\u5931\u8d25: '
+};
+
 document.addEventListener('DOMContentLoaded', function() {
   AuthUI.init();
-  if (typeof updateNavigationByRole === 'function') {
-    setTimeout(updateNavigationByRole, 300);
-  }
+  if (typeof updateNavigationByRole === 'function') setTimeout(updateNavigationByRole, 300);
   var mobileBtn = document.getElementById('mobile-menu-button');
   var mobileMenu = document.getElementById('mobile-menu');
-  if (mobileBtn && mobileMenu) {
-    mobileBtn.addEventListener('click', function() { mobileMenu.classList.toggle('hidden'); });
-  }
-  // Modal overlay click to close
-  document.getElementById('detailModal').addEventListener('click', function(e) {
-    if (e.target === this) closeModal();
-  });
+  if (mobileBtn && mobileMenu) mobileBtn.addEventListener('click', function() { mobileMenu.classList.toggle('hidden'); });
+  document.getElementById('detailModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
   loadCategories();
   loadStories();
 });
 
 async function loadCategories() {
   var sel = document.getElementById('categoryFilter');
-  sel.innerHTML = '<option value="">全部分类</option>';
+  sel.innerHTML = '<option value="">' + TXT.allCategories + '</option>';
   try {
     var res = await API_CONFIG.get(API_CONFIG.buildUrl('/categories'));
     var cats = res.data || [];
@@ -162,24 +196,23 @@ async function loadCategories() {
       o.textContent = c.name;
       sel.appendChild(o);
     });
-  } catch(e) {
-    console.error('Categories load failed:', e);
-  }
+  } catch(e) { console.error('Categories load failed:', e); }
 }
 
 async function loadStories() {
-  document.getElementById('storyGrid').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin" style="font-size:2rem;display:block;margin-bottom:1rem;opacity:0.3"></i>加载中...</div>';
+  document.getElementById('storyGrid').innerHTML = '<div class="loading"><i class="fa fa-spinner fa-spin"></i>' + TXT.loading + '</div>';
   try {
     var params = '?page=' + currentPage + '&limit=12';
     if (currentSearch) params += '&search=' + encodeURIComponent(currentSearch);
     if (currentCategory) params += '&category=' + encodeURIComponent(currentCategory);
     var res = await API_CONFIG.get(API_CONFIG.buildUrl('/aiStory/configs' + params));
     var data = res.data;
-    var stories = data.stories || [];
-    totalPages = data.pagination ? data.pagination.pages : 1;
+    var stories = Array.isArray(data) ? data : (data && data.stories ? data.stories : []);
+    var pagination = res.pagination || (data && data.pagination) || {};
+    totalPages = pagination.pages || 1;
 
     if (stories.length === 0) {
-      document.getElementById('storyGrid').innerHTML = '<div class="empty"><i class="fas fa-book-open"></i><p>还没有公开的 AI 故事</p><a href="ai-workshop.html" style="display:inline-block;margin-top:1rem" class="btn-start">去创建第一个</a></div>';
+      document.getElementById('storyGrid').innerHTML = '<div class="empty"><i class="fa fa-book-open"></i><p>' + TXT.noPublicStories + '</p><a href="ai-workshop.html" class="btn-start" style="margin-top:1rem">' + TXT.createFirst + '</a></div>';
       document.getElementById('pagination').innerHTML = '';
       return;
     }
@@ -187,46 +220,30 @@ async function loadStories() {
     var html = '';
     for (var i = 0; i < stories.length; i++) {
       var s = stories[i];
-      var moods = (s.mood_tags || []).map(function(t) {
-        return '<span class="card-tag">' + escHtml(t) + '</span>';
-      }).join('');
-      var charNames = (s.characters_config || []).map(function(c) { return c.name; }).filter(Boolean).join('、');
+      var moods = (s.mood_tags || []).map(function(t) { return '<span class="card-tag">' + escHtml(t) + '</span>'; }).join('');
+      var charNames = (s.characters_config || []).map(function(c) { return c.name; }).filter(Boolean).join('\u3001');
       var desc = s.description || s.start_prompt || '';
-
       html += '<div class="card" onclick="showDetail(\'' + s.id + '\')">';
       html += '<div class="card-title">' + escHtml(s.title) + '</div>';
-      html += '<div class="card-author">';
-      html += '<img src="' + escHtml(getAvatar(s.author_avatar, s.author_name)) + '" alt="" onerror="this.src=\'assets/img/default-avatar.png\'">';
-      html += escHtml(s.author_name || '未知作者');
-      html += '</div>';
-      html += '<div class="card-desc">' + escHtml(desc.substring(0, 200)) + '</div>';
-      if (moods || charNames) {
-        html += '<div class="card-tags">' + moods + (charNames ? '<span class="card-tag"><i class="fas fa-users mr-1"></i>' + escHtml(charNames) + '</span>' : '') + '</div>';
-      }
-      html += '<div class="card-footer">';
-      html += '<div class="card-stats">';
-      html += '<span><i class="fas fa-eye"></i> ' + (s.view_count || 0) + '</span>';
-      html += '<span><i class="fas fa-play"></i> ' + (s.total_sessions || 0) + '</span>';
-      html += '</div>';
-      html += '<button class="btn-start" onclick="event.stopPropagation();startAdv(\'' + s.id + '\')"><i class="fas fa-play mr-1"></i> 开始冒险</button>';
-      html += '</div>';
-      html += '</div>';
+      html += '<div class="card-author"><img src="' + escHtml(getAvatar(s.author_avatar, s.author_name)) + '" alt="" onerror="this.src=\'assets/img/default-avatar.png\'">' + escHtml(s.author_name || TXT.unknownAuthor) + '</div>';
+      html += '<div class="card-desc">' + escHtml(desc.substring(0, 220)) + '</div>';
+      if (moods || charNames) html += '<div class="card-tags">' + moods + (charNames ? '<span class="card-tag"><i class="fa fa-users mr-1"></i>' + escHtml(charNames) + '</span>' : '') + '</div>';
+      html += '<div class="card-footer"><div class="card-stats"><span><i class="fa fa-eye"></i> ' + (s.view_count || 0) + '</span><span><i class="fa fa-play"></i> ' + (s.total_sessions || 0) + '</span></div>';
+      html += '<button class="btn-start" onclick="event.stopPropagation();startAdv(\'' + s.id + '\')"><i class="fa fa-play"></i>' + TXT.startAdventure + '</button></div></div>';
     }
     document.getElementById('storyGrid').innerHTML = html;
     renderPagination();
   } catch(e) {
-    document.getElementById('storyGrid').innerHTML = '<div class="empty"><p style="color:#f87171">加载失败: ' + escHtml(e.message) + '</p><button onclick="loadStories()" class="btn-start" style="margin-top:1rem">重试</button></div>';
+    document.getElementById('storyGrid').innerHTML = '<div class="empty"><p style="color:#dc2626">' + TXT.loadFailed + ': ' + escHtml(e.message) + '</p><button onclick="loadStories()" class="btn-start" style="margin-top:1rem">' + TXT.retry + '</button></div>';
   }
 }
 
 function renderPagination() {
   if (totalPages <= 1) { document.getElementById('pagination').innerHTML = ''; return; }
   var html = '';
-  html += '<button ' + (currentPage <= 1 ? 'disabled' : '') + ' onclick="goPage(' + (currentPage - 1) + ')"><i class="fas fa-chevron-left"></i></button>';
-  for (var p = 1; p <= totalPages; p++) {
-    html += '<button class="' + (p === currentPage ? 'active' : '') + '" onclick="goPage(' + p + ')">' + p + '</button>';
-  }
-  html += '<button ' + (currentPage >= totalPages ? 'disabled' : '') + ' onclick="goPage(' + (currentPage + 1) + ')"><i class="fas fa-chevron-right"></i></button>';
+  html += '<button ' + (currentPage <= 1 ? 'disabled' : '') + ' onclick="goPage(' + (currentPage - 1) + ')"><i class="fa fa-chevron-left"></i></button>';
+  for (var p = 1; p <= totalPages; p++) html += '<button class="' + (p === currentPage ? 'active' : '') + '" onclick="goPage(' + p + ')">' + p + '</button>';
+  html += '<button ' + (currentPage >= totalPages ? 'disabled' : '') + ' onclick="goPage(' + (currentPage + 1) + ')"><i class="fa fa-chevron-right"></i></button>';
   document.getElementById('pagination').innerHTML = html;
 }
 
@@ -246,76 +263,96 @@ function doSearch() {
 
 async function showDetail(id) {
   document.getElementById('detailModal').classList.add('active');
-  document.getElementById('detailContent').innerHTML = '<div class="loading" style="padding:3rem"><i class="fas fa-spinner fa-spin" style="display:block;font-size:2rem;margin-bottom:1rem;opacity:0.3"></i>加载详情...</div>';
+  document.getElementById('detailContent').innerHTML = '<div class="loading" style="padding:3rem"><i class="fa fa-spinner fa-spin"></i>' + TXT.loadingDetail + '</div>';
   try {
     var res = await API_CONFIG.get(API_CONFIG.buildUrl('/aiStory/configs/' + id));
     var cfg = res.data;
     if (!cfg) { closeModal(); return; }
-
     var moodsHtml = (cfg.mood_tags || []).map(function(t) { return '<span class="card-tag">' + escHtml(t) + '</span>'; }).join(' ');
     var chars = cfg.characters_config || [];
     var charsHtml = '';
     for (var i = 0; i < chars.length; i++) {
       var c = chars[i];
-      charsHtml += '<div class="char-item"><div class="char-name">' + escHtml(c.name) + '</div>';
-      charsHtml += '<div class="char-desc">' + escHtml((c.personality_tags || c.personalityTags || []).join('、') || c.description || '') + '</div></div>';
+      charsHtml += '<div class="char-item"><div class="char-name">' + escHtml(c.name) + '</div><div class="char-desc">' + escHtml((c.personality_tags || c.personalityTags || []).join('\u3001') || c.description || '') + '</div></div>';
     }
     var style = cfg.style || {};
-
     var html = '';
-    html += '<button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>';
-    html += '<h2 style="font-size:1.3rem;font-weight:700;margin-bottom:0.25rem">' + escHtml(cfg.title) + '</h2>';
-    html += '<p style="color:#94a3b8;font-size:0.85rem;margin-bottom:1.5rem">作者: ' + escHtml(cfg.author_name || '未知') + ' | ' + (cfg.total_sessions || 0) + ' 次冒险</p>';
-
-    html += '<div class="modal-section"><h3>世界观设定</h3><p>' + escHtml(cfg.world_setting || '').replace(/\n/g, '<br>') + '</p></div>';
-
-    if (chars.length > 0) {
-      html += '<div class="modal-section"><h3>角色设定 (' + chars.length + ')</h3><div class="char-grid">' + charsHtml + '</div></div>';
+    html += '<button class="modal-close" onclick="closeModal()"><i class="fa fa-times"></i></button>';
+    html += '<h2 style="font-size:1.35rem;font-weight:800;color:#0f172a;margin-bottom:0.25rem">' + escHtml(cfg.title) + '</h2>';
+    html += '<p style="color:#64748b;font-size:0.86rem;margin-bottom:1.4rem">' + TXT.author + ': ' + escHtml(cfg.author_name || TXT.unknownAuthor) + ' | ' + (cfg.total_sessions || 0) + ' ' + TXT.adventureCount + '</p>';
+    html += '<div class="modal-section"><h3>' + TXT.worldSetting + '</h3><p>' + escHtml(cfg.world_setting || '').replace(/\n/g, '<br>') + '</p></div>';
+    if (chars.length > 0) html += '<div class="modal-section"><h3>' + TXT.characters + ' (' + chars.length + ')</h3><div class="char-grid">' + charsHtml + '</div></div>';
+    if (cfg.outline) html += '<div class="modal-section"><h3>' + TXT.outline + '</h3><p>' + escHtml(cfg.outline).replace(/\n/g, '<br>') + '</p></div>';
+    html += '<div class="modal-section"><h3>' + TXT.style + '</h3><p>' + TXT.narrative + ': ' + escHtml(style.narrative || TXT.thirdPerson) + '<br>' + TXT.tone + ': ' + escHtml(style.tone || TXT.naturalTone) + '<br>' + TXT.length + ': ' + escHtml(style.length || TXT.defaultLength) + '</p></div>';
+    if (moodsHtml) html += '<div class="modal-section"><h3>' + TXT.moods + '</h3><div class="card-tags">' + moodsHtml + '</div></div>';
+    // 星级评分组件
+    var avg = cfg.avgRating || 0;
+    var rc = cfg.ratingCount || 0;
+    var starsHtml = '';
+    for (var s = 1; s <= 5; s++) {
+      starsHtml += '<i class="fa fa-star rate-star' + (s <= Math.round(avg) ? ' active' : '') + '" data-val="' + s + '" onclick="rateConfig(\'' + cfg.id + '\',' + s + ')"></i>';
     }
-
-    if (cfg.outline) {
-      html += '<div class="modal-section"><h3>故事大纲</h3><p>' + escHtml(cfg.outline).replace(/\n/g, '<br>') + '</p></div>';
-    }
-
-    html += '<div class="modal-section"><h3>风格</h3><p>';
-    html += '叙事视角: ' + escHtml(style.narrative || '第三人称') + '<br>';
-    html += '文风: ' + escHtml(style.tone || '自然流畅') + '<br>';
-    html += '篇幅: ' + escHtml(style.length || '800-1500字/段');
-    html += '</p></div>';
-
-    if (moodsHtml) {
-      html += '<div class="modal-section"><h3>氛围标签</h3><div class="card-tags">' + moodsHtml + '</div></div>';
-    }
-
-    html += '<div style="margin-top:1.5rem;text-align:center">';
-    html += '<button class="btn-start" id="modalStartBtn" onclick="startAdv(\'' + cfg.id + '\')" style="padding:0.85rem 2.5rem;font-size:1rem"><i class="fas fa-play mr-1"></i> 开始我的冒险</button>';
-    html += '</div>';
-
+    html += '<div class="modal-section"><h3>为这本规则书评分</h3>' +
+      '<div id="ratingStars" style="display:flex;gap:0.3rem;font-size:1.5rem">' + starsHtml + '</div>' +
+      '<p id="ratingSummary" style="font-size:0.82rem;color:#64748b;margin-top:0.4rem">' +
+      (rc ? ('平均 ' + avg + ' 分 · ' + rc + ' 人评分') : '暂无评分，成为第一个评分的人') + '</p></div>';
+    html += '<div style="margin-top:1.5rem;text-align:center"><button class="btn-start" id="modalStartBtn" onclick="startAdv(\'' + cfg.id + '\')" style="padding:0.85rem 2.2rem;font-size:1rem"><i class="fa fa-play"></i>' + TXT.startMyAdventure + '</button></div>';
     document.getElementById('detailContent').innerHTML = html;
+    // 拉取当前用户已有评分（登录时）
+    if (AuthUI.getAuthState()) {
+      API_CONFIG.get(API_CONFIG.buildUrl('/aiStory/configs/' + cfg.id + '/rating')).then(function(r) {
+        if (r && r.success && r.data && r.data.userRating) {
+          updateRatingStars(r.data.userRating, r.data.avgRating, r.data.ratingCount);
+        }
+      }).catch(function() {});
+    }
   } catch(e) {
-    document.getElementById('detailContent').innerHTML = '<div class="empty" style="padding:3rem"><p style="color:#f87171">加载详情失败: ' + escHtml(e.message) + '</p><button onclick="closeModal()" class="btn-start">关闭</button></div>';
+    document.getElementById('detailContent').innerHTML = '<div class="empty" style="padding:3rem"><p style="color:#dc2626">' + TXT.loadFailed + ': ' + escHtml(e.message) + '</p><button onclick="closeModal()" class="btn-start">' + TXT.close + '</button></div>';
   }
 }
 
-function closeModal() {
-  document.getElementById('detailModal').classList.remove('active');
+function closeModal() { document.getElementById('detailModal').classList.remove('active'); }
+
+// 规则书评分
+var RATING_LABELS = { 1: '拉完了...', 2: '有点勉强…', 3: '一般般~', 4: '挺不错！', 5: '夯爆了！' };
+async function rateConfig(configId, rating) {
+  if (!AuthUI.getAuthState()) { showToast('请先登录后再评分'); return; }
+  try {
+    var res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/configs/' + configId + '/rate'), { rating: rating });
+    if (res.success && res.data) {
+      updateRatingStars(res.data.userRating, res.data.avgRating, res.data.ratingCount);
+      showToast('评分成功：' + rating + ' 星 · ' + RATING_LABELS[rating]);
+    }
+  } catch (e) {
+    showToast('评分失败：' + (e.message || '未知错误'));
+  }
+}
+
+function updateRatingStars(userRating, avg, count) {
+  var stars = document.querySelectorAll('#ratingStars .rate-star');
+  var highlight = userRating || Math.round(avg || 0);
+  for (var i = 0; i < stars.length; i++) {
+    stars[i].classList.toggle('active', (i + 1) <= highlight);
+  }
+  var sum = document.getElementById('ratingSummary');
+  if (sum) {
+    sum.textContent = (userRating ? ('你的评分：' + userRating + ' 星 ' + RATING_LABELS[userRating] + ' · ') : '') + '平均 ' + (avg || 0) + ' 分 · ' + (count || 0) + ' 人评分';
+  }
 }
 
 async function startAdv(configId) {
-  // Disable all start buttons
   var btns = document.querySelectorAll('.btn-start');
-  for (var i = 0; i < btns.length; i++) { btns[i].disabled = true; }
+  for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
   try {
-    var res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/configs/' + configId + '/start'), {});
-    if (res.success && res.data && res.data.storyId) {
-      window.location.href = 'ai-story-reader.html?storyId=' + res.data.storyId;
-    } else {
-      showToast('开始冒险失败: 服务器返回数据异常');
-      for (var i = 0; i < btns.length; i++) { btns[i].disabled = false; }
+    var res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/configs/' + configId + '/start'), {}, { timeout: 180000 });
+    if (res.success && res.data && res.data.storyId) window.location.href = 'ai-story-reader.html?storyId=' + res.data.storyId;
+    else {
+      showToast(TXT.badStartResponse);
+      for (var i = 0; i < btns.length; i++) btns[i].disabled = false;
     }
   } catch(e) {
-    showToast('开始冒险失败: ' + (e.message || '未知错误'));
-    for (var i = 0; i < btns.length; i++) { btns[i].disabled = false; }
+    showToast(TXT.startFailed + (e.message || 'Unknown error'));
+    for (var i = 0; i < btns.length; i++) btns[i].disabled = false;
   }
 }
 

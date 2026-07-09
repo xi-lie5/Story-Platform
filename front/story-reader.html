@@ -146,6 +146,20 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
+          <!-- 导出下拉：PDF / EPUB -->
+          <div class="relative" id="export-wrap">
+            <button id="export-btn" title="导出故事" aria-label="导出故事" class="p-2 rounded-full border border-slate-200 text-slate-600 hover:border-primary hover:text-primary transition-colors">
+              <i class="fa fa-download"></i>
+            </button>
+            <div id="export-menu" class="hidden absolute right-0 mt-2 w-40 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden">
+              <button data-format="pdf" class="export-option w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                <i class="fa fa-file-pdf-o text-red-500"></i>导出 PDF
+              </button>
+              <button data-format="epub" class="export-option w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 border-t border-slate-100">
+                <i class="fa fa-book text-indigo-500"></i>导出 EPUB
+              </button>
+            </div>
+          </div>
           <button id="bookmark-btn" title="收藏" aria-label="收藏" class="p-2 rounded-full border border-slate-200 text-slate-600 hover:border-primary hover:text-primary transition-colors">
             <i class="fa fa-bookmark-o"></i>
           </button>
@@ -200,6 +214,50 @@
         </button>
       </div>
     </nav>
+
+    <!-- 评论区 -->
+    <section id="comments-section" class="bg-white rounded-2xl shadow-sm p-6 md:p-8 mb-8 animate-slide-up">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-bold flex items-center gap-2">
+          <i class="fa fa-comments text-primary"></i>读者评论
+          <span id="comment-count" class="text-sm font-normal text-slate-400"></span>
+        </h2>
+      </div>
+
+      <!-- 故事评分 -->
+      <div id="rating-block" class="mb-6 pb-6 border-b border-slate-100">
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="text-sm font-medium text-slate-700">为这个故事评分：</span>
+          <div id="story-stars" class="flex gap-1 text-2xl leading-none"></div>
+          <span id="story-rating-summary" class="text-xs text-slate-500"></span>
+        </div>
+      </div>
+
+      <!-- 发表评论表单 -->
+      <div id="comment-form-wrap" class="mb-6">
+        <textarea id="comment-input" rows="3" maxlength="2000" placeholder="写下你的看法…"
+          class="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-primary outline-none resize-none text-sm"></textarea>
+        <div class="flex justify-between items-center mt-2">
+          <span class="text-xs text-slate-400"><span id="comment-len">0</span>/2000</span>
+          <button id="submit-comment-btn" class="px-5 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50">
+            <i class="fa fa-paper-plane mr-1"></i>发表评论
+          </button>
+        </div>
+      </div>
+      <div id="comment-login-tip" class="hidden mb-6 text-sm text-slate-500 bg-slate-50 rounded-lg p-4 text-center">
+        请先 <a href="login.html" class="text-primary font-medium">登录</a> 后发表评论
+      </div>
+
+      <!-- 评论列表 -->
+      <div id="comments-list" class="space-y-4">
+        <div class="text-center text-slate-400 py-6 text-sm">加载评论中…</div>
+      </div>
+      <div class="text-center mt-4">
+        <button id="load-more-comments" class="hidden px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:border-primary hover:text-primary transition-colors">
+          加载更多评论
+        </button>
+      </div>
+    </section>
   </main>
 
   <!-- 字体大小选择器 -->
@@ -282,6 +340,300 @@
         notification.classList.add('translate-y-10', 'opacity-0');
         setTimeout(() => notification.remove(), 300);
       }, 3000);
+    }
+
+    // 获取认证 token（导出/埋点接口需要登录）
+    function getAuthToken() {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+      return token.startsWith('Bearer ') ? token.substring(7) : token;
+    }
+
+    // 导出故事为 PDF / EPUB：后端 GET /stories/:id/export?format=xxx 返回文件流，
+    // 需带上 Authorization，因此用 fetch 取 blob 再触发浏览器下载。
+    async function exportStory(format) {
+      const params = getUrlParams();
+      const token = getAuthToken();
+      if (!token) {
+        showNotification('请先登录后再导出故事', 'error');
+        return;
+      }
+      const btn = document.getElementById('export-btn');
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+      btn.disabled = true;
+      try {
+        const url = `http://localhost:5000/api/v1/stories/${params.storyId}/export?format=${format}`;
+        const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        if (!resp.ok) {
+          let msg = '导出失败';
+          try { const j = await resp.json(); msg = j.message || msg; } catch (e) {}
+          throw new Error(msg);
+        }
+        const blob = await resp.blob();
+        const title = (currentStory && currentStory.title) ? currentStory.title : ('story-' + params.storyId);
+        const ext = format === 'epub' ? 'epub' : 'pdf';
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `${title}.${ext}`;
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => { URL.revokeObjectURL(link.href); link.remove(); }, 1000);
+        showNotification(`已开始下载 ${ext.toUpperCase()} 文件`, 'success');
+      } catch (error) {
+        showNotification(error.message || '导出失败', 'error');
+      } finally {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+      }
+    }
+
+    // 阅读埋点：记录 from_node → to_node 的跳转，供作者查看阅读分析。
+    // 仅登录用户上报；失败静默（不影响阅读体验）。
+    function recordReadEvent(fromNodeId, toNodeId, choiceText) {
+      const token = getAuthToken();
+      if (!token || !toNodeId) return;
+      const params = getUrlParams();
+      // AI 故事与手动故事的节点都在 story_nodes 表；临时故事(local_)跳过
+      if (!params.storyId || String(params.storyId).startsWith('local_')) return;
+      fetch(`http://localhost:5000/api/v1/stories/${params.storyId}/read-events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          fromNodeId: fromNodeId != null ? String(fromNodeId) : null,
+          toNodeId: String(toNodeId),
+          choiceText: choiceText || null
+        })
+      }).catch(() => {});
+    }
+
+    // ── 故事评分 ──
+    let storyUserRating = 0;
+    let storyAvgRating = 0;
+    let storyRatingCount = 0;
+    // 各星级的反馈文案
+    const RATING_LABELS = { 1: '拉完了...', 2: '有点勉强…', 3: '一般般~', 4: '挺不错！', 5: '夯爆了！' };
+
+    // 星星只创建一次并绑定监听；悬停/选中仅切换 class，避免重建 DOM 导致 click 失效
+    function buildStars() {
+      const box = document.getElementById('story-stars');
+      if (!box || box.dataset.built === '1') return;
+      let html = '';
+      for (let i = 1; i <= 5; i++) {
+        html += `<i class="fa fa-star cursor-pointer transition-colors text-slate-300" data-val="${i}"></i>`;
+      }
+      box.innerHTML = html;
+      box.dataset.built = '1';
+      box.querySelectorAll('[data-val]').forEach(function (star) {
+        const v = parseInt(star.dataset.val, 10);
+        star.addEventListener('mouseenter', function () { highlightStars(v); showRatingHint(v); });
+        star.addEventListener('click', function () { rateStory(v); });
+      });
+      // 鼠标移出整块时恢复到当前评分状态
+      box.addEventListener('mouseleave', function () {
+        highlightStars(storyUserRating || Math.round(storyAvgRating));
+        updateRatingSummary();
+      });
+    }
+
+    // 高亮前 n 颗星（不重建 DOM）
+    function highlightStars(n) {
+      document.querySelectorAll('#story-stars [data-val]').forEach(function (star) {
+        const v = parseInt(star.dataset.val, 10);
+        star.classList.toggle('text-amber-400', v <= n);
+        star.classList.toggle('text-slate-300', v > n);
+      });
+    }
+
+    // 悬停时的即时文案提示
+    function showRatingHint(n) {
+      const el = document.getElementById('story-rating-summary');
+      if (el) el.textContent = `${n} 星 · ${RATING_LABELS[n]}`;
+    }
+
+    function updateRatingSummary() {
+      const el = document.getElementById('story-rating-summary');
+      if (!el) return;
+      let txt = '';
+      if (storyUserRating) txt += `你的评分：${storyUserRating} 星 ${RATING_LABELS[storyUserRating]} · `;
+      txt += storyRatingCount ? `平均 ${storyAvgRating} 分 · ${storyRatingCount} 人评分` : '暂无评分';
+      el.textContent = txt;
+    }
+
+    async function loadStoryRating() {
+      const params = getUrlParams();
+      if (!params.storyId || String(params.storyId).startsWith('local_')) {
+        document.getElementById('rating-block').style.display = 'none';
+        return;
+      }
+      buildStars();
+      try {
+        const token = getAuthToken();
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const resp = await fetch(`http://localhost:5000/api/v1/interactions/stories/${params.storyId}/rating`, { headers });
+        const result = await resp.json();
+        if (resp.ok && result.success && result.data) {
+          storyAvgRating = Number(result.data.averageRating || 0);
+          storyRatingCount = result.data.ratingCount || 0;
+          storyUserRating = result.data.userRating ? result.data.userRating.rating : 0;
+        }
+      } catch (e) { /* 忽略，展示默认 */ }
+      highlightStars(storyUserRating || Math.round(storyAvgRating));
+      updateRatingSummary();
+    }
+
+    async function rateStory(rating) {
+      const params = getUrlParams();
+      const token = getAuthToken();
+      if (!token) { showNotification('请先登录后再评分', 'error'); return; }
+      // 立即给出视觉反馈
+      highlightStars(rating);
+      try {
+        const resp = await fetch(`http://localhost:5000/api/v1/interactions/stories/${params.storyId}/rate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ rating: rating })
+        });
+        const result = await resp.json();
+        if (!resp.ok || !result.success) throw new Error(result.message || '评分失败');
+        storyUserRating = rating;
+        if (result.data) {
+          storyAvgRating = Number(result.data.averageRating || storyAvgRating);
+          storyRatingCount = result.data.ratingCount || storyRatingCount;
+        }
+        highlightStars(storyUserRating);
+        updateRatingSummary();
+        showNotification(`评分成功：${rating} 星 · ${RATING_LABELS[rating]}`, 'success');
+      } catch (e) {
+        // 失败时回退到之前的评分显示
+        highlightStars(storyUserRating || Math.round(storyAvgRating));
+        updateRatingSummary();
+        showNotification(e.message || '评分失败', 'error');
+      }
+    }
+
+    // ── 评论功能 ──
+    let commentPage = 1;
+    let commentTotalPages = 1;
+
+    function getCurrentUser() {
+      try { return (AuthUI.getAuthState() || {}).userInfo || null; } catch (e) { return null; }
+    }
+
+    function initCommentUI() {
+      const user = getCurrentUser();
+      const formWrap = document.getElementById('comment-form-wrap');
+      const loginTip = document.getElementById('comment-login-tip');
+      if (user) { formWrap.classList.remove('hidden'); loginTip.classList.add('hidden'); }
+      else { formWrap.classList.add('hidden'); loginTip.classList.remove('hidden'); }
+
+      const input = document.getElementById('comment-input');
+      if (input) input.addEventListener('input', function () {
+        document.getElementById('comment-len').textContent = this.value.length;
+      });
+      const submitBtn = document.getElementById('submit-comment-btn');
+      if (submitBtn) submitBtn.addEventListener('click', submitComment);
+      const moreBtn = document.getElementById('load-more-comments');
+      if (moreBtn) moreBtn.addEventListener('click', function () { loadComments(commentPage + 1, true); });
+    }
+
+    async function loadComments(page, append) {
+      const params = getUrlParams();
+      const listEl = document.getElementById('comments-list');
+      if (!params.storyId || String(params.storyId).startsWith('local_')) {
+        listEl.innerHTML = '<div class="text-center text-slate-400 py-6 text-sm">该故事暂不支持评论</div>';
+        return;
+      }
+      page = page || 1;
+      try {
+        const resp = await fetch(`http://localhost:5000/api/v1/stories/${params.storyId}/comments?page=${page}&limit=10`);
+        const result = await resp.json();
+        if (!resp.ok || !result.success) throw new Error(result.message || '加载失败');
+        commentPage = result.pagination ? result.pagination.page : page;
+        commentTotalPages = result.pagination ? result.pagination.pages : 1;
+        const comments = result.data || [];
+        const total = result.pagination ? result.pagination.total : comments.length;
+        document.getElementById('comment-count').textContent = total ? `(${total})` : '';
+        if (!append) listEl.innerHTML = '';
+        if (page === 1 && comments.length === 0) {
+          listEl.innerHTML = '<div class="text-center text-slate-400 py-6 text-sm">还没有评论，来抢沙发吧～</div>';
+        } else {
+          comments.forEach(function (c) { listEl.insertAdjacentHTML('beforeend', renderComment(c)); });
+        }
+        const moreBtn = document.getElementById('load-more-comments');
+        if (commentPage < commentTotalPages) moreBtn.classList.remove('hidden'); else moreBtn.classList.add('hidden');
+      } catch (e) {
+        if (!append) listEl.innerHTML = `<div class="text-center text-red-500 py-6 text-sm">评论加载失败：${escapeHtml(e.message)}</div>`;
+      }
+    }
+
+    function renderComment(c) {
+      const user = getCurrentUser();
+      const authorName = (c.author && c.author.username) || '用户';
+      let avatar = (c.author && c.author.avatar) || '/avatar/default.png';
+      if (!avatar.startsWith('http')) avatar = 'http://localhost:5000' + avatar;
+      const canDelete = user && (String(user.userId) === String(c.userId) || user.role === 'admin');
+      const timeStr = c.createdAt ? new Date(c.createdAt).toLocaleString('zh-CN') : '';
+      return `
+        <div class="flex gap-3 p-4 bg-slate-50 rounded-xl">
+          <img src="${avatar}" alt="${escapeHtml(authorName)}" class="w-9 h-9 rounded-full border border-slate-200 flex-shrink-0"
+            onerror="this.onerror=null;this.src='http://localhost:5000/avatar/default.png';">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-medium text-sm text-slate-800">${escapeHtml(authorName)}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-400">${escapeHtml(timeStr)}</span>
+                ${canDelete ? `<button onclick="deleteComment(${c.id})" class="text-xs text-red-400 hover:text-red-600"><i class="fa fa-trash"></i></button>` : ''}
+              </div>
+            </div>
+            <p class="text-sm text-slate-600 mt-1 whitespace-pre-wrap break-words">${escapeHtml(c.content || '')}</p>
+          </div>
+        </div>`;
+    }
+
+    async function submitComment() {
+      const params = getUrlParams();
+      const input = document.getElementById('comment-input');
+      const content = input.value.trim();
+      if (!content) { showNotification('请输入评论内容', 'error'); return; }
+      const token = getAuthToken();
+      if (!token) { showNotification('请先登录后再评论', 'error'); return; }
+      const btn = document.getElementById('submit-comment-btn');
+      btn.disabled = true;
+      try {
+        const resp = await fetch(`http://localhost:5000/api/v1/stories/${params.storyId}/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ content: content })
+        });
+        const result = await resp.json();
+        if (!resp.ok || !result.success) throw new Error(result.message || '发表失败');
+        input.value = '';
+        document.getElementById('comment-len').textContent = '0';
+        showNotification('评论发表成功', 'success');
+        loadComments(1, false);
+      } catch (e) {
+        showNotification(e.message || '发表失败', 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function deleteComment(commentId) {
+      if (!confirm('确定删除这条评论吗？')) return;
+      const token = getAuthToken();
+      if (!token) { showNotification('请先登录', 'error'); return; }
+      try {
+        const resp = await fetch(`http://localhost:5000/api/v1/comments/${commentId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const result = await resp.json();
+        if (!resp.ok || !result.success) throw new Error(result.message || '删除失败');
+        showNotification('评论已删除', 'success');
+        loadComments(1, false);
+      } catch (e) {
+        showNotification(e.message || '删除失败', 'error');
+      }
     }
 
     // API调用函数
@@ -431,7 +783,7 @@
           // 查找根节点（使用isRoot字段）
           targetNode = nodes.find(node => node.isRoot === true || node.isRoot === 1);
           if (!targetNode) {
-            // 如果没有isRoot字段，查找parentId为null的节点
+            // 如果没有isRoot字段，查找parentId?null的节点
           targetNode = nodes.find(node => !node.parentId);
           }
           if (!targetNode) {
@@ -519,9 +871,12 @@
       document.getElementById('story-title').textContent = nodeTitle;
       
       // 更新节点信息
+      // 使用阅读深度（readingHistory.length）作为节点序号，而不是 node.order。
+      // 因为后端对没有 order 的节点（如 AI 生成的节点）统一返回 order=1，
+      // 直接用 node.order 会导致"节点1"永远不变。
       document.getElementById('node-info').innerHTML = `
         <i class="fa fa-code-fork"></i>
-        <span>节点 ${node.order || readingHistory.length || 1}</span>
+        <span>节点 ${readingHistory.length || node.order || 1}</span>
       `;
       
       // 计算阅读时间（假设每分钟200字）
@@ -660,6 +1015,11 @@
       
       const params = getUrlParams();
       
+      // 阅读埋点：记录从当前节点经由该选择跳转到目标节点
+      const fromId = currentNode ? (currentNode.id || currentNode._id || currentNode.temporaryId) : null;
+      const choiceText = choice.text || choice.context || '';
+      recordReadEvent(fromId, targetNodeId, choiceText);
+      
       // 显示加载提示
       showNotification('正在加载下一个节点...', 'info');
       
@@ -794,6 +1154,37 @@
       
       // 然后加载节点
       await loadNode(params.storyId, params.nodeId || 'root');
+      
+      // 埋点：记录进入故事的起始节点（首次阅读）
+      if (currentNode) {
+        recordReadEvent(null, currentNode.id || currentNode._id || currentNode.temporaryId, null);
+      }
+      
+      // 初始化并加载评论区
+      initCommentUI();
+      loadComments(1, false);
+      loadStoryRating();
+      
+      // 导出下拉：点击按钮开合、选择格式后导出、点击空白处关闭
+      const exportBtn = document.getElementById('export-btn');
+      const exportMenu = document.getElementById('export-menu');
+      if (exportBtn && exportMenu) {
+        exportBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          exportMenu.classList.toggle('hidden');
+        });
+        document.querySelectorAll('.export-option').forEach(opt => {
+          opt.addEventListener('click', () => {
+            exportMenu.classList.add('hidden');
+            exportStory(opt.dataset.format);
+          });
+        });
+        document.addEventListener('click', (e) => {
+          if (!document.getElementById('export-wrap').contains(e.target)) {
+            exportMenu.classList.add('hidden');
+          }
+        });
+      }
       
       // 返回按钮
       document.getElementById('back-btn').addEventListener('click', () => {

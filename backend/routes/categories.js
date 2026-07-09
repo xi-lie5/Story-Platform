@@ -20,32 +20,34 @@ router.get('/', async (req, res, next) => {
     
     // 查询分类列表
     const categories = await Category.find();
-    
-    // 手动排序
-    if (sort === 'storyCount') {
-      categories.sort((a, b) => (b.storyCount || 0) - (a.storyCount || 0));
-    } else if (sort === 'createdAt') {
-      categories.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    }
-    
-    // 格式化返回数据，确保包含id字段
-    const responseData = {
-      success: true,
-      count: categories.length,
-      data: categories.map(category => {
-        // category是Category实例，包含id, name, description等字段
+
+    // 实时统计每个分类下的真实故事数量（避免依赖会漂移的 story_count 冗余列）
+    const formatted = await Promise.all(
+      categories.map(async (category) => {
+        const realCount = await Story.countDocuments({ category_id: category.id });
         return {
           id: category.id,
           name: category.name,
           description: category.description || '',
-          storyCount: category.storyCount || category.story_count || 0,
+          storyCount: realCount,
           createdAt: category.created_at,
           updatedAt: category.updated_at
         };
       })
-    };
-    
-    res.status(200).json(responseData);
+    );
+
+    // 手动排序
+    if (sort === 'storyCount') {
+      formatted.sort((a, b) => (b.storyCount || 0) - (a.storyCount || 0));
+    } else if (sort === 'createdAt') {
+      formatted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+
+    res.status(200).json({
+      success: true,
+      count: formatted.length,
+      data: formatted
+    });
   } catch (err) {
     next(err);
   }

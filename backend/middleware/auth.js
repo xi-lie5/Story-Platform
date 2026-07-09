@@ -140,7 +140,7 @@ exports.checkPermission = (requiredRole = 'user') => {
 // 可选的速率限制包装函数（可与express-rate-limit配合使用）
 exports.rateLimitOptions = {
   windowMs: 15 * 60 * 1000, // 15分钟
-  max: 100, // 每IP限制请求数
+  max: 100, // ÿIP限制请求数
   standardHeaders: true,
   legacyHeaders: false,
   message: errorFormat(429, '请求过于频繁，请稍后再试', [], 10009)

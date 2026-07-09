@@ -125,7 +125,7 @@ router.get('/stories', adminGuard, async (req, res, next) => {
       Story.countDocuments(filter)
     ]);
     
-    console.log(`管理员获取故事列表: 状态=${status}, 搜索=${searchTerm || '无'}, 找到 ${stories.length} 个故事 (总共 ${total} 个)`);
+    console.log(`管理员获取故事列表: ״̬=${status}, 搜索=${searchTerm || '无'}, 找到 ${stories.length} 个故事 (总共 ${total} 个)`);
 
     res.status(200).json({
       success: true,
@@ -313,26 +313,37 @@ router.patch('/stories/:storyId/unpublish', adminGuard, async (req, res, next) =
 router.get('/categories', adminGuard, async (req, res, next) => {
   try {
     const categories = await Category.find();
-    // 手动排序
-    categories.sort((a, b) => {
+
+    // 实时统计每个分类下的真实故事数量（直接查 stories 表），
+    // 不再依赖 categories.story_count 冗余列——该列靠手动 +1/-1 维护，
+    // 容易因 AI 故事未计数、删除重复扣减等原因漂移出现负数。
+    const categoriesWithCount = await Promise.all(
+      categories.map(async (category) => {
+        const realCount = await Story.countDocuments({ category_id: category._id || category.id });
+        return {
+          id: category._id || category.id,
+          name: category.name,
+          description: category.description,
+          storyCount: realCount,
+          createdAt: category.createdAt,
+          updatedAt: category.updatedAt
+        };
+      })
+    );
+
+    // 按真实故事数量降序，其次按创建时间降序
+    categoriesWithCount.sort((a, b) => {
       if ((b.storyCount || 0) !== (a.storyCount || 0)) {
         return (b.storyCount || 0) - (a.storyCount || 0);
       }
-      return new Date(b.created_at) - new Date(a.created_at);
+      return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
     res.status(200).json({
       success: true,
       message: '获取分类列表成功',
       data: {
-        categories: categories.map((category) => ({
-          id: category._id,
-          name: category.name,
-          description: category.description,
-          storyCount: category.storyCount,
-          createdAt: category.createdAt,
-          updatedAt: category.updatedAt
-        }))
+        categories: categoriesWithCount
       }
     });
   } catch (error) {

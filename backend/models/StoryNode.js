@@ -505,7 +505,7 @@ class StoryNode {
                   // 检查是否有乱码
                   if (saved.id !== branchId || saved.source_node_id !== sourceNodeId || saved.target_node_id !== targetNodeId) {
                     console.error(`⚠️ 警告：保存的分支数据与原始数据不匹配！`);
-                    console.error(`原始: id=${branchId}, source=${sourceNodeId}, target=${targetNodeId}`);
+                    console.error(`ԭʼ: id=${branchId}, source=${sourceNodeId}, target=${targetNodeId}`);
                     console.error(`保存: id=${saved.id}, source=${saved.source_node_id}, target=${saved.target_node_id}`);
                   }
                 }

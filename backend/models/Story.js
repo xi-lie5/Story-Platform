@@ -1,23 +1,21 @@
-const { pool } = require('../config/database');
+﻿const { pool } = require('../config/database');
 
 class Story {
   /**
    * 创建故事
-   * @param {Object} storyData - 故事数据
-   * @returns {Promise<Object>} 创建的故事对象
    */
   static async create(storyData) {
     const connection = await pool.getConnection();
     try {
-      const { 
-        title, 
-        author, 
-        author_id, 
-        category, 
-        categoryId, 
+      const {
+        title,
+        author,
+        author_id,
+        category,
+        categoryId,
         category_id,
-        coverImage, 
-        cover_image, 
+        coverImage,
+        cover_image,
         description,
         status,
         isPublic,
@@ -28,55 +26,52 @@ class Story {
       const coverImg = coverImage || cover_image;
       const storyStatus = status || 'draft';
       const isPublicValue = isPublic !== undefined ? isPublic : (is_public !== undefined ? is_public : false);
-      
+
       // 验证必填字段
       if (!title || !authorId || !description) {
-        throw new Error('故事标题、作者ID和简介必填');
+        throw new Error('Story title, author ID and description are required');
       }
-      
+
       // 验证长度
       if (title.length > 100) {
-        throw new Error('故事标题不能超过100个字符');
+        throw new Error('Story title cannot exceed 100 characters');
       }
       if (description.length > 500) {
-        throw new Error('故事简介不能超过500个字符');
+        throw new Error('Story description cannot exceed 500 characters');
       }
-      
-      // 验证状态
+
       const validStatuses = ['draft', 'pending', 'published', 'rejected', 'unpublished'];
       if (storyStatus && !validStatuses.includes(storyStatus)) {
         throw new Error(`状态必须是: ${validStatuses.join(', ')}`);
       }
-      
+
       const [result] = await connection.execute(
-        `INSERT INTO stories (title, author_id, category_id, cover_image, description, status, is_public) 
+        `INSERT INTO stories (title, author_id, category_id, cover_image, description, status, is_public)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
-          title.trim(), 
-          authorId, 
+          title.trim(),
+          authorId,
           categoryIdValue || null,
-          coverImg || '/coverImage/1.png', 
+          coverImg || '/coverImage/1.png',
           description.trim(),
           storyStatus,
           isPublicValue
         ]
       );
-      
+
       const [stories] = await connection.execute(
         'SELECT * FROM stories WHERE id = ?',
         [result.insertId]
       );
-      
+
       return stories[0];
     } finally {
       connection.release();
     }
   }
-  
+
   /**
    * 根据ID查找故事
-   * @param {Number} id - 故事ID
-   * @returns {Promise<Object|null>} 故事对象或null
    */
   static async findById(id) {
     const connection = await pool.getConnection();
@@ -90,45 +85,42 @@ class Story {
       connection.release();
     }
   }
-  
+
   /**
-   * 更新故事
-   * @param {Number} id - 故事ID
-   * @param {Object} updateData - 更新数据
-   * @returns {Promise<Object>} 更新后的故事对象
+   * 更新故事（兼容 Mongoose 风格命名）
    */
   static async findByIdAndUpdate(id, updateData) {
     const connection = await pool.getConnection();
     try {
       const fields = [];
       const values = [];
-      
+
       if (updateData.title !== undefined) {
         if (updateData.title.length > 100) {
-          throw new Error('故事标题不能超过100个字符');
+          throw new Error('Story title cannot exceed 100 characters');
         }
         fields.push('title = ?');
         values.push(updateData.title.trim());
       }
-      
+
       if (updateData.description !== undefined) {
         if (updateData.description.length > 500) {
-          throw new Error('故事简介不能超过500个字符');
+          throw new Error('Story description cannot exceed 500 characters');
         }
         fields.push('description = ?');
         values.push(updateData.description.trim());
       }
-      
+
       if (updateData.coverImage !== undefined) {
         fields.push('cover_image = ?');
         values.push(updateData.coverImage);
       }
-      
+
       if (updateData.category !== undefined || updateData.categoryId !== undefined || updateData.category_id !== undefined) {
         fields.push('category_id = ?');
         values.push(updateData.category || updateData.categoryId || updateData.category_id || null);
       }
-      
+
       if (updateData.status !== undefined) {
         const validStatuses = ['draft', 'pending', 'published', 'rejected', 'unpublished'];
         if (!validStatuses.includes(updateData.status)) {
@@ -137,53 +129,61 @@ class Story {
         fields.push('status = ?');
         values.push(updateData.status);
       }
-      
+
       if (updateData.isPublic !== undefined || updateData.is_public !== undefined) {
         fields.push('is_public = ?');
         values.push(updateData.isPublic !== undefined ? updateData.isPublic : updateData.is_public);
       }
-      
+
       if (updateData.viewCount !== undefined || updateData.view_count !== undefined) {
         fields.push('view_count = ?');
         values.push(updateData.viewCount !== undefined ? updateData.viewCount : updateData.view_count);
       }
-      
+
+      if (updateData.rating !== undefined) {
+        fields.push('rating = ?');
+        values.push(updateData.rating);
+      }
+
+      if (updateData.ratingCount !== undefined || updateData.rating_count !== undefined) {
+        fields.push('rating_count = ?');
+        values.push(updateData.ratingCount !== undefined ? updateData.ratingCount : updateData.rating_count);
+      }
+
       if (fields.length === 0) {
         return await this.findById(id);
       }
-      
+
       // 自动更新 updated_at 字段
       fields.push('updated_at = CURRENT_TIMESTAMP');
-      
+
       values.push(id);
-      
+
       await connection.execute(
         `UPDATE stories SET ${fields.join(', ')} WHERE id = ?`,
         values
       );
-      
+
       return await this.findById(id);
     } finally {
       connection.release();
     }
   }
-  
+
   /**
    * 删除故事（级联删除相关数据）
-   * @param {Number} id - 故事ID
-   * @returns {Promise<Boolean>} 是否删除成功
    */
   static async findByIdAndDelete(id) {
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
-      
+
       // 由于外键约束，删除故事会自动级联删除节点、分支和角色
       const [result] = await connection.execute(
         'DELETE FROM stories WHERE id = ?',
         [id]
       );
-      
+
       await connection.commit();
       return result.affectedRows > 0;
     } catch (error) {
@@ -193,12 +193,10 @@ class Story {
       connection.release();
     }
   }
-  
+
   /**
    * 根据作者ID查找故事列表
-   * @param {Number} authorId - 作者ID
-   * @param {Object} options - 查询选项（page, limit, sort）
-   * @returns {Promise<Object>} 故事列表和总数
+   * LIMIT/OFFSET 使用参数化查询（?）防止 SQL 注入
    */
   static async findByAuthor(authorId, options = {}) {
     const connection = await pool.getConnection();
@@ -207,22 +205,22 @@ class Story {
       const limit = options.limit || 10;
       const offset = (page - 1) * limit;
       const sort = options.sort || 'created_at DESC';
-      
+
       // 查询总数
       const [countResult] = await connection.execute(
         'SELECT COUNT(*) as total FROM stories WHERE author_id = ?',
         [authorId]
       );
       const total = countResult[0].total;
-      
-      // 查询列表 - LIMIT和OFFSET直接拼接，因为它们已经通过parseInt验证为整数，是安全的
+
+      // 查询列表 - LIMIT/OFFSET 参数化
       const limitValue = parseInt(limit, 10);
       const offsetValue = parseInt(offset, 10);
       const [stories] = await connection.execute(
-        `SELECT * FROM stories WHERE author_id = ? ORDER BY ${sort} LIMIT ${limitValue} OFFSET ${offsetValue}`,
-        [authorId]
+        `SELECT * FROM stories WHERE author_id = ? ORDER BY ${sort} LIMIT ? OFFSET ?`,
+        [authorId, limitValue, offsetValue]
       );
-      
+
       return {
         stories,
         total,
@@ -237,9 +235,7 @@ class Story {
 
   /**
    * 查找故事（支持多种查询条件）
-   * @param {Object} query - 查询条件
-   * @param {Object} options - 查询选项（sort, limit, skip, populate）
-   * @returns {Promise<Array>} 故事列表
+   * LIMIT/OFFSET 使用参数化查询（?）防止 SQL 注入
    */
   static async find(query = {}, options = {}) {
     const connection = await pool.getConnection();
@@ -259,7 +255,7 @@ class Story {
 
       if (query.status) {
         if (Array.isArray(query.status)) {
-          // 如果status是数组，使用IN查询
+          // 如果 status 是数组，使用 IN 查询
           const placeholders = query.status.map(() => '?').join(',');
           sql += ` AND s.status IN (${placeholders})`;
           params.push(...query.status);
@@ -269,7 +265,6 @@ class Story {
         }
       }
 
-      // 处理isPublic（只处理一次，优先使用isPublic）
       if (query.isPublic !== undefined) {
         sql += ' AND s.is_public = ?';
         params.push(query.isPublic ? 1 : 0);
@@ -278,12 +273,24 @@ class Story {
         params.push(query.is_public ? 1 : 0);
       }
 
-      // 处理搜索查询（使用LIKE）
+      // 创作模式过滤：'manual' 手动创作 / 'ai' AI 互动
+      if (query.creation_mode || query.creationMode) {
+        sql += ' AND s.creation_mode = ?';
+        params.push(query.creation_mode || query.creationMode);
+      }
+
+      // 完结状态过滤：是否存在 type='end' 的结局节点
+      if (query.hasEnding === true) {
+        sql += " AND EXISTS (SELECT 1 FROM story_nodes n WHERE n.story_id = s.id AND n.type = 'end')";
+      } else if (query.hasEnding === false) {
+        sql += " AND NOT EXISTS (SELECT 1 FROM story_nodes n WHERE n.story_id = s.id AND n.type = 'end')";
+      }
+
       let searchPattern = null;
       if (query.search || query.$text) {
         const searchTerm = query.search || (query.$text && query.$text.$search);
         if (searchTerm && searchTerm.trim()) {
-          // 转义搜索模式中的特殊字符，防止SQL注入
+          // 转义搜索模式中的特殊字符，防止 SQL 注入
           const escapedTerm = searchTerm.trim().replace(/[%_\\]/g, '\\$&');
           searchPattern = `%${escapedTerm}%`;
           sql += ' AND (s.title LIKE ? OR s.description LIKE ?)';
@@ -306,35 +313,28 @@ class Story {
       // 排序
       // 如果有搜索，优先按搜索相关性排序（标题匹配优先于描述匹配）
       if (searchPattern) {
-        // 使用CASE WHEN实现优先级排序：
-        // 1. 标题匹配（优先级最高，值为1）- 即使描述也匹配，标题匹配优先级更高
+        // 使用 CASE WHEN 实现优先级排序：
+        // 1. 标题匹配（优先级最高，值为1）
         // 2. 描述匹配但标题不匹配（优先级次之，值为2）
-        // 注意：ORDER BY的CASE WHEN中的参数占位符会按照顺序使用params数组中的值
-        // 我们需要使用转义后的搜索模式作为字符串直接嵌入SQL（因为已经转义，是安全的）
-        // 但为了更好的性能和参数化查询，我们仍然使用参数占位符
-        sql += ` ORDER BY 
-          CASE 
-            WHEN s.title LIKE ? THEN 1 
-            WHEN s.description LIKE ? AND s.title NOT LIKE ? THEN 2 
-            ELSE 2 
+        sql += ` ORDER BY
+          CASE
+            WHEN s.title LIKE ? THEN 1
+            WHEN s.description LIKE ? AND s.title NOT LIKE ? THEN 2
+            ELSE 2
           END ASC`;
-        // 添加搜索模式参数用于ORDER BY的CASE WHEN
-        // 第一个?：检查标题是否匹配
-        // 第二个?：检查描述是否匹配  
-        // 第三个?：确保标题不匹配（与第二个条件一起，确保只有描述匹配但标题不匹配的情况）
         params.push(searchPattern, searchPattern, searchPattern);
-        
+
         // 在搜索优先级排序后，按照原始排序字段排序
         if (options.sort && typeof options.sort === 'object' && Object.keys(options.sort).length > 0) {
-        const sortMap = {
-          'createdAt': 's.created_at',
-          'created_at': 's.created_at',
-          'updatedAt': 's.updated_at',
-          'updated_at': 's.updated_at',
-          'view': 's.view_count',
-          'view_count': 's.view_count',
-          'rating': 's.rating'
-        };
+          const sortMap = {
+            'createdAt': 's.created_at',
+            'created_at': 's.created_at',
+            'updatedAt': 's.updated_at',
+            'updated_at': 's.updated_at',
+            'view': 's.view_count',
+            'view_count': 's.view_count',
+            'rating': 's.rating'
+          };
           const sortKey = Object.keys(options.sort)[0];
           const sortField = sortMap[sortKey] || 's.created_at';
           const sortOrder = options.sort[sortKey] === -1 ? 'DESC' : 'ASC';
@@ -358,34 +358,36 @@ class Story {
           const sortKey = Object.keys(options.sort)[0];
           const sortField = sortMap[sortKey] || 's.created_at';
           const sortOrder = options.sort[sortKey] === -1 ? 'DESC' : 'ASC';
-        sql += ` ORDER BY ${sortField} ${sortOrder}`;
-      } else {
-        sql += ' ORDER BY s.created_at DESC';
-      }
+          sql += ` ORDER BY ${sortField} ${sortOrder}`;
+        } else {
+          sql += ' ORDER BY s.created_at DESC';
+        }
       }
 
-      // 分页 - LIMIT和OFFSET使用字符串拼接，因为它们已经通过parseInt验证，是安全的
+      // LIMIT/OFFSET 参数化
       if (options.limit !== undefined && options.limit !== null) {
         const limitValue = parseInt(options.limit, 10);
         if (!isNaN(limitValue) && limitValue > 0) {
-          sql += ` LIMIT ${limitValue}`;
+          sql += ' LIMIT ?';
+          params.push(limitValue);
         }
       }
 
       if (options.skip !== undefined && options.skip !== null) {
         const skipValue = parseInt(options.skip, 10);
         if (!isNaN(skipValue) && skipValue >= 0) {
-          sql += ` OFFSET ${skipValue}`;
+          sql += ' OFFSET ?';
+          params.push(skipValue);
         }
       }
 
-      const [stories] = await connection.execute(sql, params);
+      const [stories] = await connection.query(sql, params);
 
       // 如果需要 populate category 和 author
       if (options.populate && (options.populate.includes('category') || options.populate.includes('author'))) {
         const Category = require('./Category');
         const User = require('./User');
-        
+
         for (let story of stories) {
           if (options.populate.includes('category') && story.category_id) {
             story.category = await Category.findById(story.category_id);
@@ -403,9 +405,7 @@ class Story {
   }
 
   /**
-   * 统计故事数量
-   * @param {Object} query - 查询条件
-   * @returns {Promise<Number>} 故事数量
+   * 统计故事数量（兼容 Mongoose 风格命名）
    */
   static async countDocuments(query = {}) {
     const connection = await pool.getConnection();
@@ -435,7 +435,6 @@ class Story {
         }
       }
 
-      // 处理isPublic（只处理一次，优先使用isPublic）
       if (query.isPublic !== undefined) {
         sql += ' AND is_public = ?';
         params.push(query.isPublic ? 1 : 0);
@@ -444,7 +443,19 @@ class Story {
         params.push(query.is_public ? 1 : 0);
       }
 
-      // 处理搜索查询（使用LIKE）
+      // 创作模式过滤：'manual' 手动创作 / 'ai' AI 互动
+      if (query.creation_mode || query.creationMode) {
+        sql += ' AND creation_mode = ?';
+        params.push(query.creation_mode || query.creationMode);
+      }
+
+      // 完结状态过滤：是否存在 type='end' 的结局节点（与 find 保持一致）
+      if (query.hasEnding === true) {
+        sql += " AND EXISTS (SELECT 1 FROM story_nodes n WHERE n.story_id = stories.id AND n.type = 'end')";
+      } else if (query.hasEnding === false) {
+        sql += " AND NOT EXISTS (SELECT 1 FROM story_nodes n WHERE n.story_id = stories.id AND n.type = 'end')";
+      }
+
       if (query.search || query.$text) {
         const searchTerm = query.search || (query.$text && query.$text.$search);
         if (searchTerm && searchTerm.trim()) {

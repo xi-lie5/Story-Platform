@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>故事数据分析 - StoryForge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="assets/js/utils.js"></script>
+  <script src="assets/js/auth.js"></script>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800">
+  <main class="container mx-auto max-w-6xl px-4 py-8">
+    <div class="flex items-center justify-between gap-4 mb-6">
+      <div>
+        <a href="my_stories.html" class="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-indigo-600 mb-3"><i class="fa fa-arrow-left"></i>返回我的作品</a>
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-950">故事数据分析</h1>
+        <p id="story-id-label" class="text-sm text-slate-500 mt-1"></p>
+      </div>
+      <button id="refresh-btn" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
+        <i class="fa fa-refresh"></i><span>刷新</span>
+      </button>
+    </div>
+
+    <section id="status" class="bg-white border border-slate-200 rounded-xl p-6 mb-6 text-slate-500">加载中...</section>
+
+    <section id="dashboard" class="hidden space-y-6">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl p-5">
+          <p class="text-sm text-slate-500">总阅读跳转</p>
+          <div id="total-reads" class="text-3xl font-bold text-slate-950 mt-2">0</div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl p-5">
+          <p class="text-sm text-slate-500">独立读者</p>
+          <div id="unique-readers" class="text-3xl font-bold text-slate-950 mt-2">0</div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl p-5">
+          <p class="text-sm text-slate-500">完成率</p>
+          <div id="completion-rate" class="text-3xl font-bold text-slate-950 mt-2">0%</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section class="bg-white border border-slate-200 rounded-xl p-5">
+          <h2 class="font-bold text-lg mb-4">热门选择</h2>
+          <canvas id="choice-chart" height="260"></canvas>
+        </section>
+        <section class="bg-white border border-slate-200 rounded-xl p-5">
+          <h2 class="font-bold text-lg mb-4">完成漏斗</h2>
+          <canvas id="completion-chart" height="260"></canvas>
+        </section>
+      </div>
+
+      <section class="bg-white border border-slate-200 rounded-xl p-5">
+        <h2 class="font-bold text-lg mb-4">路径流向</h2>
+        <div id="path-flow" class="space-y-3"></div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const escapeHtml = window.Utils.escapeHtml;
+    const apiBase = `${window.Utils.getBackendBaseUrl()}/api/v1`;
+    let choiceChart = null;
+    let completionChart = null;
+
+    function getStoryId() {
+      return new URLSearchParams(location.search).get('storyId') || new URLSearchParams(location.search).get('id');
+    }
+
+    function getToken() {
+      return localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+    }
+
+    function authHeaders() {
+      const token = getToken().replace(/^Bearer\s+/i, '');
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    }
+
+    async function loadAnalytics() {
+      const storyId = getStoryId();
+      const status = document.getElementById('status');
+      const dashboard = document.getElementById('dashboard');
+      document.getElementById('story-id-label').textContent = storyId ? `Story ID: ${storyId}` : '';
+      if (!storyId) {
+        status.textContent = '缺少故事 ID';
+        return;
+      }
+      if (!getToken()) {
+        status.innerHTML = '请先登录后查看分析数据。 <a class="text-indigo-600" href="login.html">去登录</a>';
+        return;
+      }
+
+      status.classList.remove('hidden');
+      dashboard.classList.add('hidden');
+      status.textContent = '加载中...';
+
+      try {
+        const response = await fetch(`${apiBase}/stories/${encodeURIComponent(storyId)}/analytics`, { headers: authHeaders() });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.message || '加载失败');
+        renderAnalytics(result.data || {});
+        status.classList.add('hidden');
+        dashboard.classList.remove('hidden');
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    }
+
+    function renderAnalytics(data) {
+      const totalReads = data.total_reads || 0;
+      const uniqueReaders = data.unique_readers || 0;
+      const completionRate = Number(data.completion_rate || 0);
+      document.getElementById('total-reads').textContent = totalReads;
+      document.getElementById('unique-readers').textContent = uniqueReaders;
+      document.getElementById('completion-rate').textContent = `${Math.round(completionRate * 100)}%`;
+
+      const choices = (data.choice_distribution || []).slice(0, 10);
+      if (choiceChart) choiceChart.destroy();
+      choiceChart = new Chart(document.getElementById('choice-chart'), {
+        type: 'bar',
+        data: {
+          labels: choices.map((item) => item.choice_text || item.node_title || item.node_id),
+          datasets: [{ label: '选择次数', data: choices.map((item) => item.count), backgroundColor: '#6366f1' }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+      });
+
+      if (completionChart) completionChart.destroy();
+      completionChart = new Chart(document.getElementById('completion-chart'), {
+        type: 'doughnut',
+        data: {
+          labels: ['完成', '未完成'],
+          datasets: [{ data: [Math.round(completionRate * 100), Math.max(0, 100 - Math.round(completionRate * 100))], backgroundColor: ['#10b981', '#e2e8f0'] }]
+        },
+        options: { responsive: true }
+      });
+
+      const flow = data.path_flow || [];
+      document.getElementById('path-flow').innerHTML = flow.length ? flow.map((item) => `
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg border border-slate-200 p-3">
+          <div class="text-sm text-slate-700"><strong>${escapeHtml(item.from_title || 'Start')}</strong> <span class="text-slate-400">→</span> <strong>${escapeHtml(item.to_title || item.to || '')}</strong><div class="text-xs text-slate-500 mt-1">${escapeHtml(item.choice_text || '')}</div></div>
+          <span class="text-sm font-semibold text-indigo-600">${item.count} 次</span>
+        </div>`).join('') : '<div class="text-center text-slate-500 py-8">暂无路径数据</div>';
+    }
+
+    document.getElementById('refresh-btn').addEventListener('click', loadAnalytics);
+    document.addEventListener('DOMContentLoaded', loadAnalytics);
+  </script>
+</body>
+</html>

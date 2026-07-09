@@ -1,4 +1,4 @@
-const { pool } = require('../config/database');
+﻿const { pool } = require('../config/database');
 
 class UserStoryRating {
   constructor(data = {}) {
@@ -11,55 +11,60 @@ class UserStoryRating {
     this.comment = data.comment;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
+    this.createdAt = data.created_at || data.createdAt;
+    this.updatedAt = data.updated_at || data.updatedAt;
   }
 
-  /**
-   * 创建评分
-   * @param {Object} ratingData - 评分数据
-   * @returns {Promise<UserStoryRating>} 创建的评分实例
-   */
+  static validateRating(rating) {
+    const value = Number(rating);
+    if (!Number.isInteger(value) || value < 1 || value > 5) {
+      throw new Error('Rating must be an integer from 1 to 5');
+    }
+    return value;
+  }
+
+  static validateComment(comment) {
+    if (comment === undefined || comment === null || comment === '') {
+      return null;
+    }
+    const value = String(comment).trim();
+    if (value.length > 500) {
+      throw new Error('Comment cannot exceed 500 characters');
+    }
+    return value || null;
+  }
+
   static async create(ratingData) {
     const connection = await pool.getConnection();
     try {
-      const { userId, user_id, storyId, story_id, rating, comment } = ratingData;
-      const userIdValue = userId || user_id;
-      const storyIdValue = storyId || story_id;
+      const userId = ratingData.userId || ratingData.user_id;
+      const storyId = ratingData.storyId || ratingData.story_id;
+      const rating = this.validateRating(ratingData.rating);
+      const comment = this.validateComment(ratingData.comment);
 
-      // 验证必填字段
-      if (!userIdValue || !storyIdValue || !rating) {
-        throw new Error('用户ID、故事ID和评分必填');
+      if (!userId || !storyId) {
+        throw new Error('User ID and story ID are required');
       }
 
-      // 验证评分范围
-      if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-        throw new Error('评分必须是1-5之间的整数');
-      }
-
-      // 验证评论长度
-      if (comment && comment.length > 500) {
-        throw new Error('评论不能超过500个字符');
-      }
-
-      // 检查是否已评分
       const [existing] = await connection.execute(
         'SELECT id FROM user_story_ratings WHERE user_id = ? AND story_id = ?',
-        [userIdValue, storyIdValue]
+        [userId, storyId]
       );
 
       if (existing.length > 0) {
-        // 更新现有评分
         await connection.execute(
-          `UPDATE user_story_ratings SET rating = ?, comment = ?, updated_at = CURRENT_TIMESTAMP 
+          `UPDATE user_story_ratings
+           SET rating = ?, comment = ?, updated_at = CURRENT_TIMESTAMP
            WHERE user_id = ? AND story_id = ?`,
-          [rating, comment || null, userIdValue, storyIdValue]
+          [rating, comment, userId, storyId]
         );
-        return await this.findOne({ userId: userIdValue, storyId: storyIdValue });
+        return await this.findOne({ userId, storyId });
       }
 
       const [result] = await connection.execute(
-        `INSERT INTO user_story_ratings (user_id, story_id, rating, comment) 
+        `INSERT INTO user_story_ratings (user_id, story_id, rating, comment)
          VALUES (?, ?, ?, ?)`,
-        [userIdValue, storyIdValue, rating, comment || null]
+        [userId, storyId, rating, comment]
       );
 
       return await this.findById(result.insertId);
@@ -68,11 +73,6 @@ class UserStoryRating {
     }
   }
 
-  /**
-   * 根据ID查找评分
-   * @param {Number} id - 评分ID
-   * @returns {Promise<UserStoryRating|null>} 评分实例或null
-   */
   static async findById(id) {
     const connection = await pool.getConnection();
     try {
@@ -86,11 +86,6 @@ class UserStoryRating {
     }
   }
 
-  /**
-   * 查找评分（支持多种查询条件）
-   * @param {Object} query - 查询条件
-   * @returns {Promise<UserStoryRating|null>} 评分实例或null
-   */
   static async findOne(query) {
     const connection = await pool.getConnection();
     try {
@@ -108,7 +103,6 @@ class UserStoryRating {
       }
 
       sql += ' LIMIT 1';
-
       const [ratings] = await connection.execute(sql, params);
       return ratings.length > 0 ? new UserStoryRating(ratings[0]) : null;
     } finally {
@@ -116,49 +110,39 @@ class UserStoryRating {
     }
   }
 
-  /**
-   * 查找并更新评分
-   * @param {Object} query - 查询条件
-   * @param {Object} updateData - 更新数据
-   * @returns {Promise<UserStoryRating|null>} 更新后的评分实例
-   */
-  static async findOneAndUpdate(query, updateData) {
+  static async findOneAndUpdate(query, updateData = {}, options = {}) {
+    const existing = await this.findOne(query);
+    if (!existing && options.upsert) {
+      return await this.create({ ...query, ...updateData });
+    }
+    if (!existing) {
+      return null;
+    }
+
     const connection = await pool.getConnection();
     try {
-      const rating = await this.findOne(query);
-      if (!rating) {
-        return null;
-      }
-
       const fields = [];
       const values = [];
 
       if (updateData.rating !== undefined) {
-        if (!Number.isInteger(updateData.rating) || updateData.rating < 1 || updateData.rating > 5) {
-          throw new Error('评分必须是1-5之间的整数');
-        }
         fields.push('rating = ?');
-        values.push(updateData.rating);
+        values.push(this.validateRating(updateData.rating));
       }
 
       if (updateData.comment !== undefined) {
-        if (updateData.comment && updateData.comment.length > 500) {
-          throw new Error('评论不能超过500个字符');
-        }
         fields.push('comment = ?');
-        values.push(updateData.comment || null);
+        values.push(this.validateComment(updateData.comment));
       }
 
       if (fields.length === 0) {
-        return rating;
+        return existing;
       }
 
       fields.push('updated_at = CURRENT_TIMESTAMP');
-      values.push(rating.userId, rating.storyId);
+      values.push(existing.userId, existing.storyId);
 
       await connection.execute(
-        `UPDATE user_story_ratings SET ${fields.join(', ')} 
-         WHERE user_id = ? AND story_id = ?`,
+        `UPDATE user_story_ratings SET ${fields.join(', ')} WHERE user_id = ? AND story_id = ?`,
         values
       );
 
@@ -168,11 +152,6 @@ class UserStoryRating {
     }
   }
 
-  /**
-   * 查找所有评分
-   * @param {Object} query - 查询条件
-   * @returns {Promise<Array>} 评分列表
-   */
   static async find(query = {}) {
     const connection = await pool.getConnection();
     try {
@@ -189,30 +168,25 @@ class UserStoryRating {
         params.push(query.storyId || query.story_id);
       }
 
-      sql += ' ORDER BY created_at DESC';
+      sql += ' ORDER BY updated_at DESC';
 
       if (query.limit) {
-        sql += ' LIMIT ?';
-        params.push(query.limit);
+        const limit = Math.max(0, parseInt(query.limit, 10) || 0);
+        sql += ` LIMIT ${limit}`;
       }
 
       if (query.skip) {
-        sql += ' OFFSET ?';
-        params.push(query.skip);
+        const skip = Math.max(0, parseInt(query.skip, 10) || 0);
+        sql += ` OFFSET ${skip}`;
       }
 
-      const [ratings] = await connection.execute(sql, params);
-      return ratings.map(r => new UserStoryRating(r));
+      const [ratings] = await connection.query(sql, params);
+      return ratings.map((row) => new UserStoryRating(row));
     } finally {
       connection.release();
     }
   }
 
-  /**
-   * 删除评分
-   * @param {Number} id - 评分ID
-   * @returns {Promise<Boolean>} 是否删除成功
-   */
   static async findByIdAndDelete(id) {
     const connection = await pool.getConnection();
     try {
@@ -226,12 +200,6 @@ class UserStoryRating {
     }
   }
 
-  /**
-   * 根据用户和故事删除评分
-   * @param {Number} userId - 用户ID
-   * @param {Number} storyId - 故事ID
-   * @returns {Promise<Boolean>} 是否删除成功
-   */
   static async deleteByUserAndStory(userId, storyId) {
     const connection = await pool.getConnection();
     try {
@@ -245,26 +213,27 @@ class UserStoryRating {
     }
   }
 
-  /**
-   * 计算故事的平均评分
-   * @param {Number} storyId - 故事ID
-   * @returns {Promise<Object>} 评分统计
-   */
+  static async findOneAndDelete(query = {}) {
+    const existing = await this.findOne(query);
+    if (!existing) {
+      return null;
+    }
+    await this.findByIdAndDelete(existing.id);
+    return existing;
+  }
+
   static async getStoryRatingStats(storyId) {
     const connection = await pool.getConnection();
     try {
       const [result] = await connection.execute(
-        `SELECT 
-          COUNT(*) as count,
-          AVG(rating) as average,
-          SUM(rating) as total
-         FROM user_story_ratings 
+        `SELECT COUNT(*) AS count, AVG(rating) AS average, SUM(rating) AS total
+         FROM user_story_ratings
          WHERE story_id = ?`,
         [storyId]
       );
       return {
         count: result[0].count || 0,
-        average: result[0].average ? parseFloat(result[0].average).toFixed(2) : 0,
+        average: result[0].average ? Number(result[0].average) : 0,
         total: result[0].total || 0
       };
     } finally {

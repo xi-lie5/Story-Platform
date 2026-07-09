@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Story Reader - StoryForge</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="styles.css">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/components.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/navbar.js"></script>
+<script src="assets/js/api-config.js?v=20260708"></script>
+<style>
+:root { --reader-bg: #0a0a14; --accent: #818cf8; }
+body { background: var(--reader-bg); min-height: 100vh; color: #d1d5db; font-family: Georgia, "Noto Serif SC", serif; }
+.reader-container { max-width: 720px; margin: 0 auto; padding: 2rem 1rem 8rem; }
+.story-content { font-size: 1.15rem; line-height: 2; white-space: pre-wrap; }
+.node-title { font-size: 1.5rem; font-weight: 700; color: #e2e8f0; margin-bottom: 1.5rem; text-align: center; }
+.choices-section { position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(10,10,20,0.95) 20%, rgba(10,10,20,1)); padding: 1.5rem 1rem 2rem; z-index: 10; }
+.choices-section::before { content: ""; display: block; height: 1px; background: linear-gradient(90deg, transparent, rgba(129,140,248,0.3), transparent); margin-bottom: 1.25rem; }
+.choice-btn { display: block; width: 100%; text-align: left; padding: 1rem 1.25rem; margin-bottom: 0.6rem; border-radius: 10px; border: 1px solid rgba(129,140,248,0.2); background: rgba(129,140,248,0.06); color: #e2e8f0; cursor: pointer; transition: all 0.2s; font-size: 0.95rem; }
+.choice-btn:hover { border-color: var(--accent); background: rgba(129,140,248,0.12); transform: translateX(2px); }
+.choice-btn .hint { display: block; font-size: 0.78rem; color: #64748b; margin-top: 0.3rem; }
+.choice-indicator { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--accent); margin-bottom: 0.6rem; font-family: system-ui, sans-serif; }
+.loading-state { text-align: center; padding: 2rem; }
+.loading-state .dots { display: inline-flex; gap: 0.3rem; }
+.loading-state .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(129,140,248,0.5); animation: pulse 1.2s infinite; }
+.loading-state .dot:nth-child(2) { animation-delay: 0.2s; }
+.loading-state .dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse { 0%,100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.2); } }
+.fade-in { animation: fadeIn 0.6s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.toolbar { display: flex; gap: 0.5rem; justify-content: center; margin: 1.5rem 0; flex-wrap: wrap; }
+.toolbar button { padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: #94a3b8; cursor: pointer; font-size: 0.85rem; }
+.toolbar button:hover { color: #e2e8f0; border-color: rgba(255,255,255,0.2); }
+.story-header { text-align: center; margin-bottom: 1rem; }
+.ai-badge { display: inline-block; padding: 0.2rem 0.7rem; border-radius: 6px; font-size: 0.75rem; background: rgba(99,102,241,0.2); color: #a5b4fc; font-family: system-ui, sans-serif; }
+.progress-text { font-size: 0.8rem; color: #64748b; text-align: center; font-family: system-ui, sans-serif; margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+<div id="navbar"></div>
+
+<div class="reader-container" id="readerContainer">
+  <div class="story-header">
+    <span class="ai-badge"><i class="fas fa-robot mr-1"></i>AI Interactive Story</span>
+    <h1 class="text-xl font-bold mt-2" id="storyTitle">Loading...</h1>
+  </div>
+  <div class="progress-text" id="progressText"></div>
+  <div class="toolbar" id="toolbar" style="display:none">
+    <button onclick="regenerateCurrent()"><i class="fas fa-redo mr-1"></i>Regenerate</button>
+    <button onclick="goBack()"><i class="fas fa-undo mr-1"></i>Go Back</button>
+  </div>
+  <div id="contentArea">
+    <div class="loading-state"><p class="text-slate-400">Loading story...</p><div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>
+  </div>
+</div>
+
+<div class="choices-section" id="choicesSection" style="display:none">
+  <div class="choice-indicator">Make your choice</div>
+  <div id="choicesList"></div>
+</div>
+
+<script>
+
+let storyId = null;
+let currentNodeId = null;
+let currentContent = null;
+let currentNodeTitle = null;
+let readingHistory = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+  AuthUI.requireAuth();
+  const params = new URLSearchParams(window.location.search);
+  storyId = params.get('storyId');
+  if (!storyId) { alert('No story ID'); return; }
+  loadSession();
+});
+
+async function loadSession() {
+  try {
+    const res = await API_CONFIG.get(API_CONFIG.buildUrl('/aiStory/story/' + storyId + '/session'));
+    if (res.success && res.data.currentNode) {
+      const node = res.data.currentNode;
+      currentNodeId = node.id;
+      currentContent = node.content;
+      currentNodeTitle = node.title;
+      document.getElementById('storyTitle').textContent = currentNodeTitle;
+      document.getElementById('progressText').textContent = 'Nodes: ' + (res.data.session.totalNodes || 0);
+      document.getElementById('toolbar').style.display = 'flex';
+      renderContent();
+    } else {
+      document.getElementById('contentArea').innerHTML = '<p class="text-center text-slate-500 mt-8">No session found. Create a story in AI Workshop first.</p>';
+    }
+  } catch(e) {
+    document.getElementById('contentArea').innerHTML = '<p class="text-center text-red-400 mt-8">Load failed: ' + e.message + '</p>';
+  }
+}
+
+function renderContent() {
+  document.getElementById('contentArea').innerHTML = '<div class="fade-in"><div class="node-title">' + currentNodeTitle + '</div><div class="story-content">' + currentContent + '</div></div>';
+  loadChoices();
+}
+
+async function loadChoices() {
+  if (!currentNodeId) return;
+  try {
+    const [storiesRes, nodesRes] = await Promise.all([
+      API_CONFIG.get(API_CONFIG.buildUrl('/storyNodes/stories/' + storyId + '/nodes')),
+      API_CONFIG.get(API_CONFIG.buildUrl('/storyNodes/nodes/' + currentNodeId))
+    ]);
+    const allNodes = nodesRes.data || nodesRes || [];
+    const children = allNodes.filter(n => {
+      if (Array.isArray(n)) return false;
+      return n.id !== currentNodeId;
+    });
+    // Find branches from current node
+    try {
+      const branchRes = await API_CONFIG.get(API_CONFIG.buildUrl('/branches?nodeId=' + currentNodeId));
+      const branches = branchRes.data || [];
+      if (branches.length > 0) {
+        renderChoices(branches.map(b => ({ text: b.context, nodeId: b.target_node_id || b.targetNodeId, hint: '' })));
+        return;
+      }
+    } catch(e) {}
+    // Also try via story nodes API
+    const [storyNodeRes] = await Promise.all([
+      API_CONFIG.get(API_CONFIG.buildUrl('/storyNodes/stories/' + storyId + '/nodes'))
+    ]);
+    const storyNodes = storyNodeRes.data || [];
+    if (Array.isArray(storyNodes)) {
+      const currentIdx = storyNodes.findIndex(n => n.id === currentNodeId);
+      if (currentIdx >= 0 && currentIdx + 1 < storyNodes.length) {
+        const nextNodes = [];
+        for (let i = currentIdx + 1; i < Math.min(currentIdx + 4, storyNodes.length); i++) {
+          const n = storyNodes[i];
+          if (n.title && n.type === 'branch') {
+            nextNodes.push({ text: n.title, nodeId: n.id, hint: '' });
+          }
+        }
+        if (nextNodes.length > 0) {
+          renderChoices(nextNodes);
+          return;
+        }
+      }
+    }
+    document.getElementById('choicesSection').style.display = 'none';
+  } catch(e) {
+    console.warn('Failed to load choices:', e);
+    document.getElementById('choicesSection').style.display = 'none';
+  }
+}
+
+function renderChoices(choices) {
+  if (!choices || choices.length === 0) {
+    document.getElementById('choicesSection').style.display = 'none';
+    return;
+  }
+  document.getElementById('choicesSection').style.display = 'block';
+  window._readerChoices = choices;
+  var html = '';
+  for (var i = 0; i < choices.length; i++) {
+    var ch = choices[i];
+    html += '<button class="choice-btn fade-in" style="animation-delay:' + (i*0.1) + 's" data-choice="' + i + '">' + (ch.text || '') + (ch.hint ? '<span class="hint">' + ch.hint + '</span>' : '') + '</button>';
+  }
+  document.getElementById('choicesList').innerHTML = html;
+  document.getElementById('choicesList').onclick = function(e) {
+    var btn = e.target.closest('.choice-btn');
+    if (btn && window._readerChoices) {
+      var idx = parseInt(btn.getAttribute('data-choice'));
+      if (!isNaN(idx) && window._readerChoices[idx]) {
+        selectChoice(window._readerChoices[idx].text);
+      }
+    }
+  };
+}
+
+function goBack() {
+  if (readingHistory.length === 0) return;
+  const prev = readingHistory.pop();
+  currentNodeId = prev.nodeId;
+  currentContent = prev.content;
+  currentNodeTitle = prev.title;
+  document.getElementById('storyTitle').textContent = currentNodeTitle;
+  renderContent();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function regenerateCurrent() {
+  if (!currentNodeId) return;
+  document.getElementById('choicesSection').style.display = 'none';
+  document.getElementById('contentArea').innerHTML = '<div class="loading-state fade-in"><p class="text-slate-400 mb-2">Regenerating...</p><div class="dots mt-3"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>';
+  // For now use generate with a special prompt
+  try {
+    const res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/story/' + storyId + '/generate'), { nodeId: currentNodeId, choice: '(regenerate: continue the story)' }, { timeout: 180000 });
+    if (res.success) {
+      currentContent = res.data.content;
+      currentNodeTitle = res.data.title;
+      renderContent();
+    }
+  } catch(e) {
+    document.getElementById('contentArea').innerHTML = '<p class="text-center text-red-400 mt-8">Regenerate failed: ' + e.message + '<br><button class="btn-primary mt-3" onclick="renderContent()">Back</button></p>';
+  }
+}
+
+</script>
+</body>
+</html>

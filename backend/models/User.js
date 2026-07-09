@@ -46,7 +46,7 @@ class User {
         throw new Error('用户名长度必须在3-30个字符之间');
       }
       if (password.length < 8) {
-        throw new Error('密码长度不能少于8位');
+        throw new Error('密码长度不能少于8λ');
       }
 
       // 验证邮箱格式

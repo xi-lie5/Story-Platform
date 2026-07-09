@@ -1,5 +1,12 @@
-const { pool } = require('../config/database');
+﻿const { pool } = require('../config/database');
 
+/**
+ * 收藏模型（旧版，操作 collections 表）
+ *
+ * 注意：此模型与 UserStoryFavorite（操作 user_story_favorites 表）功能重叠。
+ * interactions 路由使用 UserStoryFavorite，users 路由中 Collection.countByUser 用于统计。
+ * 建议后续统一使用 UserStoryFavorite 并删除此模型及 collections 表。
+ */
 class Collection {
   constructor(data = {}) {
     this.id = data.id;
@@ -13,8 +20,6 @@ class Collection {
 
   /**
    * 创建收藏
-   * @param {Object} collectionData - 收藏数据
-   * @returns {Promise<Collection>} 创建的收藏实例
    */
   static async create(collectionData) {
     const connection = await pool.getConnection();
@@ -23,12 +28,10 @@ class Collection {
       const userIdValue = userId || user_id;
       const storyIdValue = storyId || story_id;
 
-      // 验证必填字段
       if (!userIdValue || !storyIdValue) {
         throw new Error('用户ID和故事ID必填');
       }
 
-      // 检查是否已收藏
       const [existing] = await connection.execute(
         'SELECT id FROM collections WHERE user_id = ? AND story_id = ?',
         [userIdValue, storyIdValue]
@@ -38,8 +41,7 @@ class Collection {
       }
 
       const [result] = await connection.execute(
-        `INSERT INTO collections (user_id, story_id) 
-         VALUES (?, ?)`,
+        `INSERT INTO collections (user_id, story_id) VALUES (?, ?)`,
         [userIdValue, storyIdValue]
       );
 
@@ -51,8 +53,6 @@ class Collection {
 
   /**
    * 根据ID查找收藏
-   * @param {Number} id - 收藏ID
-   * @returns {Promise<Collection|null>} 收藏实例或null
    */
   static async findById(id) {
     const connection = await pool.getConnection();
@@ -69,27 +69,15 @@ class Collection {
 
   /**
    * 查找收藏（支持多种查询条件）
-   * @param {Object} query - 查询条件
-   * @returns {Promise<Collection|null>} 收藏实例或null
    */
   static async findOne(query) {
     const connection = await pool.getConnection();
     try {
       let sql = 'SELECT * FROM collections WHERE 1=1';
       const params = [];
-
-      if (query.user || query.userId || query.user_id) {
-        sql += ' AND user_id = ?';
-        params.push(query.user || query.userId || query.user_id);
-      }
-
-      if (query.story || query.storyId || query.story_id) {
-        sql += ' AND story_id = ?';
-        params.push(query.story || query.storyId || query.story_id);
-      }
-
+      if (query.user || query.userId || query.user_id) { sql += ' AND user_id = ?'; params.push(query.user || query.userId || query.user_id); }
+      if (query.story || query.storyId || query.story_id) { sql += ' AND story_id = ?'; params.push(query.story || query.storyId || query.story_id); }
       sql += ' LIMIT 1';
-
       const [collections] = await connection.execute(sql, params);
       return collections.length > 0 ? new Collection(collections[0]) : null;
     } finally {
@@ -99,38 +87,27 @@ class Collection {
 
   /**
    * 查找所有收藏
-   * @param {Object} query - 查询条件
-   * @returns {Promise<Array>} 收藏列表
+   * LIMIT/OFFSET 使用参数化查询（?）防止 SQL 注入
    */
   static async find(query = {}) {
     const connection = await pool.getConnection();
     try {
       let sql = 'SELECT * FROM collections WHERE 1=1';
       const params = [];
-
-      if (query.user || query.userId || query.user_id) {
-        sql += ' AND user_id = ?';
-        params.push(query.user || query.userId || query.user_id);
-      }
-
-      if (query.story || query.storyId || query.story_id) {
-        sql += ' AND story_id = ?';
-        params.push(query.story || query.storyId || query.story_id);
-      }
-
+      if (query.user || query.userId || query.user_id) { sql += ' AND user_id = ?'; params.push(query.user || query.userId || query.user_id); }
+      if (query.story || query.storyId || query.story_id) { sql += ' AND story_id = ?'; params.push(query.story || query.storyId || query.story_id); }
       sql += ' ORDER BY collected_at DESC';
-
       if (query.limit) {
+        const limit = Math.max(0, parseInt(query.limit, 10) || 0);
         sql += ' LIMIT ?';
-        params.push(query.limit);
+        params.push(limit);
       }
-
       if (query.skip) {
+        const skip = Math.max(0, parseInt(query.skip, 10) || 0);
         sql += ' OFFSET ?';
-        params.push(query.skip);
+        params.push(skip);
       }
-
-      const [collections] = await connection.execute(sql, params);
+      const [collections] = await connection.query(sql, params);
       return collections.map(c => new Collection(c));
     } finally {
       connection.release();
@@ -139,16 +116,11 @@ class Collection {
 
   /**
    * 删除收藏
-   * @param {Number} id - 收藏ID
-   * @returns {Promise<Boolean>} 是否删除成功
    */
   static async findByIdAndDelete(id) {
     const connection = await pool.getConnection();
     try {
-      const [result] = await connection.execute(
-        'DELETE FROM collections WHERE id = ?',
-        [id]
-      );
+      const [result] = await connection.execute('DELETE FROM collections WHERE id = ?', [id]);
       return result.affectedRows > 0;
     } finally {
       connection.release();
@@ -157,9 +129,6 @@ class Collection {
 
   /**
    * 根据用户和故事删除收藏
-   * @param {Number} userId - 用户ID
-   * @param {Number} storyId - 故事ID
-   * @returns {Promise<Boolean>} 是否删除成功
    */
   static async deleteByUserAndStory(userId, storyId) {
     const connection = await pool.getConnection();
@@ -176,8 +145,6 @@ class Collection {
 
   /**
    * 统计用户收藏数量
-   * @param {Number} userId - 用户ID
-   * @returns {Promise<Number>} 收藏数量
    */
   static async countByUser(userId) {
     const connection = await pool.getConnection();

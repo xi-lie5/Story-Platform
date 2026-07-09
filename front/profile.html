@@ -682,7 +682,7 @@
           throw new Error('请先登录');
         }
         
-        // 获取所有作品，设置一个较大的limit值
+        // 获取所有作品，设置一个较大的limit?
         const storiesResponse = await fetch(`http://localhost:5000/api/v1/admin/stories?status=${status === 'all' ? '' : status}&limit=1000&page=1`, {
           headers: {
             'Authorization': `Bearer ${currentToken}`
@@ -1197,7 +1197,7 @@
             const stats = data.data;
             
             // 更新创作统计页面
-            // 已发布故事：只有 status 为 'published' 的才算
+            // 已发布故事：只有 status ? 'published' 的才算
             document.getElementById('stories-count').textContent = stats.publishedStories || 0;
             // 创作中：包括 draft, pending, rejected, unpublished 等所有非已发布状态
             document.getElementById('profile-drafts').textContent = stats.draftStories || 0;

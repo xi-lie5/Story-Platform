@@ -1,291 +1,228 @@
-const express = require('express');
+﻿const express = require('express');
 const { body, validationResult, param } = require('express-validator');
 const authGuard = require('../middleware/auth');
 const Story = require('../models/Story');
 const UserStoryFavorite = require('../models/UserStoryFavorite');
 const UserStoryRating = require('../models/UserStoryRating');
+const StoryComment = require('../models/StoryComment');
 const { errorFormat } = require('../utils/errorFormat');
 const { isValidIntegerId } = require('../utils/idValidator');
 
 const router = express.Router();
 
-/**
- * @route POST /api/v1/interactions/stories/:storyId/favorite
- * @desc 添加/取消收藏故事
- * @access Private
- */
-router.post('/stories/:storyId/favorite', authGuard, [
-  param('storyId').custom(value => {
-    if (!isValidIntegerId(value) && !value.startsWith('local_')) {
-      throw new Error('无效的故事ID');
-    }
-    return true;
-  })
-], async (req, res, next) => {
+const validationErrors = (req) => validationResult(req).array().map((err) => ({
+  field: err.path || err.param,
+  message: err.msg
+}));
+
+const validateStoryId = param('storyId').custom((value) => {
+  if (!isValidIntegerId(value) && !String(value).startsWith('local_')) {
+    throw new Error('Invalid story ID');
+  }
+  return true;
+});
+
+const isTemporaryStory = (storyId) => String(storyId).startsWith('local_');
+const toStoryId = (storyId) => parseInt(storyId, 10);
+
+async function ensureStory(storyId, next) {
+  const story = await Story.findById(storyId);
+  if (!story) {
+    next(errorFormat(404, 'Story not found', [], 10010));
+    return null;
+  }
+  return story;
+}
+
+async function recalculateRating(storyId) {
+  const stats = await UserStoryRating.getStoryRatingStats(storyId);
+  await Story.findByIdAndUpdate(storyId, {
+    rating: stats.average,
+    ratingCount: stats.count
+  });
+  return stats;
+}
+
+router.post('/stories/:storyId/favorite', authGuard, [validateStoryId], async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return next(errorFormat(400, '参数验证失败', errors.array().map((err) => ({ field: err.param, message: err.msg })), 10001));
+    return next(errorFormat(400, 'Invalid request parameters', validationErrors(req), 10001));
   }
 
   try {
     const { storyId } = req.params;
     const userId = req.user.id;
 
-    // 对于临时故事，返回模拟响应
-    if (storyId.startsWith('local_')) {
+    if (isTemporaryStory(storyId)) {
       return res.status(200).json({
         success: true,
-        message: '临时故事不支持收藏操作',
+        message: 'Temporary stories do not support favorites',
         isFavorite: false,
         isTemporary: true
       });
     }
 
-    // 检查故事是否存在
-    const story = await Story.findById(storyId);
-    if (!story) {
-      return next(errorFormat(404, '故事不存在', [], 10010));
-    }
+    const story = await ensureStory(toStoryId(storyId), next);
+    if (!story) return null;
 
-    // 检查是否已收藏
-    const existingFavorite = await UserStoryFavorite.findOne({ userId, storyId });
-    
+    const existingFavorite = await UserStoryFavorite.findOne({ userId, storyId: toStoryId(storyId) });
     if (existingFavorite) {
-      // 取消收藏
       await UserStoryFavorite.findByIdAndDelete(existingFavorite.id);
-      
-      // 减少故事的收藏计数（如果需要，可以在Story模型中添加favoriteCount字段）
-      // await Story.findByIdAndUpdate(storyId, { favoriteCount: (story.favoriteCount || 0) - 1 });
-      
       return res.status(200).json({
         success: true,
-        message: '取消收藏成功',
+        message: 'Favorite removed',
         isFavorite: false,
         isTemporary: false
       });
-    } else {
-      // 添加收藏
-      await UserStoryFavorite.create({ userId, storyId });
-      
-      // 增加故事的收藏计数（如果需要，可以在Story模型中添加favoriteCount字段）
-      // await Story.findByIdAndUpdate(storyId, { favoriteCount: (story.favoriteCount || 0) + 1 });
-      
-      return res.status(200).json({
-        success: true,
-        message: '收藏成功',
-        isFavorite: true,
-        isTemporary: false
-      });
     }
+
+    await UserStoryFavorite.create({ userId, storyId: toStoryId(storyId) });
+    return res.status(200).json({
+      success: true,
+      message: 'Favorite added',
+      isFavorite: true,
+      isTemporary: false
+    });
   } catch (error) {
-    if (error.code === 11000) {
-      return next(errorFormat(400, '操作冲突，请重试', [], 10003));
+    if (error.code === 11000 || /favorite/i.test(error.message)) {
+      return next(errorFormat(400, 'Favorite operation conflict', [], 10003));
     }
-    next(error);
+    return next(error);
   }
 });
 
-/**
- * @route GET /api/v1/interactions/stories/:storyId/favorite/status
- * @desc 获取用户对故事的收藏状态
- * @access Private
- */
-router.get('/stories/:storyId/favorite/status', authGuard, [
-  param('storyId').custom(value => {
-    if (!isValidIntegerId(value) && !value.startsWith('local_')) {
-      throw new Error('无效的故事ID');
-    }
-    return true;
-  })
-], async (req, res, next) => {
+router.get('/stories/:storyId/favorite/status', authGuard, [validateStoryId], async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return next(errorFormat(400, '参数验证失败', errors.array().map((err) => ({ field: err.param, message: err.msg })), 10001));
+    return next(errorFormat(400, 'Invalid request parameters', validationErrors(req), 10001));
   }
 
   try {
     const { storyId } = req.params;
     const userId = req.user.id;
 
-    // 对于临时故事，返回默认状态
-    if (storyId.startsWith('local_')) {
+    if (isTemporaryStory(storyId)) {
       return res.status(200).json({
         success: true,
-        data: {
-          isFavorited: false,
-          favoriteCount: 0,
-          isTemporary: true
-        }
+        data: { isFavorited: false, favoriteCount: 0, isTemporary: true }
       });
     }
 
-    // 检查故事是否存在
-    const story = await Story.findById(storyId);
-    if (!story) {
-      return next(errorFormat(404, '故事不存在', [], 10010));
-    }
+    const story = await ensureStory(toStoryId(storyId), next);
+    if (!story) return null;
 
-    // 检查收藏状态
-    const isFavorite = await UserStoryFavorite.exists({ userId, storyId });
-    
+    const favorite = await UserStoryFavorite.findOne({ userId, storyId: toStoryId(storyId) });
     return res.status(200).json({
       success: true,
       data: {
-        isFavorited: Boolean(isFavorite),
-        favoriteCount: story.favoriteCount || 0,
+        isFavorited: Boolean(favorite),
+        favoriteCount: story.favorite_count || story.favoriteCount || 0,
         isTemporary: false
       }
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
-/**
- * @route GET /api/v1/interactions/user/favorites
- * @desc 获取用户的收藏列表
- * @access Private
- */
 router.get('/user/favorites', authGuard, async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 100);
     const skip = (page - 1) * limit;
 
-    // 查询用户收藏的故事
-    const favorites = await UserStoryFavorite.find({ userId })
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 })
-      .populate('story', 'title description author coverImage rating createdAt updatedAt favoriteCount viewCount')
-      .populate('story.author', 'username avatar')
-      .populate('story.category', 'name');
+    const favorites = await UserStoryFavorite.find({ userId, limit, skip });
+    const total = await UserStoryFavorite.countByUser(userId);
+    const formattedFavorites = await Promise.all(favorites.map(async (favorite) => ({
+      story: await Story.findById(favorite.storyId),
+      collectedAt: favorite.created_at
+    })));
 
-    const total = await UserStoryFavorite.countDocuments({ userId });
-    
-    // 格式化返回数据，包含收藏时间和故事信息
-    const formattedFavorites = favorites.map(fav => ({
-      story: fav.story,
-      collectedAt: fav.createdAt
-    }));
-    
     return res.status(200).json({
       success: true,
       data: {
-        favorites: formattedFavorites,
-        pagination: {
-          total,
-          page,
-          pages: Math.ceil(total / limit)
-        }
+        favorites: formattedFavorites.filter((item) => item.story),
+        pagination: { total, page, pages: Math.ceil(total / limit) }
       }
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
-/**
- * @route POST /api/v1/interactions/stories/:storyId/rate
- * @desc 对故事进行评分
- * @access Private
- */
 router.post('/stories/:storyId/rate', authGuard, [
-  param('storyId').custom(value => {
-    if (!isValidIntegerId(value) && !value.startsWith('local_')) {
-      throw new Error('无效的故事ID');
-    }
-    return true;
-  }),
-  body('rating').isInt({ min: 1, max: 5 }).withMessage('评分必须是1-5之间的整数'),
-  body('comment').optional().isLength({ max: 500 }).withMessage('评论不能超过500字')
+  validateStoryId,
+  body('rating').isInt({ min: 1, max: 5 }).withMessage('Rating must be an integer from 1 to 5'),
+  body('comment').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 500 }).withMessage('Comment cannot exceed 500 characters')
 ], async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return next(errorFormat(400, '参数验证失败', errors.array().map((err) => ({ field: err.param, message: err.msg })), 10001));
+    return next(errorFormat(400, 'Invalid rating data', validationErrors(req), 10001));
   }
 
   try {
     const { storyId } = req.params;
-    const { rating, comment } = req.body;
+    const rating = parseInt(req.body.rating, 10);
+    const comment = req.body.comment ? String(req.body.comment).trim() : null;
     const userId = req.user.id;
 
-    // 对于临时故事，返回模拟响应
-    if (storyId.startsWith('local_')) {
+    if (isTemporaryStory(storyId)) {
       return res.status(200).json({
         success: true,
-        message: '临时故事不支持评分操作',
-        data: {
-          rating,
-          comment,
-          updatedAt: new Date(),
-          isTemporary: true
-        }
+        message: 'Temporary stories do not support ratings',
+        data: { rating, comment, updatedAt: new Date(), isTemporary: true }
       });
     }
 
-    // 检查故事是否存在
-    const story = await Story.findById(storyId);
-    if (!story) {
-      return next(errorFormat(404, '故事不存在', [], 10010));
-    }
+    const numericStoryId = toStoryId(storyId);
+    const story = await ensureStory(numericStoryId, next);
+    if (!story) return null;
 
-    // 查找或创建评分记录
     const ratingRecord = await UserStoryRating.findOneAndUpdate(
-      { userId, storyId },
+      { userId, storyId: numericStoryId },
       { rating, comment },
-      { new: true, upsert: true, runValidators: true }
+      { upsert: true }
     );
+    const stats = await recalculateRating(numericStoryId);
 
-    // 重新计算故事的平均评分
-    const ratings = await UserStoryRating.find({ storyId });
-    const totalRating = ratings.reduce((sum, r) => sum + r.rating, 0);
-    const averageRating = totalRating / ratings.length;
-    
-    await Story.findByIdAndUpdate(storyId, {
-      rating: averageRating,
-      ratingCount: ratings.length
-    });
+    let commentEntry = null;
+    if (comment) {
+      commentEntry = await StoryComment.create({
+        storyId: numericStoryId,
+        userId,
+        content: comment
+      });
+    }
 
     return res.status(200).json({
       success: true,
-      message: '评分成功',
+      message: 'Rating saved successfully',
       data: {
         rating: ratingRecord.rating,
         comment: ratingRecord.comment,
-        updatedAt: ratingRecord.updatedAt,
+        commentEntry,
+        averageRating: stats.average,
+        ratingCount: stats.count,
+        updatedAt: ratingRecord.updatedAt || ratingRecord.updated_at,
         isTemporary: false
       }
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
-/**
- * @route GET /api/v1/interactions/stories/:storyId/rating
- * @desc 获取故事的评分信息
- * @access Public
- */
-router.get('/stories/:storyId/rating', [
-  param('storyId').custom(value => {
-    if (!isValidIntegerId(value) && !value.startsWith('local_')) {
-      throw new Error('无效的故事ID');
-    }
-    return true;
-  })
-], async (req, res, next) => {
+router.get('/stories/:storyId/rating', [validateStoryId], async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return next(errorFormat(400, '参数验证失败', errors.array().map((err) => ({ field: err.param, message: err.msg })), 10001));
+    return next(errorFormat(400, 'Invalid request parameters', validationErrors(req), 10001));
   }
 
   try {
     const { storyId } = req.params;
 
-    // 对于临时故事，返回默认评分信息
-    if (storyId.startsWith('local_')) {
+    if (isTemporaryStory(storyId)) {
       return res.status(200).json({
         success: true,
         data: {
@@ -299,131 +236,83 @@ router.get('/stories/:storyId/rating', [
       });
     }
 
-    // 检查故事是否存在
-    const story = await Story.findById(storyId);
-    if (!story) {
-      return next(errorFormat(404, '故事不存在', [], 10010));
-    }
+    const numericStoryId = toStoryId(storyId);
+    const story = await ensureStory(numericStoryId, next);
+    if (!story) return null;
 
-    // 获取评分统计
-    const ratings = await UserStoryRating.find({ storyId })
-      .sort({ updatedAt: -1 })
-      .limit(50) // 限制返回最近50条评分记录
-      .populate('userId', 'username avatar');
-
-    // 计算评分分布
-    const ratingDistribution = {
-      1: 0,
-      2: 0,
-      3: 0,
-      4: 0,
-      5: 0
-    };
-    ratings.forEach(rating => {
-      ratingDistribution[rating.rating]++;
+    const ratings = await UserStoryRating.find({ storyId: numericStoryId, limit: 50 });
+    const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    ratings.forEach((item) => {
+      ratingDistribution[item.rating] = (ratingDistribution[item.rating] || 0) + 1;
     });
 
-    // 如果用户已登录，获取用户的评分
-    let userRating = null;
-    if (req.user && req.user.id) {
-      userRating = await UserStoryRating.findOne({ userId: req.user.id, storyId });
-    }
+    const userRating = req.user?.id
+      ? await UserStoryRating.findOne({ userId: req.user.id, storyId: numericStoryId })
+      : null;
 
     return res.status(200).json({
       success: true,
       data: {
-        averageRating: story.rating || 0,
-        ratingCount: story.ratingCount || 0,
+        averageRating: Number(story.rating || 0),
+        ratingCount: story.rating_count || story.ratingCount || 0,
         ratingDistribution,
         userRating: userRating ? {
           rating: userRating.rating,
           comment: userRating.comment,
-          updatedAt: userRating.updatedAt
+          updatedAt: userRating.updatedAt || userRating.updated_at
         } : null,
-        recentRatings: ratings.map(r => ({
-          rating: r.rating,
-          comment: r.comment,
-          username: r.userId.username,
-          avatar: r.userId.avatar,
-          updatedAt: r.updatedAt
+        recentRatings: ratings.map((item) => ({
+          rating: item.rating,
+          comment: item.comment,
+          updatedAt: item.updatedAt || item.updated_at
         })),
         isTemporary: false
       }
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
-/**
- * @route DELETE /api/v1/interactions/stories/:storyId/rate
- * @desc 删除用户对故事的评分
- * @access Private
- */
-router.delete('/stories/:storyId/rate', authGuard, [
-  param('storyId').custom(value => {
-    if (!isValidIntegerId(value) && !value.startsWith('local_')) {
-      throw new Error('无效的故事ID');
-    }
-    return true;
-  })
-], async (req, res, next) => {
+router.delete('/stories/:storyId/rate', authGuard, [validateStoryId], async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return next(errorFormat(400, '参数验证失败', errors.array().map((err) => ({ field: err.param, message: err.msg })), 10001));
+    return next(errorFormat(400, 'Invalid request parameters', validationErrors(req), 10001));
   }
 
   try {
     const { storyId } = req.params;
     const userId = req.user.id;
 
-    // 对于临时故事，返回模拟响应
-    if (storyId.startsWith('local_')) {
+    if (isTemporaryStory(storyId)) {
       return res.status(200).json({
         success: true,
-        message: '临时故事不支持删除评分操作',
-        data: {
-          isTemporary: true
-        }
+        message: 'Temporary stories do not support ratings',
+        data: { isTemporary: true }
       });
     }
 
-    // 检查故事是否存在
-    const story = await Story.findById(storyId);
-    if (!story) {
-      return next(errorFormat(404, '故事不存在', [], 10010));
-    }
+    const numericStoryId = toStoryId(storyId);
+    const story = await ensureStory(numericStoryId, next);
+    if (!story) return null;
 
-    // 删除评分记录
-    const deletedRating = await UserStoryRating.findOneAndDelete({ userId, storyId });
+    const deletedRating = await UserStoryRating.findOneAndDelete({ userId, storyId: numericStoryId });
     if (!deletedRating) {
-      return next(errorFormat(404, '评分记录不存在', [], 10020));
+      return next(errorFormat(404, 'Rating not found', [], 10020));
     }
 
-    // 重新计算故事的平均评分
-    const ratings = await UserStoryRating.find({ storyId });
-    let averageRating = 0;
-    let ratingCount = ratings.length;
-    
-    if (ratingCount > 0) {
-      const totalRating = ratings.reduce((sum, r) => sum + r.rating, 0);
-      averageRating = totalRating / ratingCount;
-    }
-    
-    await Story.findByIdAndUpdate(storyId, {
-      rating: averageRating,
-      ratingCount
-    });
-
+    const stats = await recalculateRating(numericStoryId);
     return res.status(200).json({
       success: true,
-      message: '评分删除成功',
+      message: 'Rating deleted successfully',
       data: {
+        averageRating: stats.average,
+        ratingCount: stats.count,
         isTemporary: false
       }
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 

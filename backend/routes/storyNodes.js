@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const StoryNode = require('../models/StoryNode');
@@ -6,12 +6,13 @@ const Story = require('../models/Story');
 const authGuard = require('../middleware/auth');
 const storyAuth = require('../middleware/storyAuth');
 const { isValidIntegerId, isValidStringId } = require('../utils/idValidator');
+const { errorFormat } = require('../utils/errorFormat');
 
 
 
-// 公共路由（不需要认证）- 放在最前面
-// 获取故事的所有节点（公共端点，不需要认证）
-router.get('/public/stories/:storyId/nodes', async (req, res) => {
+// 鍏叡璺敱锛堜笉闇€瑕佽璇侊級- 鏀惧湪鏈€鍓嶉潰
+// 鑾峰彇鏁呬簨鐨勬墍鏈夎妭鐐癸紙鍏叡绔偣锛屼笉闇€瑕佽璇侊級
+router.get('/public/stories/:storyId/nodes', async (req, res, next) => {
   console.log('=== PUBLIC STORY NODES ROUTE HIT ===');
   console.log('Story ID:', req.params.storyId);
   try {
@@ -32,13 +33,12 @@ router.get('/public/stories/:storyId/nodes', async (req, res) => {
     if (!story) {
       return res.status(404).json({
         success: false,
-        message: '故事不存在'
+        message: 'Story node request failed',
       });
     }
     
-    // 检查访问权限：
-    // 1. 已发布的公开故事：任何人都可以访问
-    // 2. 待审核或已拒绝的故事：作者和管理员可以访问（用于预览和审核）
+    // 妫€鏌ヨ闂潈闄愶細
+    // 1. 宸插彂甯冪殑鍏紑鏁呬簨锛氫换浣曚汉閮藉彲浠ヨ闂?    // 2. 寰呭鏍告垨宸叉嫆缁濈殑鏁呬簨锛氫綔鑰呭拰绠＄悊鍛樺彲浠ヨ闂紙鐢ㄤ簬棰勮鍜屽鏍革級
     // 3. 其他状态：拒绝访问
     let isAuthor = false;
     let isAdmin = false;
@@ -60,39 +60,29 @@ router.get('/public/stories/:storyId/nodes', async (req, res) => {
       }
     }
     
-    if (story.status === 'published' && story.is_public) {
-      // 已发布的公开故事，任何人都可以访问
-    } else if ((story.status === 'pending' || story.status === 'rejected') && (isAuthor || isAdmin)) {
-      // 待审核或已拒绝的故事，作者和管理员可以访问
-    } else {
+    const canReadPublic = story.status === 'published' && story.is_public;
+    const canPreview = ['pending', 'rejected'].includes(story.status) && (isAuthor || isAdmin);
+    if (!canReadPublic && !canPreview) {
       return res.status(403).json({
         success: false,
-        message: '故事未发布或不是公开故事'
+        message: 'Story is not available'
       });
     }
     
     const queryOptions = {};
     if (type) queryOptions.type = type;
     
-    // 获取所有节点
     const nodes = await StoryNode.getStoryNodes(storyIdInt, queryOptions);
-    
-    // 获取所有分支
     const Branch = require('../models/Branch');
     const branches = await Branch.getStoryBranches(storyIdInt);
-    
-    // 为每个节点添加其出向分支（作为choices）
-    const nodesWithBranches = nodes.map(node => {
-      // 找到以该节点为源节点的所有分支
-      const nodeBranches = branches.filter(branch => branch.source_node_id === node.id);
-      
-      // 将分支转换为选择项格式
-      const choices = nodeBranches.map(branch => {
-        // 找到目标节点
-        const targetNode = nodes.find(n => n.id === branch.target_node_id);
+
+    const nodesWithBranches = nodes.map((node) => {
+      const nodeBranches = branches.filter((branch) => branch.source_node_id === node.id);
+      const choices = nodeBranches.map((branch) => {
+        const targetNode = nodes.find((candidate) => candidate.id === branch.target_node_id);
         return {
           id: branch.id,
-          text: branch.context || '继续',
+          text: branch.context || 'Continue',
           targetNodeId: branch.target_node_id,
           targetNode: targetNode ? {
             id: targetNode.id,
@@ -100,13 +90,13 @@ router.get('/public/stories/:storyId/nodes', async (req, res) => {
           } : null
         };
       });
-      
+
       return {
         id: node.id,
         _id: node.id,
         temporaryId: node.id,
         storyId: node.story_id || node.storyId,
-        title: node.title || '未命名节点',
+        title: node.title || 'Untitled node',
         content: node.content || '',
         type: node.type || 'regular',
         parentId: node.parent_id || null,
@@ -114,11 +104,11 @@ router.get('/public/stories/:storyId/nodes', async (req, res) => {
         order: node.order || 1,
         x: node.x || 0,
         y: node.y || 0,
-        choices: choices || []
+        choices
       };
     });
-    
-    console.log(`获取故事 ${storyIdInt} 的节点: 找到 ${nodesWithBranches.length} 个节点`);
+
+    console.log(`Loaded ${nodesWithBranches.length} nodes for story ${storyIdInt}`);
     
     res.json({
       success: true,
@@ -126,16 +116,12 @@ router.get('/public/stories/:storyId/nodes', async (req, res) => {
     });
   } catch (error) {
     console.error('获取节点列表失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '获取节点列表失败',
-      error: error.message
-    });
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 
-// 获取故事树
-router.get('/stories/:storyId/tree', authGuard, storyAuth, async (req, res) => {
+// Route
+router.get('/stories/:storyId/tree', authGuard, storyAuth, async (req, res, next) => {
   try {
     const { storyId } = req.params;
     
@@ -159,12 +145,11 @@ router.get('/stories/:storyId/tree', authGuard, storyAuth, async (req, res) => {
       });
     }
     
-    // 构建树结构
-    const rootNode = nodes.find(n => n.is_root);
+    // 构建树结构    const rootNode = nodes.find(n => n.is_root);
     if (!rootNode) {
       return res.status(404).json({
         success: false,
-        message: '故事没有根节点'
+        message: 'Story node request failed',
       });
     }
     
@@ -177,17 +162,13 @@ router.get('/stories/:storyId/tree', authGuard, storyAuth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取故事树失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '获取故事树失败',
-      error: error.message
-    });
+    console.error('获取故事树失败', error);
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 
-// 获取故事的所有节点（平铺结构，用于编辑器）
-router.get('/stories/:storyId/nodes', authGuard, storyAuth, async (req, res) => {
+// Route
+router.get('/stories/:storyId/nodes', authGuard, storyAuth, async (req, res, next) => {
   try {
     const { storyId } = req.params;
     const { type } = req.query;
@@ -211,16 +192,12 @@ router.get('/stories/:storyId/nodes', authGuard, storyAuth, async (req, res) => 
     });
   } catch (error) {
     console.error('获取节点列表失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '获取节点列表失败',
-      error: error.message
-    });
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 
 // 创建根节点（新故事）
-router.post('/stories/:storyId/root', authGuard, async (req, res) => {
+router.post('/stories/:storyId/root', authGuard, async (req, res, next) => {
   try {
     const { storyId } = req.params;
     const { title, content } = req.body;
@@ -233,31 +210,29 @@ router.post('/stories/:storyId/root', authGuard, async (req, res) => {
       });
     }
     
-    // 检查故事是否存在
     const story = await Story.findById(parseInt(storyId));
     if (!story) {
       return res.status(404).json({
         success: false,
-        message: '故事不存在'
+        message: 'Story node request failed',
       });
     }
     
-    // 检查是否已有根节点 - 允许重复调用，返回已存在的根节点
+    // 检查是否已有根节点 - 鍏佽閲嶅璋冪敤锛岃繑鍥炲凡瀛樺湪鐨勬牴鑺傜偣
     const existingRoot = await StoryNode.getRootNode(parseInt(storyId));
     if (existingRoot) {
       return res.status(200).json({
         success: true,
-        message: '故事已有根节点，返回现有根节点',
+        message: 'Story node request failed',
         data: existingRoot
       });
     }
     
-    // 创建根节点
     const rootNode = await StoryNode.create({
       story_id: storyId,
       storyId: storyId,
-      title: title || '故事开始',
-      content: content || '这是故事的开始...',
+      title: title || 'Story start',
+      content: content || 'This is the beginning of the story.',
       type: 'regular',
       is_root: true,
       x: 400,
@@ -266,21 +241,17 @@ router.post('/stories/:storyId/root', authGuard, async (req, res) => {
     
     res.status(201).json({
       success: true,
-      message: '根节点创建成功',
+      message: 'Story node request failed',
       data: rootNode
     });
   } catch (error) {
-    console.error('创建根节点失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '创建根节点失败',
-      error: error.message
-    });
+    console.error('创建根节点失败', error);
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 
-// 创建子节点
-router.post('/stories/:storyId/nodes', authGuard, storyAuth, async (req, res) => {
+// Route
+router.post('/stories/:storyId/nodes', authGuard, storyAuth, async (req, res, next) => {
   try {
     const { storyId } = req.params;
     let { parentId, title, content, type, description, choices, position } = req.body;
@@ -289,23 +260,22 @@ router.post('/stories/:storyId/nodes', authGuard, storyAuth, async (req, res) =>
     if (!title || title.trim().length === 0) {
       return res.status(400).json({
         success: false,
-        message: '节点标题不能为空'
+        message: '鑺傜偣鏍囬涓嶈兘涓虹┖'
       });
     }
     
     if (!content || content.trim().length === 0) {
       return res.status(400).json({
         success: false,
-        message: '节点内容不能为空'
+        message: '鑺傜偣鍐呭涓嶈兘涓虹┖'
       });
     }
     
-    // 验证type的有效值
-    const validTypes = ['normal', 'choice', 'ending'];
+    // 验证type的有效值    const validTypes = ['normal', 'choice', 'ending'];
     if (type && !validTypes.includes(type)) {
       return res.status(400).json({
         success: false,
-        message: '无效的节点类型，允许的值：normal, choice, ending'
+        message: '鏃犳晥鐨勮妭鐐圭被鍨嬶紝鍏佽鐨勫€硷細normal, choice, ending'
       });
     }
     
@@ -313,7 +283,7 @@ router.post('/stories/:storyId/nodes', authGuard, storyAuth, async (req, res) =>
     if (choices && !Array.isArray(choices)) {
       return res.status(400).json({
         success: false,
-        message: 'choices必须是数组'
+        message: 'Story node request failed',
       });
     }
     
@@ -333,11 +303,11 @@ router.post('/stories/:storyId/nodes', authGuard, storyAuth, async (req, res) =>
     if (position && (typeof position.x !== 'number' || typeof position.y !== 'number')) {
       return res.status(400).json({
         success: false,
-        message: 'position必须包含有效的x和y数值'
+        message: 'Story node request failed',
       });
     }
     
-    console.log('🔍 收到的请求数据:', JSON.stringify(req.body, null, 2));
+    console.log('🔍 鏀跺埌鐨勮姹傛暟鎹?', JSON.stringify(req.body, null, 2));
     
     // 验证storyId格式
     if (!isValidIntegerId(storyId)) {
@@ -347,7 +317,7 @@ router.post('/stories/:storyId/nodes', authGuard, storyAuth, async (req, res) =>
       });
     }
     
-    // 准备节点数据
+    // 鍑嗗鑺傜偣鏁版嵁
     const nodeData = {
       story_id: parseInt(storyId),
       storyId: parseInt(storyId),
@@ -372,32 +342,29 @@ router.post('/stories/:storyId/nodes', authGuard, storyAuth, async (req, res) =>
           message: '无效的父节点ID格式'
         });
       }
-      // 验证父节点是否存在且属于同一个故事
-      const parentNode = await StoryNode.findById(parentId);
+      // 楠岃瘉鐖惰妭鐐规槸鍚﹀瓨鍦ㄤ笖灞炰簬鍚屼竴涓晠浜?      const parentNode = await StoryNode.findById(parentId);
       if (!parentNode || parentNode.story_id !== parseInt(storyId)) {
         return res.status(400).json({
           success: false,
-          message: '父节点不存在或不属于该故事'
+          message: 'Story node request failed',
         });
       }
-      // 创建子节点
-      newNode = await StoryNode.create(nodeData);
+      // 创建子节点      newNode = await StoryNode.create(nodeData);
     } else {
-      // 如果没有parentId，检查是否已有根节点
+      // 如果没有parentId锛屾鏌ユ槸鍚﹀凡鏈夋牴鑺傜偣
       const existingRoot = await StoryNode.getRootNode(parseInt(storyId));
       if (existingRoot) {
-        // 如果已有根节点，创建普通子节点
+        // 濡傛灉宸叉湁鏍硅妭鐐癸紝鍒涘缓鏅€氬瓙鑺傜偣
         newNode = await StoryNode.create(nodeData);
       } else {
-        // 创建根节点
-        nodeData.is_root = true;
+        // 创建根节点        nodeData.is_root = true;
         nodeData.x = position ? position.x : 400;
         nodeData.y = position ? position.y : 50;
         newNode = await StoryNode.create(nodeData);
       }
     }
     
-    // 如果提供了choices数组，创建对应的分支
+    // 如果提供了choices鏁扮粍锛屽垱寤哄搴旂殑鍒嗘敮
     if (choices && Array.isArray(choices) && choices.length > 0) {
       const Branch = require('../models/Branch');
       for (const choice of choices) {
@@ -422,16 +389,12 @@ router.post('/stories/:storyId/nodes', authGuard, storyAuth, async (req, res) =>
     });
   } catch (error) {
     console.error('创建节点失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '创建节点失败',
-      error: error.message
-    });
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 
-// 批量保存节点（处理自动创建分支和关系绑定）
-router.post('/stories/:storyId/nodes/batch', authGuard, storyAuth, async (req, res) => {
+// Route
+router.post('/stories/:storyId/nodes/batch', authGuard, storyAuth, async (req, res, next) => {
   try {
     const { storyId } = req.params;
     const { nodes } = req.body;
@@ -447,7 +410,7 @@ router.post('/stories/:storyId/nodes/batch', authGuard, storyAuth, async (req, r
     if (!nodes || !Array.isArray(nodes)) {
       return res.status(400).json({
         success: false,
-        message: '节点数据格式错误：nodes必须是数组'
+        message: 'Story node request failed',
       });
     }
     
@@ -458,12 +421,12 @@ router.post('/stories/:storyId/nodes/batch', authGuard, storyAuth, async (req, r
       });
     }
     
-    console.log(`开始批量保存节点: 故事ID=${storyId}, 节点数量=${nodes.length}`);
+    console.log(`Batch saving nodes: storyId=${storyId}, count=${nodes.length}`);
     
     // 使用新的批量处理方法
     const savedNodes = await StoryNode.processNodeRelations(nodes, parseInt(storyId));
     
-    console.log(`批量保存成功: 保存了 ${savedNodes.nodes?.length || 0} 个节点, ${savedNodes.branchesCreated || 0} 个分支`);
+    console.log(`Batch save complete: nodes=${savedNodes.nodes?.length || 0}, branches=${savedNodes.branchesCreated || 0}`);
     
     res.status(201).json({
       success: true,
@@ -472,17 +435,13 @@ router.post('/stories/:storyId/nodes/batch', authGuard, storyAuth, async (req, r
     });
   } catch (error) {
     console.error('批量保存节点失败:', error);
-    console.error('错误堆栈:', error.stack);
-    res.status(500).json({
-      success: false,
-      message: '批量保存节点失败',
-      error: error.message || '未知错误'
-    });
+    console.error('閿欒鍫嗘爤:', error.stack);
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 
 // 更新节点
-router.put('/nodes/:nodeId', authGuard, async (req, res) => {
+router.put('/nodes/:nodeId', authGuard, async (req, res, next) => {
   try {
     const { nodeId } = req.params;
     const { title, content, type, description, choices, position } = req.body;
@@ -499,23 +458,22 @@ router.put('/nodes/:nodeId', authGuard, async (req, res) => {
     if (title !== undefined && (typeof title !== 'string' || title.trim().length === 0)) {
       return res.status(400).json({
         success: false,
-        message: '节点标题不能为空且必须是字符串'
+        message: 'Story node request failed',
       });
     }
     
     if (content !== undefined && (typeof content !== 'string' || content.trim().length === 0)) {
       return res.status(400).json({
         success: false,
-        message: '节点内容不能为空且必须是字符串'
+        message: 'Story node request failed',
       });
     }
     
-    // 验证type的有效值
-    const validTypes = ['normal', 'choice', 'ending'];
+    // 验证type的有效值    const validTypes = ['normal', 'choice', 'ending'];
     if (type && !validTypes.includes(type)) {
       return res.status(400).json({
         success: false,
-        message: '无效的节点类型，允许的值：normal, choice, ending'
+        message: '鏃犳晥鐨勮妭鐐圭被鍨嬶紝鍏佽鐨勫€硷細normal, choice, ending'
       });
     }
     
@@ -523,7 +481,7 @@ router.put('/nodes/:nodeId', authGuard, async (req, res) => {
     if (choices && !Array.isArray(choices)) {
       return res.status(400).json({
         success: false,
-        message: 'choices必须是数组'
+        message: 'Story node request failed',
       });
     }
     
@@ -549,7 +507,7 @@ router.put('/nodes/:nodeId', authGuard, async (req, res) => {
     if (position && (typeof position.x !== 'number' || typeof position.y !== 'number')) {
       return res.status(400).json({
         success: false,
-        message: 'position必须包含有效的x和y数值'
+        message: 'Story node request failed',
       });
     }
     
@@ -557,16 +515,15 @@ router.put('/nodes/:nodeId', authGuard, async (req, res) => {
     if (!node) {
       return res.status(404).json({
         success: false,
-        message: '节点不存在'
+        message: 'Story node request failed',
       });
     }
     
-    // 检查权限：获取节点所属的故事，然后检查用户是否是故事作者
-    const story = await Story.findById(node.story_id);
+    // 妫€鏌ユ潈闄愶細鑾峰彇鑺傜偣鎵€灞炵殑鏁呬簨锛岀劧鍚庢鏌ョ敤鎴锋槸鍚︽槸鏁呬簨浣滆€?    const story = await Story.findById(node.story_id);
     if (!story || story.author_id !== parseInt(req.user.id)) {
       return res.status(403).json({
         success: false,
-        message: '无权限修改此节点'
+        message: '鏃犳潈闄愪慨鏀规鑺傜偣'
       });
     }
     
@@ -593,11 +550,10 @@ router.put('/nodes/:nodeId', authGuard, async (req, res) => {
     // 更新节点
     const updatedNode = await StoryNode.findByIdAndUpdate(nodeId, updateData);
     
-    // 如果提供了choices数组，更新对应的分支
+    // 如果提供了choices鏁扮粍锛屾洿鏂板搴旂殑鍒嗘敮
     if (choices && Array.isArray(choices)) {
       const Branch = require('../models/Branch');
-      // 删除该节点的所有出向分支
-      await Branch.deleteNodeBranches(nodeId);
+      // 删除该节点的所有出向分支      await Branch.deleteNodeBranches(nodeId);
       // 重新创建分支
       for (const choice of choices) {
         if (choice.targetNodeId && isValidStringId(choice.targetNodeId)) {
@@ -621,25 +577,20 @@ router.put('/nodes/:nodeId', authGuard, async (req, res) => {
     });
   } catch (error) {
     console.error('更新节点失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '更新节点失败',
-      error: error.message
-    });
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 
 // 删除节点及其子树
-router.delete('/nodes/:nodeId', authGuard, async (req, res) => {
+router.delete('/nodes/:nodeId', authGuard, async (req, res, next) => {
   try {
     const { nodeId } = req.params;
     
-    // 检查权限
-    const node = await StoryNode.findById(nodeId);
+    // 检查权限    const node = await StoryNode.findById(nodeId);
     if (!node) {
       return res.status(404).json({
         success: false,
-        message: '节点不存在'
+        message: 'Story node request failed',
       });
     }
     
@@ -647,7 +598,7 @@ router.delete('/nodes/:nodeId', authGuard, async (req, res) => {
     if (!story || story.author.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
-        message: '无权限删除此节点'
+        message: '鏃犳潈闄愬垹闄ゆ鑺傜偣'
       });
     }
     
@@ -655,20 +606,16 @@ router.delete('/nodes/:nodeId', authGuard, async (req, res) => {
     
     res.json({
       success: true,
-      message: '节点及其子节点删除成功'
+      message: 'Story node request failed',
     });
   } catch (error) {
     console.error('删除节点失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '删除节点失败',
-      error: error.message
-    });
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 
 // 移动节点（改变父节点或顺序）
-router.put('/nodes/:nodeId/move', authGuard, async (req, res) => {
+router.put('/nodes/:nodeId/move', authGuard, async (req, res, next) => {
   try {
     const { nodeId } = req.params;
     const { newParentId, newOrder } = req.body;
@@ -677,20 +624,19 @@ router.put('/nodes/:nodeId/move', authGuard, async (req, res) => {
     if (!node) {
       return res.status(404).json({
         success: false,
-        message: '节点不存在'
+        message: 'Story node request failed',
       });
     }
     
-    // 检查权限
-    const story = await Story.findById(node.story_id);
+    // 检查权限    const story = await Story.findById(node.story_id);
     if (!story || story.author_id !== parseInt(req.user.id)) {
       return res.status(403).json({
         success: false,
-        message: '无权限移动此节点'
+        message: '鏃犳潈闄愮Щ鍔ㄦ鑺傜偣'
       });
     }
     
-    // 更新节点位置（MySQL版本简化处理，只更新坐标）
+    // 更新节点位置（MySQL鐗堟湰绠€鍖栧鐞嗭紝鍙洿鏂板潗鏍囷級
     const updateData = {};
     
     if (newParentId) {
@@ -698,7 +644,7 @@ router.put('/nodes/:nodeId/move', authGuard, async (req, res) => {
       if (!newParent) {
         return res.status(404).json({
           success: false,
-          message: '新父节点不存在'
+          message: 'Story node request failed',
         });
       }
       
@@ -711,7 +657,7 @@ router.put('/nodes/:nodeId/move', authGuard, async (req, res) => {
         });
       }
       
-      // 检查是否尝试移动到自己的子节点（简单检查）
+      // 妫€鏌ユ槸鍚﹀皾璇曠Щ鍔ㄥ埌鑷繁鐨勫瓙鑺傜偣锛堢畝鍗曟鏌ワ級
       const Branch = require('../models/Branch');
       const outgoingBranches = await Branch.getOutgoingBranches(nodeId);
       const targetNodeIds = outgoingBranches.map(b => b.target_node_id);
@@ -723,8 +669,7 @@ router.put('/nodes/:nodeId/move', authGuard, async (req, res) => {
       }
     }
     
-    // 更新节点（MySQL版本中，节点位置通过x, y坐标管理，不通过parentId）
-    // 如果需要，可以通过分支关系来管理节点之间的连接
+    // 更新节点（MySQL鐗堟湰涓紝鑺傜偣浣嶇疆閫氳繃x, y坐标管理，不通过parentId锛?    // 濡傛灉闇€瑕侊紝鍙互閫氳繃鍒嗘敮鍏崇郴鏉ョ鐞嗚妭鐐逛箣闂寸殑杩炴帴
     const updatedNode = await StoryNode.findByIdAndUpdate(nodeId, updateData);
     
     res.json({
@@ -734,16 +679,12 @@ router.put('/nodes/:nodeId/move', authGuard, async (req, res) => {
     });
   } catch (error) {
     console.error('移动节点失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '移动节点失败',
-      error: error.message
-    });
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 
-// 获取单个节点（添加权限检查）
-router.get('/nodes/:nodeId', authGuard, async (req, res) => {
+// 鑾峰彇鍗曚釜鑺傜偣锛堟坊鍔犳潈闄愭鏌ワ級
+router.get('/nodes/:nodeId', authGuard, async (req, res, next) => {
   try {
     const { nodeId } = req.params;
     
@@ -752,16 +693,15 @@ router.get('/nodes/:nodeId', authGuard, async (req, res) => {
     if (!node) {
       return res.status(404).json({
         success: false,
-        message: '节点不存在'
+        message: 'Story node request failed',
       });
     }
     
-    // 检查权限：如果节点所属的故事是公开的，可以直接访问；否则需要是故事作者
-    const story = await Story.findById(node.storyId);
+    // 妫€鏌ユ潈闄愶細濡傛灉鑺傜偣鎵€灞炵殑鏁呬簨鏄叕寮€鐨勶紝鍙互鐩存帴璁块棶锛涘惁鍒欓渶瑕佹槸鏁呬簨浣滆€?    const story = await Story.findById(node.storyId);
     if (!story || (!story.isPublic && story.author.toString() !== req.user.id)) {
       return res.status(403).json({
         success: false,
-        message: '无权限访问此节点'
+        message: '鏃犳潈闄愯闂鑺傜偣'
       });
     }
     
@@ -771,16 +711,12 @@ router.get('/nodes/:nodeId', authGuard, async (req, res) => {
     });
   } catch (error) {
     console.error('获取节点失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '获取节点失败',
-      error: error.message
-    });
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 
-// 绑定选项到目标节点
-router.put('/nodes/:nodeId/choices/:choiceId/bind', authGuard, async (req, res) => {
+// Route
+router.put('/nodes/:nodeId/choices/:choiceId/bind', authGuard, async (req, res, next) => {
   try {
     const { nodeId, choiceId } = req.params;
     const { targetNodeId } = req.body;
@@ -789,13 +725,11 @@ router.put('/nodes/:nodeId/choices/:choiceId/bind', authGuard, async (req, res) 
     if (!node) {
       return res.status(404).json({
         success: false,
-        message: '节点不存在'
+        message: 'Story node request failed',
       });
     }
     
     // 查找并更新选项
-    // MySQL版本中，choices通过branches表管理
-    // 查找对应的分支
     const Branch = require('../models/Branch');
     const branches = await Branch.getOutgoingBranches(nodeId);
     const branch = branches.find(b => b.id === choiceId);
@@ -803,7 +737,7 @@ router.put('/nodes/:nodeId/choices/:choiceId/bind', authGuard, async (req, res) 
     if (!branch) {
       return res.status(404).json({
         success: false,
-        message: '选项不存在'
+        message: 'Story node request failed',
       });
     }
     
@@ -811,44 +745,41 @@ router.put('/nodes/:nodeId/choices/:choiceId/bind', authGuard, async (req, res) 
     if (!choice) {
       return res.status(404).json({
         success: false,
-        message: '选项不存在'
+        message: 'Story node request failed',
       });
     }
     
-    // 验证目标节点
+    // 楠岃瘉鐩爣鑺傜偣
     if (targetNodeId) {
       const targetNode = await StoryNode.findById(targetNodeId);
       if (!targetNode) {
         return res.status(404).json({
           success: false,
-          message: '目标节点不存在'
+          message: 'Story node request failed',
         });
       }
       
-      // 检查循环引用（简单检查：不能绑定到自己）
+      // 妫€鏌ュ惊鐜紩鐢紙绠€鍗曟鏌ワ細涓嶈兘缁戝畾鍒拌嚜宸憋級
       if (targetNodeId === nodeId) {
         return res.status(400).json({
           success: false,
-          message: '不能绑定到自己'
+          message: 'Story node request failed',
         });
       }
       
-      // 检查是否形成循环（通过检查目标节点的出向分支）
-      const Branch = require('../models/Branch');
+      // 妫€鏌ユ槸鍚﹀舰鎴愬惊鐜紙閫氳繃妫€鏌ョ洰鏍囪妭鐐圭殑鍑哄悜鍒嗘敮锛?      const Branch = require('../models/Branch');
       const targetBranches = await Branch.getOutgoingBranches(targetNodeId);
       const targetNodeIds = targetBranches.map(b => b.target_node_id);
       if (targetNodeIds.includes(nodeId)) {
         return res.status(400).json({
           success: false,
-          message: '不能绑定到自己的子节点（会形成循环）'
+          message: '涓嶈兘缁戝畾鍒拌嚜宸辩殑瀛愯妭鐐癸紙浼氬舰鎴愬惊鐜級'
         });
       }
     }
     
-    // 更新分支的目标节点
     if (targetNodeId && isValidStringId(targetNodeId)) {
-      // 删除旧分支，创建新分支
-      await Branch.findByIdAndDelete(branch.id);
+      // 鍒犻櫎鏃у垎鏀紝鍒涘缓鏂板垎鏀?      await Branch.findByIdAndDelete(branch.id);
       await Branch.createBranch(nodeId, targetNodeId, choice.context || branch.context);
     }
     
@@ -859,16 +790,12 @@ router.put('/nodes/:nodeId/choices/:choiceId/bind', authGuard, async (req, res) 
     });
   } catch (error) {
     console.error('绑定选项失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '绑定选项失败',
-      error: error.message
-    });
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 
-// 添加选项到节点
-router.post('/nodes/:nodeId/choices', authGuard, async (req, res) => {
+// Route
+router.post('/nodes/:nodeId/choices', authGuard, async (req, res, next) => {
   try {
     const { nodeId } = req.params;
     const { text, description, targetNodeId, autoCreate } = req.body;
@@ -885,7 +812,7 @@ router.post('/nodes/:nodeId/choices', authGuard, async (req, res) => {
     if (!node) {
       return res.status(404).json({
         success: false,
-        message: '节点不存在'
+        message: 'Story node request failed',
       });
     }
     
@@ -898,7 +825,6 @@ router.post('/nodes/:nodeId/choices', authGuard, async (req, res) => {
       autoCreate: autoCreate || false
     };
     
-    // 如果提供了targetNodeId，创建分支
     if (newChoice.targetNodeId && isValidStringId(newChoice.targetNodeId)) {
       const Branch = require('../models/Branch');
       try {
@@ -919,126 +845,75 @@ router.post('/nodes/:nodeId/choices', authGuard, async (req, res) => {
     });
   } catch (error) {
     console.error('添加选项失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '添加选项失败',
-      error: error.message
-    });
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 
 // 更新节点的选项
-router.put('/nodes/:nodeId/choices/:choiceId', authGuard, async (req, res) => {
+// Update a node choice.
+router.put('/nodes/:nodeId/choices/:choiceId', authGuard, async (req, res, next) => {
   try {
     const { nodeId, choiceId } = req.params;
-    const { text, description, targetNodeId, autoCreate } = req.body;
-    
+    const { text, targetNodeId } = req.body;
+
+    if (!isValidStringId(nodeId) || !isValidStringId(choiceId)) {
+      return res.status(400).json({ success: false, message: 'Invalid node or choice ID' });
+    }
+
     const node = await StoryNode.findById(nodeId);
     if (!node) {
-      return res.status(404).json({
-        success: false,
-        message: '节点不存在'
-      });
+      return res.status(404).json({ success: false, message: 'Node not found' });
     }
-    
-    // 查找选项
-    // MySQL版本中，choices通过branches表管理
-    // 查找对应的分支
+
     const Branch = require('../models/Branch');
     const branches = await Branch.getOutgoingBranches(nodeId);
-    const branch = branches.find(b => b.id === choiceId);
-    
+    const branch = branches.find((item) => item.id === choiceId);
     if (!branch) {
-      return res.status(404).json({
-        success: false,
-        message: '选项不存在'
-      });
+      return res.status(404).json({ success: false, message: 'Choice not found' });
     }
-    
-    const choice = { id: branch.id, targetNodeId: branch.target_node_id, context: branch.context };
-    if (!choice) {
-      return res.status(404).json({
-        success: false,
-        message: '选项不存在'
-      });
+
+    const nextText = text !== undefined ? String(text).trim() : branch.context;
+    if (!nextText) {
+      return res.status(400).json({ success: false, message: 'Choice text cannot be empty' });
     }
-    
-    // 更新选项
-    if (text !== undefined) {
-      if (text.trim().length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: '选项文本不能为空'
-        });
+
+    const nextTargetNodeId = targetNodeId !== undefined ? targetNodeId : branch.target_node_id;
+    if (nextTargetNodeId) {
+      if (!isValidStringId(nextTargetNodeId)) {
+        return res.status(400).json({ success: false, message: 'Invalid target node ID' });
       }
-      choice.text = text.trim();
-    }
-    
-    if (description !== undefined) {
-      choice.description = description;
-    }
-    
-    if (targetNodeId !== undefined) {
-      if (targetNodeId) {
-        const targetNode = await StoryNode.findById(targetNodeId);
-        if (!targetNode) {
-          return res.status(404).json({
-            success: false,
-            message: '目标节点不存在'
-          });
-        }
-        
-        // 检查循环引用
-        // 检查循环引用（简单检查：不能绑定到自己）
-        if (targetNodeId === nodeId) {
-          return res.status(400).json({
-            success: false,
-            message: '不能绑定到自己'
-          });
-        }
-        
-        // 检查是否形成循环（通过检查目标节点的出向分支）
-        const Branch = require('../models/Branch');
-        const targetBranches = await Branch.getOutgoingBranches(targetNodeId);
-        const targetNodeIds = targetBranches.map(b => b.target_node_id);
-        if (targetNodeIds.includes(nodeId)) {
-          return res.status(400).json({
-            success: false,
-            message: '不能绑定到自己的子节点（会形成循环）'
-          });
-        }
-        
-        // 如果检查通过，继续执行
-        if (false) {
-          return res.status(400).json({
-            success: false,
-            message: '不能绑定到自己的子节点'
-          });
-        }
+      if (nextTargetNodeId === nodeId) {
+        return res.status(400).json({ success: false, message: 'Choice cannot target the same node' });
       }
-      // 更新分支的目标节点
-      const Branch = require('../models/Branch');
-      await Branch.findByIdAndDelete(branch.id);
-      await Branch.createBranch(nodeId, targetNodeId, choice.context || branch.context);
+      const targetNode = await StoryNode.findById(nextTargetNodeId);
+      if (!targetNode) {
+        return res.status(404).json({ success: false, message: 'Target node not found' });
+      }
     }
-    
+
+    await Branch.findByIdAndDelete(branch.id);
+    let updatedBranch = null;
+    if (nextTargetNodeId) {
+      updatedBranch = await Branch.createBranch(nodeId, nextTargetNodeId, nextText);
+    }
+
     res.json({
       success: true,
-      message: '选项更新成功',
-      data: choice
+      message: 'Choice updated successfully',
+      data: {
+        id: updatedBranch?.id || choiceId,
+        text: nextText,
+        targetNodeId: nextTargetNodeId || null
+      }
     });
   } catch (error) {
-    console.error('更新选项失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '更新选项失败',
-      error: error.message
-    });
+    console.error('Update choice failed:', error);
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 
 // 删除节点的选项
-router.delete('/nodes/:nodeId/choices/:choiceId', authGuard, async (req, res) => {
+router.delete('/nodes/:nodeId/choices/:choiceId', authGuard, async (req, res, next) => {
   try {
     const { nodeId, choiceId } = req.params;
     
@@ -1046,18 +921,17 @@ router.delete('/nodes/:nodeId/choices/:choiceId', authGuard, async (req, res) =>
     if (!node) {
       return res.status(404).json({
         success: false,
-        message: '节点不存在'
+        message: 'Story node request failed',
       });
     }
     
-    // MySQL版本中，choices通过branches表管理
-    // 查找对应的分支并删除
+    // MySQL鐗堟湰涓紝choices通过branches琛ㄧ鐞?    // 鏌ユ壘瀵瑰簲鐨勫垎鏀苟鍒犻櫎
     const Branch = require('../models/Branch');
     const branch = await Branch.findById(choiceId);
     if (!branch || branch.source_node_id !== nodeId) {
       return res.status(404).json({
         success: false,
-        message: '选项不存在'
+        message: 'Story node request failed',
       });
     }
     
@@ -1074,26 +948,21 @@ router.delete('/nodes/:nodeId/choices/:choiceId', authGuard, async (req, res) =>
     });
   } catch (error) {
     console.error('删除选项失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '删除选项失败',
-      error: error.message
-    });
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 
 // 复制节点
-router.post('/nodes/:nodeId/copy', authGuard, async (req, res) => {
+router.post('/nodes/:nodeId/copy', authGuard, async (req, res, next) => {
   try {
     const { nodeId } = req.params;
     const { newParentId } = req.body;
     
-    // 检查权限
     const originalNode = await StoryNode.findById(nodeId);
     if (!originalNode) {
       return res.status(404).json({
         success: false,
-        message: '节点不存在'
+        message: 'Story node request failed',
       });
     }
     
@@ -1101,11 +970,11 @@ router.post('/nodes/:nodeId/copy', authGuard, async (req, res) => {
     if (!story || story.author.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
-        message: '无权限复制此节点'
+        message: '鏃犳潈闄愬鍒舵鑺傜偣'
       });
     }
     
-    // 验证新父节点ID（如果提供）
+    // 验证新父节点ID锛堝鏋滄彁渚涳級
     if (newParentId) {
       if (!isValidStringId(newParentId)) {
         return res.status(400).json({
@@ -1118,15 +987,14 @@ router.post('/nodes/:nodeId/copy', authGuard, async (req, res) => {
       if (!parentNode) {
         return res.status(404).json({
           success: false,
-          message: '新父节点不存在'
+          message: 'Story node request failed',
         });
       }
       
-      // 确保新父节点属于同一个故事
       if (parentNode.storyId.toString() !== originalNode.storyId.toString()) {
         return res.status(400).json({
           success: false,
-          message: '新父节点必须属于同一个故事'
+          message: 'Story node request failed',
         });
       }
     }
@@ -1141,16 +1009,12 @@ router.post('/nodes/:nodeId/copy', authGuard, async (req, res) => {
     });
   } catch (error) {
     console.error('复制节点失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '复制节点失败',
-      error: error.message
-    });
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 
 // 调整节点顺序
-router.put('/stories/:storyId/nodes/reorder', authGuard, storyAuth, async (req, res) => {
+router.put('/stories/:storyId/nodes/reorder', authGuard, storyAuth, async (req, res, next) => {
   try {
     const { storyId } = req.params;
     const { nodeOrders } = req.body;
@@ -1159,7 +1023,7 @@ router.put('/stories/:storyId/nodes/reorder', authGuard, storyAuth, async (req, 
     if (!nodeOrders || !Array.isArray(nodeOrders)) {
       return res.status(400).json({
         success: false,
-        message: 'nodeOrders参数必须是数组'
+        message: 'Story node request failed',
       });
     }
     
@@ -1172,16 +1036,12 @@ router.put('/stories/:storyId/nodes/reorder', authGuard, storyAuth, async (req, 
     });
   } catch (error) {
     console.error('调整节点顺序失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '调整节点顺序失败',
-      error: error.message
-    });
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 
 // 搜索节点
-router.get('/stories/:storyId/nodes/search', authGuard, storyAuth, async (req, res) => {
+router.get('/stories/:storyId/nodes/search', authGuard, storyAuth, async (req, res, next) => {
   try {
     const { storyId } = req.params;
     const { keyword, limit, offset, searchInContent } = req.query;
@@ -1190,18 +1050,18 @@ router.get('/stories/:storyId/nodes/search', authGuard, storyAuth, async (req, r
     if (!keyword || keyword.trim().length === 0) {
       return res.status(400).json({
         success: false,
-        message: '搜索关键词不能为空'
+        message: 'Story node request failed',
       });
     }
     
-    // 准备搜索选项
+    // 鍑嗗鎼滅储閫夐」
     const options = {
       limit: limit ? parseInt(limit) : 20,
       offset: offset ? parseInt(offset) : 0,
-      searchInContent: searchInContent !== 'false' // 默认搜索内容
+      searchInContent: searchInContent !== 'false' // 榛樿鎼滅储鍐呭
     };
     
-    // 搜索节点（MySQL版本：使用简单查询）
+    // 搜索节点（MySQL版本：使用简单查询級
     const allNodes = await StoryNode.getStoryNodes(storyId);
     const keywordLower = keyword.toLowerCase();
     const nodes = allNodes.filter(node => 
@@ -1231,16 +1091,12 @@ router.get('/stories/:storyId/nodes/search', authGuard, storyAuth, async (req, r
     });
   } catch (error) {
     console.error('搜索节点失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '搜索节点失败',
-      error: error.message
-    });
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 
-// 验证故事的一致性
-router.get('/stories/:storyId/validate', authGuard, storyAuth, async (req, res) => {
+// Route
+router.get('/stories/:storyId/validate', authGuard, storyAuth, async (req, res, next) => {
   try {
     const { storyId } = req.params;
     
@@ -1255,7 +1111,7 @@ router.get('/stories/:storyId/validate', authGuard, storyAuth, async (req, res) 
     const nodes = await StoryNode.getStoryNodes(parseInt(storyId));
     const issues = [];
     
-    // 检查每个节点的分支
+    // 妫€鏌ユ瘡涓妭鐐圭殑鍒嗘敮
     const Branch = require('../models/Branch');
     for (const node of nodes) {
       const branches = await Branch.getOutgoingBranches(node.id);
@@ -1284,12 +1140,8 @@ router.get('/stories/:storyId/validate', authGuard, storyAuth, async (req, res) 
       }
     });
   } catch (error) {
-    console.error('验证故事一致性失败:', error);
-    res.status(500).json({
-      success: false,
-      message: '验证故事一致性失败',
-      error: error.message
-    });
+    console.error('验证故事一致性失败', error);
+    return next(errorFormat(500, 'Story node operation failed', [{ message: error.message }], 10004));
   }
 });
 

@@ -18,26 +18,45 @@ const API_CONFIG = {
   },
   
   // 通用API请求函数
+  // options.timeout: 超时毫秒数（默认 30 秒，AI 请求应传 180000 即 3 分钟）
   async request(url, options = {}) {
+    const timeout = options.timeout || 30000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
     try {
       const headers = {
         ...this.getAuthHeaders(),
         ...options.headers
       };
-      
+
+      // 移除自定义字段，避免传入 fetch
+      const fetchOptions = { ...options };
+      delete fetchOptions.timeout;
+
       const response = await fetch(url, {
-        ...options,
-        headers
+        ...fetchOptions,
+        headers,
+        signal: controller.signal
       });
-      
+
+      clearTimeout(timeoutId);
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.message || `HTTP错误: ${response.status}`);
       }
-      
+
       return data;
     } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        const friendlyMsg = timeout >= 120000
+          ? 'AI 生成超时，请稍后重试（DeepSeek 响应时间较长）'
+          : '请求超时，请检查网络后重试';
+        throw new Error(friendlyMsg);
+      }
       console.error('API请求错误:', error);
       throw error;
     }

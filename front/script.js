@@ -519,7 +519,7 @@ function resizeCanvasToFitNodes() {
         elements.nodesCanvas.style.width = `${canvasWidth}px`;
         elements.nodesCanvas.style.height = `${canvasHeight}px`;
         
-        // 确保所有节点都能被访问到，保持overflow为auto以支持滚动
+        // 确保所有节点都能被访问到，保持overflow?auto以支持滚动
         elements.nodesCanvas.style.overflow = 'auto';
         elements.nodesCanvas.style.overflowX = 'auto';
         elements.nodesCanvas.style.overflowY = 'auto';
@@ -812,7 +812,7 @@ function initCanvasPan() {
         const maxScrollTop = Math.max(0, canvas.scrollHeight - canvas.clientHeight);
         
         // 确保滚动值在有效范围内
-        // 注意：如果 maxScrollTop 为 0 或负数，说明内容高度不够，无法滚动
+        // 注意：如果 maxScrollTop ? 0 或负数，说明内容高度不够，无法滚动
         if (maxScrollTop > 0) {
             canvas.scrollTop = Math.max(0, Math.min(newScrollTop, maxScrollTop));
         } else {
@@ -990,7 +990,7 @@ function updateConnectionsForNode(nodeId, updateBranchText = false) {
         }
     });
     
-    // 如果updateBranchText为false，只更新连接线位置，不重新绘制分支文本
+    // 如果updateBranchText?false，只更新连接线位置，不重新绘制分支文本
     if (!updateBranchText) {
         // 只重新绘制连接线（不包含分支文本）
         if (node.branches && node.branches.length > 0) {

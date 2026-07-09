@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -6,9 +6,9 @@
 <title>AI 互动故事 - StoryForge</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-<script src="assets/js/api-config.js"></script>
-<script src="assets/js/auth.js"></script>
-<script src="assets/js/navbar.js"></script>
+<script src="assets/js/api-config.js?v=20260708"></script>
+<script src="assets/js/auth.js?v=20260708"></script>
+<script src="assets/js/navbar.js?v=20260708"></script>
 <style>
 :root { --bg: #0a0a14; --accent: #818cf8; --surface: rgba(255,255,255,0.04); }
 * { box-sizing: border-box; }
@@ -39,6 +39,9 @@ body { background: var(--bg); min-height: 100vh; color: #d1d5db; font-family: Ge
 .choice-btn { display: block; width: 100%; text-align: left; padding: 0.85rem 1.1rem; margin-bottom: 0.5rem; border-radius: 10px; border: 1px solid rgba(129,140,248,0.15); background: rgba(129,140,248,0.05); color: #d1d5db; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; font-family: system-ui, sans-serif; }
 .choice-btn:hover { border-color: var(--accent); background: rgba(129,140,248,0.1); }
 .choice-btn:active { transform: scale(0.98); }
+.choice-btn[disabled] { opacity: 0.55; cursor: wait; }
+.choice-btn.processing { border-color: var(--accent); background: rgba(129,140,248,0.18); color: #fff; }
+.feedback-toast { position: fixed; left: 50%; bottom: 8.5rem; transform: translateX(-50%); max-width: min(92vw, 720px); background: rgba(220,38,38,0.95); color: #fff; padding: 0.75rem 1rem; border-radius: 10px; z-index: 30; font-family: system-ui, sans-serif; font-size: 0.86rem; box-shadow: 0 12px 32px rgba(0,0,0,0.35); display: none; }
 /* Loading */
 .loading { text-align: center; padding: 3rem 1rem; }
 .dots { display: inline-flex; gap: 0.3rem; margin-top: 0.75rem; }
@@ -73,8 +76,8 @@ body { background: var(--bg); min-height: 100vh; color: #d1d5db; font-family: Ge
       <div class="hidden lg:flex items-center space-x-8" id="main-nav-desktop">
         <a href="index.html" class="text-slate-300 hover:text-white font-medium transition-colors">首页</a>
         <a href="browse.html" class="text-slate-300 hover:text-white font-medium transition-colors">故事阅览</a>
-        <a href="ai-workshop.html" class="text-slate-300 hover:text-white font-medium transition-colors">AI 工坊</a>
         <a href="ai-stories.html" class="text-slate-300 hover:text-white font-medium transition-colors">AI 广场</a>
+        <a href="create.html" class="text-slate-300 hover:text-white font-medium transition-colors">创建故事</a>
         <a href="my_stories.html" class="text-slate-300 hover:text-white font-medium transition-colors">我的作品</a>
         <a href="profile.html" class="text-slate-300 hover:text-white font-medium transition-colors">个人中心</a>
       </div>
@@ -88,8 +91,8 @@ body { background: var(--bg); min-height: 100vh; color: #d1d5db; font-family: Ge
     <div class="container mx-auto px-4 py-4 space-y-3">
       <a href="index.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">首页</a>
       <a href="browse.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">故事阅览</a>
-      <a href="ai-workshop.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">AI 工坊</a>
       <a href="ai-stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">AI 广场</a>
+      <a href="create.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">创建故事</a>
       <a href="my_stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">我的作品</a>
       <a href="profile.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">个人中心</a>
       <div class="flex flex-col space-y-3 pt-3 border-t border-white/10">
@@ -109,7 +112,9 @@ body { background: var(--bg); min-height: 100vh; color: #d1d5db; font-family: Ge
   <div class="toolbar" id="toolbar" style="display:none">
     <button onclick="goBack()"><i class="fas fa-undo" style="margin-right:4px"></i>返回</button>
     <button onclick="regenerateCurrent()"><i class="fas fa-redo" style="margin-right:4px"></i>重试</button>
-    <button onclick="window.location.href='my_stories.html?tab=ai-adventures'"><i class="fas fa-sign-out-alt" style="margin-right:4px"></i>退出阅读</button>
+    <button onclick="openComments()"><i class="fas fa-comments" style="margin-right:4px"></i>评论</button>
+    <button id="endStoryBtn" onclick="endStory()"><i class="fas fa-flag-checkered" style="margin-right:4px"></i>结束故事</button>
+    <button onclick="window.location.href='my_stories.html'"><i class="fas fa-sign-out-alt" style="margin-right:4px"></i>退出阅读</button>
   </div>
 
   <div id="contentArea">
@@ -118,12 +123,38 @@ body { background: var(--bg); min-height: 100vh; color: #d1d5db; font-family: Ge
 </div>
 
 <div class="choices-panel" id="choicesPanel" style="display:none">
-  <div class="choice-label">Make your choice</div>
+  <div class="choice-label" id="choiceLabel">Make your choice</div>
   <div id="choicesList"></div>
-  <div style="margin-top:0.75rem;border-top:1px solid rgba(255,255,255,0.06);padding-top:0.75rem;font-family:system-ui,sans-serif">
+  <div id="freeInputWrap" style="margin-top:0.75rem;border-top:1px solid rgba(255,255,255,0.06);padding-top:0.75rem;font-family:system-ui,sans-serif">
     <div style="display:flex;gap:0.5rem">
       <input type="text" id="freeInput" placeholder="Or type your own action..." style="flex:1;padding:0.6rem 0.8rem;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#d1d5db;font-size:0.85rem;outline:none;font-family:system-ui,sans-serif" onkeydown="if(event.key==='Enter')submitFreeChoice()">
       <button onclick="submitFreeChoice()" style="padding:0.6rem 1rem;border-radius:8px;border:1px solid rgba(129,140,248,0.3);background:rgba(129,140,248,0.1);color:#a5b4fc;cursor:pointer;font-size:0.85rem;font-family:system-ui,sans-serif;white-space:nowrap"><i class="fas fa-arrow-right"></i></button>
+    </div>
+    <div style="text-align:center;margin-top:0.6rem">
+      <button onclick="endStory()" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:0.78rem;text-decoration:underline;font-family:system-ui,sans-serif"><i class="fas fa-flag-checkered" style="margin-right:4px"></i>结束这个故事</button>
+    </div>
+  </div>
+</div>
+
+<div class="feedback-toast" id="feedbackToast"></div>
+
+<!-- 评论弹窗 -->
+<div id="commentsModal" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(5,5,12,0.72);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:1rem;font-family:system-ui,sans-serif">
+  <div style="background:#12121f;border:1px solid rgba(255,255,255,0.08);border-radius:16px;max-width:560px;width:100%;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,0.5)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,0.07)">
+      <h3 style="margin:0;color:#e2e8f0;font-size:1.05rem;font-weight:700"><i class="fas fa-comments" style="color:var(--accent);margin-right:0.5rem"></i>读者评论 <span id="aiCommentCount" style="color:#64748b;font-size:0.85rem;font-weight:400"></span></h3>
+      <button onclick="closeComments()" style="background:none;border:none;color:#94a3b8;font-size:1.2rem;cursor:pointer"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="aiCommentForm" style="padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,0.07)">
+      <textarea id="aiCommentInput" rows="3" maxlength="2000" placeholder="写下你的看法…" style="width:100%;padding:0.7rem;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#d1d5db;font-size:0.88rem;outline:none;resize:none;font-family:system-ui,sans-serif"></textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:0.5rem">
+        <button id="aiCommentSubmit" onclick="submitAiComment()" style="padding:0.5rem 1.2rem;border-radius:8px;border:1px solid rgba(129,140,248,0.35);background:rgba(129,140,248,0.15);color:#c7d2fe;cursor:pointer;font-size:0.85rem"><i class="fas fa-paper-plane" style="margin-right:5px"></i>发表评论</button>
+      </div>
+    </div>
+    <div id="aiCommentLoginTip" style="display:none;padding:1.25rem;text-align:center;color:#94a3b8;font-size:0.88rem">请先 <a href="login.html" style="color:var(--accent)">登录</a> 后发表评论</div>
+    <div id="aiCommentList" style="padding:1rem 1.25rem;overflow-y:auto;flex:1"></div>
+    <div style="padding:0 1.25rem 1.1rem;text-align:center">
+      <button id="aiCommentMore" onclick="loadAiComments(aiCommentPage + 1, true)" style="display:none;padding:0.45rem 1rem;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:transparent;color:#94a3b8;cursor:pointer;font-size:0.82rem">加载更多评论</button>
     </div>
   </div>
 </div>
@@ -134,8 +165,10 @@ var storyId = null;
 var currentNodeId = null;
 var currentContent = '';
 var currentNodeTitle = '';
-var history = [];
+var readingHistory = [];
+var currentChoices = [];
 var typewriterTimer = null;
+var storyEnded = false; // 故事是否已完结（当前节点为结局节点）
 
 document.addEventListener('DOMContentLoaded', function() {
   AuthUI.init();
@@ -151,6 +184,11 @@ document.addEventListener('DOMContentLoaded', function() {
   if (mobileBtn && mobileMenu) {
     mobileBtn.addEventListener('click', function() { mobileMenu.classList.toggle('hidden'); });
   }
+
+  // 窗口尺寸变化时重新计算正文底部留白，保持选项面板不遮挡正文
+  window.addEventListener('resize', function() {
+    if (document.getElementById('choicesPanel').style.display !== 'none') adjustContentPadding();
+  });
 
   var params = new URLSearchParams(window.location.search);
   storyId = params.get('storyId');
@@ -175,9 +213,14 @@ async function loadSession() {
     currentNodeId = node.id;
     currentContent = node.content;
     currentNodeTitle = node.title;
+    currentChoices = Array.isArray(res.data.currentChoices) ? res.data.currentChoices : [];
+    // 若当前节点是结局节点（type='end'），标记故事已完结，稍后展示完结面板
+    storyEnded = (node.type === 'end');
     document.getElementById('storyTitle').textContent = currentNodeTitle;
     document.getElementById('progressText').textContent = 'Explored ' + (res.data.session.totalNodes || 1) + ' nodes';
     document.getElementById('toolbar').style.display = 'flex';
+    // 埋点：记录进入故事时所处的当前节点
+    recordReadEvent(null, currentNodeId, null);
     renderContent();
   } catch(e) {
     document.getElementById('contentArea').innerHTML = '<div class="error">Failed to load story.<br><small>' + escapeHtml(e.message) + '</small><br><button onclick="loadSession()">Retry</button></div>';
@@ -200,6 +243,12 @@ async function loadStoryMeta() {
 function renderContent() {
   document.getElementById('choicesPanel').style.display = 'none';
   document.getElementById('contentArea').innerHTML = '';
+
+  // 打字开始前先预留一段底部空间：这样打字过程中自动滚动到底部时，
+  // 正文结尾不会贴到视口最底部（也就是稍后选项面板出现的位置），从根本上减少被遮挡的概率。
+  // 具体高度稍后会在面板真正渲染后由 adjustContentPadding 按实际高度精修。
+  var containerEl = document.querySelector('.container');
+  if (containerEl) containerEl.style.paddingBottom = '440px';
 
   var wrapper = document.createElement('div');
   wrapper.className = 'fade-in';
@@ -252,24 +301,73 @@ function renderContent() {
 }
 
 // ── Load choices ──
-async function loadChoices() {
+// 选项直接来自会话/续写响应（currentChoices），不再从 branches API 拉取，
+// 避免加载到空的占位节点造成"无关节点"干扰
+function loadChoices() {
   if (!currentNodeId) return;
-  document.getElementById('choicesPanel').style.display = 'block';
-  document.getElementById('choicesList').innerHTML = '<div style="text-align:center;color:#64748b;padding:0.5rem;font-family:system-ui,sans-serif;font-size:0.85rem"><div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>Loading choices...</div>';
-  try {
-    var branchRes = await API_CONFIG.get(API_CONFIG.buildUrl('/branches/nodes/' + currentNodeId + '/branches/outgoing'));
-    var branches = branchRes.data || [];
-    if (branches.length > 0) {
-      renderChoices(branches.map(function(b) {
-        return { text: b.context || 'Continue', nodeId: b.target_node_id, hint: '' };
-      }));
-      return;
-    }
-  } catch(e) {
-    console.warn('Branch load failed:', e);
+  // 故事已完结：展示"全剧终"面板，不再提供选项或自由输入
+  if (storyEnded) {
+    showEndingPanel();
+    return;
   }
-  // No preset choices — show end-of-segment message but KEEP free input visible
+  // 非完结态：确保选项标签与自由输入区可见（可能被上一次完结面板隐藏过）
+  var lbl = document.getElementById('choiceLabel');
+  var fw = document.getElementById('freeInputWrap');
+  if (lbl) lbl.style.display = '';
+  if (fw) fw.style.display = '';
+  if (Array.isArray(currentChoices) && currentChoices.length > 0) {
+    renderChoices(currentChoices.map(function(c) {
+      return { text: c.text || 'Continue', hint: c.hint || '' };
+    }));
+    return;
+  }
+  // 没有预设选项时，保留自由输入框让读者继续推进
+  document.getElementById('choicesPanel').style.display = 'block';
   document.getElementById('choicesList').innerHTML = '<div style="text-align:center;color:#64748b;padding:1rem;font-family:system-ui,sans-serif"><p style="margin-bottom:0.5rem;font-style:italic">这段故事暂告段落</p><p style="font-size:0.8rem;color:#475569">你可以输入自己的行动继续推进剧情，或返回前面的选择</p></div>';
+  adjustContentPadding(true);
+}
+
+// 展示"全剧终"面板：隐藏选项标签与自由输入，仅显示结束语和出口
+function showEndingPanel() {
+  var label = document.getElementById('choiceLabel');
+  var freeWrap = document.getElementById('freeInputWrap');
+  if (label) label.style.display = 'none';
+  if (freeWrap) freeWrap.style.display = 'none';
+  document.getElementById('choicesList').innerHTML =
+    '<div style="text-align:center;color:#cbd5e1;padding:0.5rem 0.5rem 0.25rem;font-family:system-ui,sans-serif">' +
+    '<p style="font-size:1.1rem;font-weight:700;letter-spacing:0.15em;color:#a5b4fc;margin-bottom:0.35rem"><i class="fas fa-flag-checkered" style="margin-right:6px"></i>全剧终</p>' +
+    '<p style="font-size:0.82rem;color:#64748b;margin-bottom:0.9rem">这个故事已经迎来结局，感谢你的旅程。</p>' +
+    '<div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap">' +
+    '<button onclick="goBack()" style="padding:0.5rem 1.1rem;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.04);color:#e2e8f0;cursor:pointer;font-size:0.85rem"><i class="fas fa-undo" style="margin-right:5px"></i>回到上一步</button>' +
+    '<button onclick="window.location.href=\'my_stories.html\'" style="padding:0.5rem 1.1rem;border-radius:8px;border:1px solid rgba(129,140,248,0.3);background:rgba(129,140,248,0.12);color:#c7d2fe;cursor:pointer;font-size:0.85rem"><i class="fas fa-book" style="margin-right:5px"></i>返回我的作品</button>' +
+    '</div></div>';
+  document.getElementById('choicesPanel').style.display = 'block';
+  adjustContentPadding(true);
+}
+
+// 根据底部固定选项面板的实际高度，动态设置正文容器的底部内边距，
+// 确保正文最后几行不会被选项框遮挡（选项数量不同时面板高度也不同）。
+// scrollToEnd=true 时（打字刚结束、面板刚弹出），在设置留白后把页面滚动到新底部，
+// 让正文结尾恰好停在面板上方，彻底避免"选项框盖住正文最后几行"的问题。
+function adjustContentPadding(scrollToEnd) {
+  var panel = document.getElementById('choicesPanel');
+  var container = document.querySelector('.container');
+  if (!panel || !container) return;
+  // 等待面板完成渲染再测量高度
+  requestAnimationFrame(function() {
+    var h = panel.offsetHeight || 0;
+    container.style.paddingBottom = (h + 96) + 'px';
+    if (scrollToEnd) {
+      // 打字过程中的 smooth 平滑滚动动画可能尚未结束，单次滚动容易被打断，
+      // 因此用多次延时滚动做校正，确保最终停在新底部、正文结尾露在面板上方。
+      var doScroll = function() {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      };
+      requestAnimationFrame(doScroll);
+      setTimeout(doScroll, 150);
+      setTimeout(doScroll, 400);
+    }
+  });
 }
 
 // ── Render choices ──
@@ -282,54 +380,162 @@ function renderChoices(choices) {
   var html = '';
   for (var i = 0; i < choices.length; i++) {
     var ch = choices[i];
-    html += '<button class="choice-btn fade-in" style="animation-delay:' + (i * 0.1) + 's" data-idx="' + i + '">' + escapeHtml(ch.text || '') + '</button>';
+    html += '<button type="button" class="choice-btn fade-in" style="animation-delay:' + (i * 0.1) + 's" data-idx="' + i + '">' + escapeHtml(ch.text || '') + '</button>';
   }
-  document.getElementById('choicesList').innerHTML = html;
-  // Set individual onclick on each button
-    var btns = document.getElementById('choicesList').querySelectorAll('.choice-btn');
-    for (var j = 0; j < btns.length; j++) {
-      (function(idx) {
-        btns[j].onclick = function() { selectChoice(window._choices[idx].text); };
-      })(j);
-    }
+  var list = document.getElementById('choicesList');
+  list.innerHTML = html;
+  // 关键修复：填充选项后必须把选项面板显示出来
+  // （renderContent 开头会把面板设为 display:none，若此处不设回 block，选项框永远弹不出来）
+  document.getElementById('choicesPanel').style.display = 'block';
+  // 根据选项面板实际高度动态调整正文底部留白，并滚动到底部让正文结尾露在面板上方
+  adjustContentPadding(true);
+  list.querySelectorAll('.choice-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var idx = parseInt(this.getAttribute('data-idx'), 10);
+      var item = window._choices && window._choices[idx];
+      if (!item || this.disabled) return;
+      selectChoice(item.text, this);
+    });
+  });
 }
 
-// ── Select choice ──
-async function selectChoice(choiceText) {
-  if (!currentNodeId) return;
-  history.push({ nodeId: currentNodeId, content: currentContent, title: currentNodeTitle });
+// Select choice
+async function selectChoice(choiceText, sourceButton) {
+  if (!currentNodeId) {
+    showFeedback('\u5f53\u524d\u8282\u70b9\u5c1a\u672a\u52a0\u8f7d\u5b8c\u6210\uff0c\u8bf7\u7a0d\u540e\u518d\u8bd5\u3002');
+    return;
+  }
+  if (!choiceText || !String(choiceText).trim()) {
+    showFeedback('\u8bf7\u9009\u62e9\u4e00\u4e2a\u884c\u52a8\uff0c\u6216\u8f93\u5165\u81ea\u5df1\u7684\u884c\u52a8\u3002');
+    return;
+  }
+
+  hideFeedback();
+  var previousChoicesHtml = document.getElementById('choicesList').innerHTML;
+  var previousInputValue = document.getElementById('freeInput') ? document.getElementById('freeInput').value : '';
+  var fromNodeId = currentNodeId; // 记录跳转前所在节点，供埋点使用
+  document.querySelectorAll('.choice-btn').forEach(function(btn) { btn.disabled = true; });
+  if (sourceButton) {
+    sourceButton.disabled = true;
+    sourceButton.classList.add('processing');
+    sourceButton.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:6px"></i>' + '\u6b63\u5728\u751f\u6210\u4e0b\u4e00\u6bb5...' ;
+  }
+
+  readingHistory.push({ nodeId: currentNodeId, content: currentContent, title: currentNodeTitle, choices: currentChoices });
   document.getElementById('choicesPanel').style.display = 'none';
-  document.getElementById('contentArea').innerHTML = '<div class="loading fade-in"><p style="color:#94a3b8;font-family:system-ui,sans-serif;font-size:0.9rem">AI is crafting the next chapter...</p><div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>';
+  document.getElementById('contentArea').innerHTML = '<div class="loading fade-in"><p style="color:#94a3b8;font-family:system-ui,sans-serif;font-size:0.9rem">AI 正在根据你的选择续写...</p><p style="color:#64748b;font-family:system-ui,sans-serif;font-size:0.78rem;margin-top:0.5rem">预计需要 10-30 秒，请耐心等待</p><div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>';
   try {
     var res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/story/' + storyId + '/generate'), {
       nodeId: currentNodeId,
       choice: choiceText
-    });
-    if (res.success) {
+    }, { timeout: 180000 });
+    if (res.success && res.data) {
       currentNodeId = res.data.nodeId;
       currentContent = res.data.content;
       currentNodeTitle = res.data.title;
+      currentChoices = Array.isArray(res.data.choices) ? res.data.choices : [];
+      storyEnded = res.data.ended === true;
+      // 埋点：记录 from → to 跳转与所选行动
+      recordReadEvent(fromNodeId, currentNodeId, choiceText);
       document.getElementById('storyTitle').textContent = currentNodeTitle;
       document.getElementById('progressText').textContent = 'Explored ' + (res.data.totalNodes || 1) + ' nodes';
       renderContent();
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
     }
+    throw new Error('\u670d\u52a1\u5668\u8fd4\u56de\u6570\u636e\u5f02\u5e38');
   } catch(e) {
-    document.getElementById('contentArea').innerHTML = '<div class="error">Generation failed.<br><small>' + escapeHtml(e.message) + '</small><br><button onclick="renderContent()">Back</button></div>';
+    var last = readingHistory.pop();
+    if (last) {
+      currentNodeId = last.nodeId;
+      currentContent = last.content;
+      currentNodeTitle = last.title;
+      currentChoices = last.choices || [];
+      document.getElementById('storyTitle').textContent = currentNodeTitle;
+    }
+    renderContent();
+    setTimeout(function() {
+      document.getElementById('choicesPanel').style.display = 'block';
+      document.getElementById('choicesList').innerHTML = previousChoicesHtml;
+      var input = document.getElementById('freeInput');
+      if (input) input.value = previousInputValue;
+      var btns = document.getElementById('choicesList').querySelectorAll('.choice-btn');
+      for (var i = 0; i < btns.length; i++) {
+        (function(button) {
+          button.disabled = false;
+          button.classList.remove('processing');
+          button.addEventListener('click', function() {
+            var idx = parseInt(this.getAttribute('data-idx'), 10);
+            var item = window._choices && window._choices[idx];
+            if (item) selectChoice(item.text, this);
+          });
+        })(btns[i]);
+      }
+      showFeedback('\u751f\u6210\u5931\u8d25\uff1a' + (e.message || '\u672a\u77e5\u9519\u8bef') + '\u3002\u8bf7\u91cd\u8bd5\uff0c\u6216\u8f93\u5165\u4e00\u4e2a\u81ea\u5b9a\u4e49\u884c\u52a8\u3002');
+    }, 0);
   }
 }
 
-// ── Go back ──
+// Go back
 function goBack() {
-  if (history.length === 0) return;
-  var prev = history.pop();
+  if (readingHistory.length === 0) return;
+  var prev = readingHistory.pop();
   currentNodeId = prev.nodeId;
   currentContent = prev.content;
   currentNodeTitle = prev.title;
+  currentChoices = prev.choices || [];
+  storyEnded = false; // 回到之前的节点，脱离完结态
   document.getElementById('storyTitle').textContent = currentNodeTitle;
   document.getElementById('choicesPanel').style.display = 'none';
   renderContent();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// 让读者主动结束故事：请求 AI 生成一个完整结局（无后续选项），并标记为结局节点
+async function endStory() {
+  if (!currentNodeId || storyEnded) return;
+  if (!confirm('确定要结束这个故事吗？AI 将为你生成一个完整的结局，之后将无法继续推进。')) return;
+  hideFeedback();
+  document.querySelectorAll('.choice-btn').forEach(function(btn) { btn.disabled = true; });
+  var endBtn = document.getElementById('endStoryBtn');
+  if (endBtn) endBtn.disabled = true;
+
+  readingHistory.push({ nodeId: currentNodeId, content: currentContent, title: currentNodeTitle, choices: currentChoices });
+  document.getElementById('choicesPanel').style.display = 'none';
+  document.getElementById('contentArea').innerHTML = '<div class="loading fade-in"><p style="color:#94a3b8;font-family:system-ui,sans-serif;font-size:0.9rem">AI 正在为你的故事撰写结局...</p><p style="color:#64748b;font-family:system-ui,sans-serif;font-size:0.78rem;margin-top:0.5rem">预计需要 10-30 秒，请耐心等待</p><div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>';
+  try {
+    var res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/story/' + storyId + '/generate'), {
+      nodeId: currentNodeId,
+      endStory: true
+    }, { timeout: 180000 });
+    if (res.success && res.data) {
+      var fromNodeId = currentNodeId;
+      currentNodeId = res.data.nodeId;
+      currentContent = res.data.content;
+      currentNodeTitle = res.data.title;
+      currentChoices = [];
+      storyEnded = true;
+      recordReadEvent(fromNodeId, currentNodeId, '（结束故事）');
+      document.getElementById('storyTitle').textContent = currentNodeTitle;
+      document.getElementById('progressText').textContent = 'Explored ' + (res.data.totalNodes || 1) + ' nodes · 已完结';
+      renderContent();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    throw new Error('\u670d\u52a1\u5668\u8fd4\u56de\u6570\u636e\u5f02\u5e38');
+  } catch(e) {
+    var last = readingHistory.pop();
+    if (last) {
+      currentNodeId = last.nodeId;
+      currentContent = last.content;
+      currentNodeTitle = last.title;
+      currentChoices = last.choices || [];
+    }
+    storyEnded = false;
+    if (endBtn) endBtn.disabled = false;
+    renderContent();
+    showFeedback('生成结局失败：' + (e.message || '未知错误') + '。请重试。');
+  }
 }
 
 // ── Regenerate ──
@@ -338,10 +544,12 @@ async function regenerateCurrent() {
   document.getElementById('choicesPanel').style.display = 'none';
   document.getElementById('contentArea').innerHTML = '<div class="loading fade-in"><p style="color:#94a3b8;font-family:system-ui,sans-serif;font-size:0.9rem">Regenerating...</p><div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>';
   try {
-    var res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/story/' + storyId + '/generate'), { nodeId: currentNodeId, choice: '(regenerate: continue the story)' });
+    var res = await API_CONFIG.post(API_CONFIG.buildUrl('/aiStory/story/' + storyId + '/generate'), { nodeId: currentNodeId, choice: '(regenerate: continue the story)' }, { timeout: 180000 });
     if (res.success) {
+      currentNodeId = res.data.nodeId || currentNodeId;
       currentContent = res.data.content;
       currentNodeTitle = res.data.title;
+      currentChoices = Array.isArray(res.data.choices) ? res.data.choices : [];
       renderContent();
     }
   } catch(e) {
@@ -353,16 +561,139 @@ function submitFreeChoice() {
   var input = document.getElementById('freeInput');
   if (!input) return;
   var text = input.value.trim();
-  if (text) {
-    selectChoice(text);
-    input.value = '';
+  if (!text) {
+    showFeedback('\u8bf7\u8f93\u5165\u4e00\u4e2a\u884c\u52a8\uff0c\u6216\u70b9\u51fb\u4e0a\u65b9\u7684\u9009\u9879\u3002');
+    return;
   }
+  var button = input.parentElement ? input.parentElement.querySelector('button') : null;
+  selectChoice(text, button);
+  input.value = '';
+}
+
+function showFeedback(message) {
+  var t = document.getElementById('feedbackToast');
+  if (!t) return;
+  t.textContent = message;
+  t.style.display = 'block';
+  clearTimeout(window._feedbackTimer);
+  window._feedbackTimer = setTimeout(hideFeedback, 7000);
+}
+
+function hideFeedback() {
+  var t = document.getElementById('feedbackToast');
+  if (t) t.style.display = 'none';
 }
 
 function escapeHtml(text) {
   var d = document.createElement('div');
   d.textContent = text;
   return d.innerHTML;
+}
+
+// 阅读埋点：记录读者在互动故事中的节点跳转（from → to + 所选行动），
+// 供作者在"数据分析"中查看路径流向与热门选择。失败静默。
+function recordReadEvent(fromNodeId, toNodeId, choiceText) {
+  if (!storyId || !toNodeId) return;
+  try {
+    API_CONFIG.post(API_CONFIG.buildUrl('/stories/' + storyId + '/read-events'), {
+      fromNodeId: fromNodeId != null ? String(fromNodeId) : null,
+      toNodeId: String(toNodeId),
+      choiceText: choiceText || null
+    }).catch(function() {});
+  } catch (e) { /* ignore */ }
+}
+
+// ──────────── 评论 ────────────
+var aiCommentPage = 1;
+var aiCommentTotalPages = 1;
+
+function aiCurrentUser() {
+  try { return (AuthUI.getAuthState() || {}).userInfo || null; } catch (e) { return null; }
+}
+
+function openComments() {
+  var modal = document.getElementById('commentsModal');
+  modal.style.display = 'flex';
+  var user = aiCurrentUser();
+  document.getElementById('aiCommentForm').style.display = user ? 'block' : 'none';
+  document.getElementById('aiCommentLoginTip').style.display = user ? 'none' : 'block';
+  loadAiComments(1, false);
+}
+
+function closeComments() {
+  document.getElementById('commentsModal').style.display = 'none';
+}
+
+async function loadAiComments(page, append) {
+  page = page || 1;
+  var listEl = document.getElementById('aiCommentList');
+  if (!append) listEl.innerHTML = '<div style="text-align:center;color:#64748b;padding:1.5rem;font-size:0.85rem">加载评论中…</div>';
+  try {
+    var res = await API_CONFIG.get(API_CONFIG.buildUrl('/stories/' + storyId + '/comments?page=' + page + '&limit=10'));
+    aiCommentPage = res.pagination ? res.pagination.page : page;
+    aiCommentTotalPages = res.pagination ? res.pagination.pages : 1;
+    var comments = res.data || [];
+    var total = res.pagination ? res.pagination.total : comments.length;
+    document.getElementById('aiCommentCount').textContent = total ? '(' + total + ')' : '';
+    if (!append) listEl.innerHTML = '';
+    if (page === 1 && comments.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center;color:#64748b;padding:1.5rem;font-size:0.85rem">还没有评论，来抢沙发吧～</div>';
+    } else {
+      comments.forEach(function(c) { listEl.insertAdjacentHTML('beforeend', renderAiComment(c)); });
+    }
+    var more = document.getElementById('aiCommentMore');
+    more.style.display = aiCommentPage < aiCommentTotalPages ? 'inline-block' : 'none';
+  } catch (e) {
+    if (!append) listEl.innerHTML = '<div style="text-align:center;color:#f87171;padding:1.5rem;font-size:0.85rem">评论加载失败：' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function renderAiComment(c) {
+  var user = aiCurrentUser();
+  var authorName = (c.author && c.author.username) || '用户';
+  var avatar = (c.author && c.author.avatar) || '/avatar/default.png';
+  if (avatar.indexOf('http') !== 0) avatar = 'http://localhost:5000' + avatar;
+  var canDelete = user && (String(user.userId) === String(c.userId) || user.role === 'admin');
+  var timeStr = c.createdAt ? new Date(c.createdAt).toLocaleString('zh-CN') : '';
+  return '<div style="display:flex;gap:0.7rem;padding:0.8rem 0;border-bottom:1px solid rgba(255,255,255,0.05)">' +
+    '<img src="' + avatar + '" onerror="this.onerror=null;this.src=\'http://localhost:5000/avatar/default.png\'" style="width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,0.1);flex-shrink:0">' +
+    '<div style="flex:1;min-width:0">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem">' +
+        '<span style="color:#e2e8f0;font-size:0.86rem;font-weight:600">' + escapeHtml(authorName) + '</span>' +
+        '<span style="display:flex;align-items:center;gap:0.6rem"><span style="color:#64748b;font-size:0.72rem">' + escapeHtml(timeStr) + '</span>' +
+        (canDelete ? '<button onclick="deleteAiComment(' + c.id + ')" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.75rem"><i class="fas fa-trash"></i></button>' : '') +
+        '</span>' +
+      '</div>' +
+      '<p style="color:#cbd5e1;font-size:0.85rem;margin:0.3rem 0 0;white-space:pre-wrap;word-break:break-word">' + escapeHtml(c.content || '') + '</p>' +
+    '</div>' +
+  '</div>';
+}
+
+async function submitAiComment() {
+  var input = document.getElementById('aiCommentInput');
+  var content = input.value.trim();
+  if (!content) { showFeedback('请输入评论内容'); return; }
+  var btn = document.getElementById('aiCommentSubmit');
+  btn.disabled = true;
+  try {
+    await API_CONFIG.post(API_CONFIG.buildUrl('/stories/' + storyId + '/comments'), { content: content });
+    input.value = '';
+    loadAiComments(1, false);
+  } catch (e) {
+    showFeedback('发表失败：' + (e.message || '未知错误'));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteAiComment(commentId) {
+  if (!confirm('确定删除这条评论吗？')) return;
+  try {
+    await API_CONFIG.delete(API_CONFIG.buildUrl('/comments/' + commentId));
+    loadAiComments(1, false);
+  } catch (e) {
+    showFeedback('删除失败：' + (e.message || '未知错误'));
+  }
 }
 </script>
 </body>

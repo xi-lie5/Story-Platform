@@ -1,23 +1,43 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
 
 const errorHandler = require('./middleware/errorHandler');
-const { testConnection, initTables, createAiStoryTables, createAiStoriesTable } = require('./config/database');
+const { testConnection } = require('./config/database');
+const { migrate } = require('./db/migrate');
 const Category = require('./models/Category');
 
-// server.js从server根目录加载.env
+// server.js 从 server 根目录加载 .env
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const BASE_URL = '/api/v1';
 
-// 基础安全 & 解析中间件
-// app.use(helmet());
+// Basic security and parsing middleware
+app.use(helmet({
+  contentSecurityPolicy: false
+}));
+
+const authLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: '请求过于频繁，请稍后再试', code: 429 }
+});
+
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'AI请求过于频繁，请稍后再试', code: 429 }
+});
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cors({
@@ -34,12 +54,12 @@ app.use(cors({
 app.use('/avatar', express.static(path.join(__dirname, 'avatar')));
 app.use('/coverImage', express.static(path.join(__dirname, 'coverImage')));
 
-// 健康检查
+// Health check
 app.get('/healthz', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// API 根信息
+// API root info
 app.get(BASE_URL, (req, res) => {
   res.status(200).json({
     message: '欢迎使用AI故事创作平台API',
@@ -51,104 +71,122 @@ app.get(BASE_URL, (req, res) => {
       `${BASE_URL}/categories`,
       `${BASE_URL}/users`,
       `${BASE_URL}/interactions`,
+      `${BASE_URL}/comments`,
       `${BASE_URL}/admin`,
       `${BASE_URL}/branches`,
       `${BASE_URL}/characters`,
-      `${BASE_URL}/ai/story`
+      `${BASE_URL}/ai`,
+      `${BASE_URL}/aiStory`
     ]
   });
 });
 
 
 
-// 路由注册
-console.log('注册路由...');
+// Route registration
 try {
   app.use(`${BASE_URL}/auth`, require('./routes/auth'));
-  console.log('✅ auth路由注册成功');
+  console.log('auth routes registered');
 } catch(e) {
-  console.error('❌ auth路由注册失败:', e.message);
+  console.error('auth路由注册失败:', e.message);
 }
 
 try {
   app.use(`${BASE_URL}/stories`, require('./routes/stories'));
-  console.log('✅ stories路由注册成功');
+  console.log('stories routes registered');
 } catch(e) {
-  console.error('❌ stories路由注册失败:', e.message);
+  console.error('stories路由注册失败:', e.message);
 }
-
-
 
 try {
   app.use(`${BASE_URL}/storyNodes`, require('./routes/storyNodes'));
-  console.log('✅ storyNodes路由注册成功');
+  console.log('storyNodes routes registered');
 } catch(e) {
-  console.error('❌ storyNodes路由注册失败:', e.message);
+  console.error('storyNodes路由注册失败:', e.message);
 }
 
 try {
   app.use(`${BASE_URL}/categories`, require('./routes/categories'));
-  console.log('✅ categories路由注册成功');
+  console.log('categories routes registered');
 } catch(e) {
-  console.error('❌ categories路由注册失败:', e.message);
+  console.error('categories路由注册失败:', e.message);
 }
 
 try {
   app.use(`${BASE_URL}/users`, require('./routes/users'));
-  console.log('✅ users路由注册成功');
+  console.log('users routes registered');
 } catch(e) {
-  console.error('❌ users路由注册失败:', e.message);
+  console.error('users路由注册失败:', e.message);
 }
 
 try {
-  app.use(`${BASE_URL}/interactions`, require('./routes/interactions')); // 用户交互功能路由（收藏、评分等）
-  console.log('✅ interactions路由注册成功');
+  app.use(`${BASE_URL}/interactions`, require('./routes/interactions')); // 用户互动功能路由（收藏、评分等）
+  console.log('interactions routes registered');
 } catch(e) {
-  console.error('❌ interactions路由注册失败:', e.message);
+  console.error('interactions路由注册失败:', e.message);
+}
+
+try {
+  app.use(`${BASE_URL}/comments`, require('./routes/comments')); // 评论路由
+  console.log('comments routes registered');
+} catch(e) {
+  console.error('comments路由注册失败:', e.message);
 }
 
 try {
   app.use(`${BASE_URL}/admin`, require('./routes/admin')); // 管理员功能路由
-  console.log('✅ admin路由注册成功');
+  console.log('admin routes registered');
 } catch(e) {
-  console.error('❌ admin路由注册失败:', e.message);
+  console.error('admin路由注册失败:', e.message);
 }
 
 try {
   app.use(`${BASE_URL}/branches`, require('./routes/branches')); // 分支路由
-  console.log('✅ branches路由注册成功');
+  console.log('branches routes registered');
 } catch(e) {
-  console.error('❌ branches路由注册失败:', e.message);
+  console.error('branches路由注册失败:', e.message);
 }
 
 try {
   app.use(`${BASE_URL}/characters`, require('./routes/characters')); // 角色路由
-  console.log('✅ characters路由注册成功');
+  console.log('characters routes registered');
 } catch(e) {
-  console.error('❌ characters路由注册失败:', e.message);
+  console.error('characters路由注册失败:', e.message);
 }
 
 try {
   app.use(`${BASE_URL}/ai`, require('./routes/ai')); // AI服务路由 (润色)
-  console.log('✅ ai路由注册成功');
+  console.log('ai routes registered');
 } catch(e) {
-  console.error('❌ ai路由注册失败:', e.message);
+  console.error('ai路由注册失败:', e.message);
 }
 
 try {
   app.use(`${BASE_URL}/aiStory`, require('./routes/aiStory')); // AI故事模式路由
-  console.log('✅ aiStory路由注册成功');
+  console.log('aiStory routes registered');
 } catch(e) {
-  console.error('❌ aiStory路由注册失败:', e.message);
+  console.error('aiStory路由注册失败:', e.message);
 }
 
-console.log('所有路由注册完成');
+console.log('All routes registered');
 
 // 前端静态文件服务 - 必须放在API路由之后，确保API请求不被拦截
-// 使用条件中间件，只处理非API路径的请求
+// Frontend static file handler
 const staticFileHandler = express.static(path.join(__dirname, '../front'), {
   index: 'index.html',
-  extensions: ['html', 'htm']
+  extensions: ['html', 'htm'],
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+    } else if (filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+    } else if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+    }
+  }
 });
 
 app.use((req, res, next) => {
@@ -156,7 +194,7 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/api')) {
     return next();
   }
-  // 否则，尝试静态文件服务
+  // Try static files for non-API requests
   staticFileHandler(req, res, (err) => {
     if (err) {
       return next(err);
@@ -166,7 +204,7 @@ app.use((req, res, next) => {
   });
 });
 
-// 为所有HTML文件添加直接访问支持（不带.html后缀）- 只在非API路径上
+// Support extensionless HTML page URLs
 app.get(/^\/([a-zA-Z0-9_\-]+)$/, (req, res, next) => {
   // 如果请求路径以 /api 开头，跳过
   if (req.path.startsWith('/api')) {
@@ -187,7 +225,7 @@ app.get(/^\/([a-zA-Z0-9_\-]+)$/, (req, res, next) => {
 // 404 处理 - 必须放在所有路由之后，但错误处理之前
 // 处理所有未匹配的API路径
 app.use((req, res, next) => {
-  // 如果请求路径以 /api 开头，说明是API请求，但没有匹配到路由
+  // Return JSON 404 for unmatched API routes
   if (req.path.startsWith('/api')) {
     return res.status(404).json({
       success: false,
@@ -202,10 +240,10 @@ app.use((req, res, next) => {
 
 // 错误处理中间件 - 必须放在所有路由和中间件之后
 // Express错误处理中间件必须有4个参数：(err, req, res, next)
-// 直接使用errorHandler，不要包装
+// Error handling middleware
 app.use(errorHandler);
 
-// 兜底：处理所有未处理的错误（确保返回JSON）
+// Last-resort process error logging
 process.on('unhandledRejection', (reason, promise) => {
   console.error('未处理的Promise拒绝:', reason);
 });
@@ -216,35 +254,31 @@ process.on('uncaughtException', (error) => {
 
 const PORT = process.env.PORT || 5000;
 
-// 初始化默认分类（如果数据库中没有任何分类）
+// Initialize default categories when the database is empty.
 async function initializeDefaultCategories() {
   try {
     const categoryCount = await Category.countDocuments();
-    
-    if (categoryCount === 0) {
-      console.log('📦 检测到数据库中没有分类，正在创建默认分类...');
-      
-      const defaultCategories = [
-        { name: '默认分类', description: '系统默认分类' },
-        { name: '奇幻冒险', description: '奇幻冒险类故事' },
-        { name: '科幻未来', description: '科幻未来类故事' },
-        { name: '悬疑推理', description: '悬疑推理类故事' },
-        { name: '爱情故事', description: '爱情类故事' },
-        { name: '恐怖惊悚', description: '恐怖惊悚类故事' },
-        { name: '其他类型', description: '其他类型的故事' }
-      ];
-      
-      const createdCategories = await Category.insertMany(defaultCategories);
-      console.log(`✅ 成功创建 ${createdCategories.length} 个默认分类`);
-      
-      return createdCategories;
-    } else {
-      console.log(`✅ 数据库中已有 ${categoryCount} 个分类`);
+
+    if (categoryCount > 0) {
+      console.log(`Default categories already exist: ${categoryCount}`);
       return [];
     }
+
+    const defaultCategories = [
+      { name: '默认分类', description: '系统默认分类' },
+      { name: '奇幻冒险', description: '奇幻冒险类故事' },
+      { name: '科幻未来', description: '科幻未来类故事' },
+      { name: '悬疑推理', description: '悬疑推理类故事' },
+      { name: '爱情故事', description: '爱情类故事' },
+      { name: '恐怖惊悚', description: '恐怖惊悚类故事' },
+      { name: '其他类型', description: '其他类型的故事' }
+    ];
+
+    const createdCategories = await Category.insertMany(defaultCategories);
+    console.log(`Created ${createdCategories.length} default categories`);
+    return createdCategories;
   } catch (error) {
-    // 如果创建失败（例如分类已存在），不影响服务器启动
-    console.warn('⚠️ 初始化默认分类时出现问题:', error.message);
+    console.warn('Default category initialization skipped:', error.message);
     return [];
   }
 }
@@ -253,37 +287,35 @@ async function startServer() {
   try {
     // 检查必要的环境变量
     if (!process.env.JWT_SECRET) {
-      console.error('❌ JWT_SECRET环境变量未配置！请在.env文件中设置JWT_SECRET');
-      console.error('提示：JWT_SECRET应该是至少32个字符的随机字符串');
+      console.error('JWT_SECRET is not configured. Set it in backend/.env.');
+      console.error('JWT_SECRET should be a random string with at least 32 characters.');
       process.exit(1);
     }
     if (!process.env.JWT_REFRESH_SECRET) {
-      console.error('❌ JWT_REFRESH_SECRET环境变量未配置！请在.env文件中设置JWT_REFRESH_SECRET');
-      console.error('提示：JWT_REFRESH_SECRET应该是至少32个字符的随机字符串，且与JWT_SECRET不同');
+      console.error('JWT_REFRESH_SECRET is not configured. Set it in backend/.env.');
+      console.error('JWT_REFRESH_SECRET should be at least 32 characters and differ from JWT_SECRET.');
       process.exit(1);
     }
 
     // 测试MySQL连接
     const connected = await testConnection();
     if (!connected) {
-      throw new Error('MySQL数据库连接失败');
+      throw new Error('MySQL database connection failed');
     }
 
-    // 初始化数据库表结构
-    await initTables();
-    await createAiStoryTables();
-    await createAiStoriesTable();
-    console.log('✅ 数据库表初始化完成');
+    // Run database migrations before accepting requests.
+    await migrate();
+    console.log('Database migrations completed');
 
-    // 初始化默认分类
+    // Initialize default categories
     await initializeDefaultCategories();
 
     app.listen(PORT, () => {
-      console.log(`🚀 服务运行在 http://localhost:${PORT}${BASE_URL}`);
+      console.log(`Server running at http://localhost:${PORT}${BASE_URL}`);
     });
   } catch (error) {
-    console.error('❌ 服务启动失败:', error.message);
-    console.error('错误堆栈:', error.stack);
+    console.error('Server startup failed:', error.message);
+    console.error('Stack:', error.stack);
     process.exit(1);
   }
 }

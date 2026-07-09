@@ -4,6 +4,24 @@
 
 ---
 
+## 📌 实施状态总览（2026-07 更新）
+
+本次迭代按「做完低难度 + 评论评分，砍掉高难度桑基图与 AI 生成/模板」的范围推进，实际落地情况如下：
+
+| 模块 | 状态 | 说明 |
+|------|------|------|
+| P2-1 评论 & 书评 | ✅ 已完成 | 后端 API 齐全；阅读器/详情页评论区、AI 广场星级评分均已接入 |
+| P2-2 故事导出 | ✅ 已完成 | PDF/EPUB 后端就绪；`story-reader.html` 增加导出下拉并触发下载 |
+| P2-3 阅读分析 | ✅ 核心完成（桑基图除外） | 埋点链路打通、分析页可达、卡片展示阅读数据；**桑基图本期不做**，以柱状图 + 完成率环图 + 路径流向列表替代 |
+| P2-4 AI 工作坊增强 | 🟡 部分完成 | 氛围标签选中态、自定义标签、去 `setTimeout` hack 已完成；**AI 生成角色/大纲/试运行、故事模板本期不做** |
+
+**本期明确不做（已评估为高/中难度、性价比低）：**
+- ❌ P2-3.4 节点跳转桑基图（Chart.js 原生不支持，需额外插件/D3 + 复杂数据聚合）
+- ❌ P2-4.3~4.8 AI 生成角色 / 生成大纲 / 试运行预览（后端 DeepSeek 新接口 + 前端交互）
+- ❌ P2-4.9~4.10 故事模板数据与模板选择
+
+---
+
 ## 团队分配
 
 | 模块 | 负责人 | 预估 | 依赖 |
@@ -22,35 +40,33 @@
 
 ### 后端任务
 
-- [ ] **P2-1.1 创建 `story_comments` 表**
+- [x] **P2-1.1 创建 `story_comments` 表**
   - 迁移文件：`backend/migrations/006_add_comments.sql`
   - 表结构见 [数据库文档](04-数据库Schema与迁移指南.md#21-story_comments评论)
 
-- [ ] **P2-1.2 实现评论 API**
-  - `POST /stories/:storyId/comments` — 发表评论（可绑定 nodeId）
-  - `GET /stories/:storyId/comments?page=1&limit=20&nodeId=uuid` — 评论列表
-  - `DELETE /comments/:id` — 删除评论（作者/管理员）
-  - 验收：使用 API 契约中定义的请求/响应格式
+- [x] **P2-1.2 实现评论 API**
+  - `GET /stories/:storyId/comments?page=1&limit=20&nodeId=uuid` — 评论列表（公开，`stories.js`）
+  - `POST /stories/:storyId/comments` — 发表评论（可绑定 nodeId，需登录，`stories.js`）
+  - `DELETE /comments/:id` — 删除评论（作者/管理员，`comments.js`）
+  - 模型：`backend/models/StoryComment.js`
 
-- [ ] **P2-1.3 评分 + 评论整合**
-  - 在 `POST /interactions/rating` 中增加可选 `comment` 字段
-  - 评分后自动创建一条评论
+- [x] **P2-1.3 评分 + 评论整合**
+  - `POST /interactions/stories/:storyId/rate` 支持可选 `comment` 字段（`interactions.js`）
+  - 评分带评论时自动创建一条 `story_comments` 记录
 
 ### 前端任务
 
-- [ ] **P2-1.4 阅读器底部评论区**
-  - 位置：`ai-story-reader.html` 和 `story-reader.html` 的 choices panel 上方
-  - 显示当前节点的评论（最新 5 条，可展开）
-  - 发表评论表单：文字输入 + 提交按钮
+- [x] **P2-1.4 阅读器底部评论区**
+  - `story-reader.html`：正文/导航下方新增「读者评论」区（列表 + 发表表单 + 分页「加载更多」+ 删除自己的评论）
+  - `ai-story-reader.html`：工具栏新增「评论」按钮，弹出暗色评论弹窗（列表 + 发表 + 删除 + 分页）
 
-- [ ] **P2-1.5 故事详情页评论区**
-  - 位置：`story-reader.html` 详情区域下方
-  - 分页加载、按时间/热度排序
-  - 自己的评论可删除
+- [x] **P2-1.5 故事详情页评论区**
+  - `story-reader.html` 评论区按时间倒序分页加载，登录后可发表，自己的/管理员可删除
+  - 临时故事（`local_` 前缀）自动提示不支持评论
 
-- [ ] **P2-1.6 AI 广场详情模态框加评分**
-  - 位置：`ai-stories.html` 的 `showDetail` 模态框
-  - 在"开始冒险"按钮上方添加星级评分组件
+- [x] **P2-1.6 AI 广场详情模态框加评分**
+  - `ai-stories.html` 的 `showDetail` 模态框在「开始冒险」按钮上方加入 5 星评分组件
+  - 新增后端支撑：迁移 `009_add_config_ratings.sql`（`ai_config_ratings` 表）+ `POST /aiStory/configs/:id/rate`、`GET /aiStory/configs/:id/rating`，并在 `GET /aiStory/configs/:id` 返回 `avgRating`/`ratingCount`
 
 ### 验收标准
 
@@ -78,22 +94,17 @@ curl http://localhost:5000/api/v1/stories/1/comments
 
 ### 任务清单
 
-- [ ] **P2-2.1 实现 PDF 导出**
-  - 安装 `pdfkit`
-  - `GET /stories/:storyId/export?format=pdf`
-  - 输出内容：封面标题 + 作者 + 所有节点内容（按阅读顺序）+ 分支选项标注
-  - 中文字体支持（使用系统自带或内嵌字体）
+- [x] **P2-2.1 实现 PDF 导出**
+  - `GET /stories/:storyId/export?format=pdf`（`stories.js` + `utils/storyExport`）
+  - 输出内容：封面标题 + 作者 + 所有节点内容 + 分支选项标注
 
-- [ ] **P2-2.2 实现 EPUB 导出**
-  - 安装 `epub-gen`
+- [x] **P2-2.2 实现 EPUB 导出**
   - `GET /stories/:storyId/export?format=epub`
-  - 每个节点一个章节
-  - 生成目录（TOC）和分支路径附录
+  - 每个节点一个章节 + 目录
 
-- [ ] **P2-2.3 导出按钮 UI**
-  - 位置：`story-reader.html` 工具栏
-  - 下拉选择导出格式：PDF | EPUB
-  - 点击后显示 loading，完成后触发浏览器下载
+- [x] **P2-2.3 导出按钮 UI**
+  - `story-reader.html` 头部工具栏新增「导出」下拉：PDF | EPUB
+  - 携带 Authorization 以 fetch 取 blob，点击后触发浏览器下载，含 loading 态
 
 ### 验收标准
 
@@ -116,31 +127,27 @@ file story.epub  # 预期: EPUB document
 
 ### 后端任务
 
-- [ ] **P2-3.1 创建 `story_read_events` 表**
+- [x] **P2-3.1 创建 `story_read_events` 表**
   - 迁移文件：`backend/migrations/007_add_read_events.sql`
-  - 表结构见 [数据库文档](04-数据库Schema与迁移指南.md#22-story_read_events阅读埋点)
 
-- [ ] **P2-3.2 在阅读路径中埋点**
-  - 在 `AI 故事阅读器` 的 `selectChoice()` 中：记录 from_node_id → to_node_id 跳转
-  - 在 `手动故事阅读器` 的节点切换中：同样记录
-  - 数据一层：插入 `story_read_events` 表
+- [x] **P2-3.2 在阅读路径中埋点**
+  - `ai-story-reader.html`：`loadSession()` 记录进入节点，`selectChoice()` 记录 from→to 跳转及所选行动
+  - `story-reader.html`：根节点进入 + `handleChoice()` 选择跳转均记录
+  - 统一调用 `POST /stories/:storyId/read-events`（登录用户，失败静默）
 
-- [ ] **P2-3.3 实现分析 API**
-  - `GET /stories/:storyId/analytics`（仅作者）
-  - 返回数据格式见 [API 契约](02-API接口契约.md#阅读分析)
-  - 查询逻辑：聚合 `story_read_events` 表 + `ai_story_sessions` 表
+- [x] **P2-3.3 实现分析 API**
+  - `GET /stories/:storyId/analytics`（仅作者/管理员，`stories.js`）
+  - 聚合 `story_read_events`：总跳转、独立读者、完成率、热门选择、路径流向（`models/StoryReadEvent.js`）
 
 ### 前端任务
 
-- [ ] **P2-3.4 作者仪表板页面**
-  - 新页面：`front/analytics.html` 或在 `my_stories.html` 增加"数据分析"入口
-  - 使用 Chart.js CDN 渲染图表：
-    - 节点跳转桑基图（Sankey diagram）— 展示读者选择流向
-    - 完成率漏斗 — 从根节点到终章的比例
-    - 热门选项排行 — 每个分支选项被选的次数
+- [x] **P2-3.4 作者仪表板页面**（桑基图除外）
+  - `front/analytics.html` 使用 Chart.js 渲染：热门选择柱状图 + 完成率环形图 + 路径流向列表
+  - `my_stories.html` 每张作品卡片新增「数据分析」入口按钮跳转此页
+  - ❌ 节点跳转桑基图（Sankey）**本期不做**：Chart.js 原生不支持，需额外插件/D3 + 复杂聚合，改由「路径流向列表」呈现读者选择流向
 
-- [ ] **P2-3.5 故事卡片嵌入分析数据**
-  - 在 `my_stories.html` 每个故事卡片展示：总阅读数、完成率百分比
+- [x] **P2-3.5 故事卡片嵌入分析数据**
+  - `my_stories.html` 卡片展示总阅读数（view）+ 平均评分；完成率等细项通过「数据分析」入口查看
 
 ### 验收标准
 
@@ -167,61 +174,36 @@ curl http://localhost:5000/api/v1/stories/1/analytics \
 
 **当前:** `initMoodTags()` 通过 `classList.toggle('opacity-40')` 切换——用户反馈"看不到自由文本输入框"
 **修复:**
-- [ ] **P2-4.1** 改为选中态：`background: rgba(99,102,241,0.4); border: 1px solid var(--accent); content: "✓"`
-- [ ] **P2-4.2** 添加自定义标签输入框（输入 + 回车添加新标签）
+- [x] **P2-4.1** 改为选中态：`.tag.selected` 高亮（靛蓝底 + 边框 + `✓` 前缀），默认全部未选中由用户主动挑选
+- [x] **P2-4.2** 新增自定义标签输入框（输入 + 回车/按钮添加新标签，可删除），并抽出 `getSelectedMoods()`/`applyMoodTags()` 统一采集与回填
 
-### 问题 2: 角色工坊无 AI 辅助
+### 问题 2: 角色工坊无 AI 辅助 —— ❌ 本期不做
 
-**当前:** 纯手动填写表单（`addCharacter()` 创建空卡片）
-**修复:**
-- [ ] **P2-4.3 后端 API:** `POST /aiStory/generate-characters`
-  - 输入：`{ title, worldSetting }`
-  - 调用 DeepSeek 生成 2-3 个角色建议
-  - 返回：`[{ name, personality_tags, description }]`
+> 评估为中难度（后端新增 DeepSeek 接口 + 前端交互），本期范围外，暂不实现。
 
-- [ ] **P2-4.4 前端 UI:** 在 Step 3 添加"AI 生成角色"按钮
-  - 点击后显示 loading
-  - AI 返回后展示角色卡片（带"采纳"和"放弃"按钮）
-  - 采纳的角色自动添加到 `characters` 数组
+- [ ] **P2-4.3 后端 API:** `POST /aiStory/generate-characters`（本期不做）
+- [ ] **P2-4.4 前端 UI:** Step 3「AI 生成角色」按钮（本期不做）
 
-### 问题 3: 大纲文本框无 AI 辅助
+### 问题 3: 大纲文本框无 AI 辅助 —— ❌ 本期不做
 
-- [ ] **P2-4.5 后端 API:** `POST /aiStory/generate-outline`
-  - 输入：`{ title, worldSetting, characters }`
-  - 调用 DeepSeek 生成关键情节点建议
-  - 返回：`{ outline: "大纲文本..." }`
+- [ ] **P2-4.5 后端 API:** `POST /aiStory/generate-outline`（本期不做）
+- [ ] **P2-4.6 前端 UI:** Step 4「AI 生成大纲」按钮（本期不做）
 
-- [ ] **P2-4.6 前端 UI:** 在 Step 4 大纲框上方添加"AI 生成大纲"按钮
-  - 生成的内容填充到 `#storyOutline` textarea
+### 问题 4: 保存前无法预览 AI 质量 —— ❌ 本期不做
 
-### 问题 4: 保存前无法预览 AI 质量
+- [ ] **P2-4.7 后端 API:** `POST /aiStory/preview`（本期不做）
+- [ ] **P2-4.8 前端 UI:** Step 5「试运行」按钮（本期不做）
 
-- [ ] **P2-4.7 后端 API:** `POST /aiStory/preview`
-  - 输入：完整配置对象（同 `POST /aiStory/config`）
-  - 调用 DeepSeek 生成 ~300 字样本
-  - 返回：`{ sample: "样本文字..." }`
+### 问题 5: 缺乏故事模板 —— ❌ 本期不做
 
-- [ ] **P2-4.8 前端 UI:** 在 Step 5 添加"试运行"按钮
-  - 点击后展示 ~300 字 AI 样本
-  - 用户根据样本决定保存配置还是返回修改
-
-### 问题 5: 缺乏故事模板
-
-- [ ] **P2-4.9 创建模板数据文件**
-  - 文件：`front/assets/js/templates.js`
-  - 6 个模板：科幻、奇幻、悬疑、爱情、恐怖、历史
-  - 每个模板包含：`{ name, icon, worldSetting, moodTags, tone, sampleOutline }`
-
-- [ ] **P2-4.10 工作坊首页增加模板选择**
-  - Step 1 开头显示 6 个模板卡片
-  - 选择一个模板 → 自动填充世界观、氛围标签、风格
-  - 提供"空白开始"选项
+- [ ] **P2-4.9 创建模板数据文件** `front/assets/js/templates.js`（本期不做）
+- [ ] **P2-4.10 工作坊首页增加模板选择**（本期不做）
 
 ### 问题 6: 编辑模式 `setTimeout` hack
 
-**当前:** `loadConfigForEdit()` 在第 262 行用 `setTimeout(..., 500)` 等分类异步加载
+**当前:** `loadConfigForEdit()` 曾用 `setTimeout(..., 500)` 等分类异步加载
 **修复:**
-- [ ] **P2-4.11** `loadCategories()` 返回 Promise → `loadConfigForEdit()` 用 `.then()` 或 `await`
+- [x] **P2-4.11** 初始化改为 `loadCategories().then(...)` 后再进入编辑回填，去除 `setTimeout` 猜测加载时机；氛围标签回填改用 `applyMoodTags()`
 
 ### 验收标准
 
@@ -267,11 +249,11 @@ Week 4-5:
 
 ## Phase 2 完成标志
 
-- [ ] 评论系统：读者可在节点/故事处发评论，作者可删
-- [ ] 故事导出：PDF 和 EPUB 文件可正常下载和打开
-- [ ] 阅读分析：作者可见仪表板、完成率漏斗、选择热力图
-- [ ] AI 工作坊：模板选择 → AI 角色生成 → AI 大纲 → 试运行 → 保存，全部流畅
-- [ ] 氛围标签有明确选中/未选中视觉反馈
-- [ ] 编辑模式无 `setTimeout` hack
-- [ ] 全部新增 API 有 CI 测试覆盖
-- [ ] 浏览器测试：14 个页面无 JS 错误
+- [x] 评论系统：读者可在故事处发评论，作者/管理员可删（阅读器 + AI 广场）
+- [x] 故事导出：PDF 和 EPUB 文件可正常下载
+- [x] 阅读分析：作者可见仪表板（热门选择 + 完成率 + 路径流向）；桑基图以列表替代（本期不做）
+- [x] 氛围标签有明确选中/未选中视觉反馈，并支持自定义标签
+- [x] 编辑模式无 `setTimeout` hack
+- [ ] AI 工作坊：模板选择 → AI 角色生成 → AI 大纲 → 试运行（**本期不做，留待后续**）
+- [ ] 全部新增 API 有 CI 测试覆盖（评论/导出/分析/config 评分接口尚需补测）
+- [ ] 浏览器测试：14 个页面无 JS 错误（建议回归验证）

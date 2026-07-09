@@ -45,7 +45,7 @@ function mapValidationErrors(errors) {
 router.post('/register', [
   body('username').trim().notEmpty().withMessage('用户名不能为空'),
   body('email').isEmail().withMessage('邮箱格式不正确'),
-  body('password').isLength({ min: 8 }).withMessage('密码长度不能少于8位'),
+  body('password').isLength({ min: 8 }).withMessage('密码长度不能少于8λ'),
   body('confirmPassword').custom((value, { req }) => {
     if (value !== req.body.password) {
       throw new Error('两次输入的密码不一致');

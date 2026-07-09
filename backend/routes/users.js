@@ -162,7 +162,7 @@ router.get('/me/stats', authGuard, cacheMiddleware(60), async (req, res, next) =
     const userId = req.user.id;
     const userIdInt = parseInt(userId);
     
-    // 统计已发布的故事数量（只有status为'published'的才算已发布）
+    // 统计已发布的故事数量（只有statusΪ'published'的才算已发布）
     const publishedStories = await Story.countDocuments({ 
       author_id: userIdInt,
       status: 'published'
@@ -263,9 +263,14 @@ router.get('/:userId/stories', authGuard, cacheMiddleware(180), async (req, res,
       }
     }
     
-    // 状态筛选
+    // ״̬ɸѡ
     if (req.query.status) {
       query.status = req.query.status;
+    }
+
+    // 创作类型筛选：manual 手动 / ai 互动（不传则返回全部类型）
+    if (req.query.type && (req.query.type === 'manual' || req.query.type === 'ai')) {
+      query.creation_mode = req.query.type;
     }
     
     // 搜索关键词
@@ -370,6 +375,10 @@ router.get('/:userId/stories', authGuard, cacheMiddleware(180), async (req, res,
           status: story.status,
           isPublic: story.is_public || false,
           is_public: story.is_public || false,
+          // 创作模式：'ai' 表示 AI 互动生成的故事，'manual' 为手动创作。
+          // 前端据此决定"编辑/继续"按钮跳转到 AI 互动阅读器还是基础编辑器。
+          creation_mode: story.creation_mode || 'manual',
+          creationMode: story.creation_mode || 'manual',
           isCompleted: isCompleted,
           view: story.view_count || 0,
           view_count: story.view_count || 0,

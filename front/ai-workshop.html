@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -6,82 +6,92 @@
 <title>AI 故事工坊 - StoryForge</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="styles.css">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-<script src="assets/js/api-config.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+<script src="assets/js/api-config.js?v=20260708"></script>
 <script src="assets/js/auth.js"></script>
 <script src="assets/js/navbar.js"></script>
 <style>
 :root { --step-active: #6366f1; --step-done: #22c55e; }
-body { background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d0d2b 100%); min-height: 100vh; color: #e2e8f0; }
-.workshop-container { max-width: 800px; margin: 0 auto; padding: 2rem 1rem; }
+body { min-height: 100vh; color: #1e293b; }
+.navbar-modern { background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,0,0,0.08); box-shadow: 0 2px 8px rgba(0,0,0,0.04); position: sticky; top: 0; z-index: 50; }
+.navbar-link { position: relative; padding: 0.5rem 0; white-space: nowrap; }
+.navbar-link.active::after { content: ''; position: absolute; bottom: -0.25rem; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, #6366f1, #a855f7); border-radius: 999px; }
+.workshop-container { max-width: 960px; margin: 0 auto; padding: 2rem 1rem 4rem; }
 .step-indicator { display: flex; gap: 0.5rem; margin-bottom: 2rem; justify-content: center; }
-.step-dot { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; background: rgba(255,255,255,0.1); color: #94a3b8; transition: all 0.3s; }
-.step-dot.active { background: var(--step-active); color: #fff; box-shadow: 0 0 16px rgba(99,102,241,0.4); }
+.step-dot { width: 36px; height: 36px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; background: #e2e8f0; color: #64748b; transition: all 0.3s; }
+.step-dot.active { background: var(--step-active); color: #fff; box-shadow: 0 10px 22px rgba(99,102,241,0.24); }
 .step-dot.done { background: var(--step-done); color: #fff; }
-.step-line { flex: 1; max-width: 40px; height: 2px; background: rgba(255,255,255,0.15); align-self: center; }
+.step-line { flex: 1; max-width: 52px; height: 2px; background: #e2e8f0; align-self: center; }
 .step-line.done { background: var(--step-done); }
-.step-panel { display: none; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 2rem; backdrop-filter: blur(10px); }
+.step-panel { display: none; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 2rem; box-shadow: 0 12px 32px rgba(15,23,42,0.08); }
 .step-panel.active { display: block; }
-.input-field { width: 100%; padding: 0.85rem 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #e2e8f0; font-size: 0.95rem; outline: none; transition: border 0.2s; }
-.input-field:focus { border-color: var(--step-active); box-shadow: 0 0 0 3px rgba(99,102,241,0.2); }
+.input-field { width: 100%; padding: 0.85rem 1rem; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; color: #1e293b; font-size: 0.95rem; outline: none; transition: border 0.2s, box-shadow 0.2s; }
+.input-field::placeholder { color: #94a3b8; }
+.input-field:focus { border-color: var(--step-active); box-shadow: 0 0 0 3px rgba(99,102,241,0.16); }
 textarea.input-field { min-height: 120px; resize: vertical; }
-.btn-primary { padding: 0.75rem 1.75rem; border-radius: 10px; border: none; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; font-weight: 600; cursor: pointer; transition: opacity 0.2s, transform 0.15s; }
-.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-.btn-secondary { padding: 0.75rem 1.75rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); color: #e2e8f0; font-weight: 600; cursor: pointer; }
-.character-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.25rem; margin-bottom: 0.75rem; position: relative; }
-.tag { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.8rem; margin: 0.15rem; background: rgba(99,102,241,0.2); color: #a5b4fc; }
-.tag .remove-tag { margin-left: 0.3rem; cursor: pointer; opacity: 0.6; }
-.tag .remove-tag:hover { opacity: 1; }
-.char-remove { position: absolute; top: 0.5rem; right: 0.75rem; cursor: pointer; color: #f87171; font-size: 1.1rem; opacity: 0.6; }
+.btn-primary { padding: 0.75rem 1.5rem; border-radius: 10px; border: none; background: #6366f1; color: #fff; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.15s; }
+.btn-primary:hover { background: #4f46e5; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+.btn-secondary { padding: 0.75rem 1.5rem; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; color: #475569; font-weight: 600; cursor: pointer; transition: border 0.2s, background 0.2s; }
+.btn-secondary:hover { border-color: #94a3b8; background: #f8fafc; }
+.character-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.25rem; margin-bottom: 0.75rem; position: relative; }
+.tag { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.3rem 0.7rem; border-radius: 8px; font-size: 0.8rem; margin: 0.15rem; background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.15s; user-select: none; }
+.tag:hover { border-color: #c7d2fe; }
+.tag.selected { background: #eef2ff; color: #4338ca; border-color: var(--step-active); font-weight: 600; }
+.tag.selected::before { content: "\2713"; font-size: 0.7rem; }
+.tag .remove-tag { margin-left: 0.15rem; cursor: pointer; opacity: 0.55; font-size: 0.72rem; }
+.tag .remove-tag:hover { opacity: 1; color: #dc2626; }
+.char-remove { position: absolute; top: 0.5rem; right: 0.75rem; cursor: pointer; color: #ef4444; font-size: 1.1rem; opacity: 0.65; }
 .char-remove:hover { opacity: 1; }
-label { display: block; font-size: 0.85rem; font-weight: 600; color: #a5b4fc; margin-bottom: 0.4rem; }
+label { display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 0.4rem; }
 .style-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; }
-.style-option { padding: 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); cursor: pointer; text-align: center; transition: all 0.2s; }
-.style-option.selected { border-color: var(--step-active); background: rgba(99,102,241,0.12); }
-.loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; flex-direction: column; }
+.style-option { padding: 1rem; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; color: #334155; cursor: pointer; text-align: center; transition: all 0.2s; }
+.style-option:hover { border-color: #c7d2fe; background: #f8fafc; }
+.style-option.selected { border-color: var(--step-active); background: #eef2ff; color: #4338ca; font-weight: 600; }
+.loading-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.72); z-index: 100; justify-content: center; align-items: center; flex-direction: column; }
 .loading-overlay.active { display: flex; }
-.spinner { width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.2); border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 1rem; }
+.spinner { width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.35); border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 1rem; }
 @keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 640px) { .step-panel { padding: 1.25rem; } .step-line { max-width: 26px; } .btn-primary, .btn-secondary { width: 100%; justify-content: center; } }
 </style>
 </head>
-<body>
-<!-- Navigation Bar -->
-<nav style="background: rgba(15,15,35,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.08); box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen text-slate-800 font-sans">
+<!-- Navigation -->
+<nav class="navbar-modern" aria-label="&#20027;&#23548;&#33322;">
   <div class="container mx-auto px-4 py-4">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
-          <i class="fas fa-book text-white text-xl"></i>
+    <div class="flex items-center justify-between gap-4">
+      <div class="flex items-center space-x-3 shrink-0">
+        <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
+          <i class="fa fa-book text-white text-xl"></i>
         </div>
         <div>
-          <h1 class="text-xl md:text-2xl font-bold text-white">StoryForge</h1>
-          <p class="text-xs text-slate-400 hidden md:block">AI故事创作平台</p>
+          <h1 class="text-xl md:text-2xl font-bold text-gray-900">StoryForge</h1>
+          <p class="text-xs text-slate-500 hidden md:block">AI&#25925;&#20107;&#21019;&#20316;&#24179;&#21488;</p>
         </div>
       </div>
-      <div class="hidden lg:flex items-center space-x-8" id="main-nav-desktop">
-        <a href="index.html" class="text-slate-300 hover:text-white font-medium transition-colors">首页</a>
-        <a href="browse.html" class="text-slate-300 hover:text-white font-medium transition-colors">故事阅览</a>
-        <a href="ai-workshop.html" class="text-indigo-400 font-medium transition-colors">AI 工坊</a>
-        <a href="create.html" class="text-slate-300 hover:text-white font-medium transition-colors">创建故事</a>
-        <a href="my_stories.html" class="text-slate-300 hover:text-white font-medium transition-colors">我的作品</a>
-        <a href="profile.html" class="text-slate-300 hover:text-white font-medium transition-colors">个人中心</a>
+      <div class="hidden lg:flex items-center gap-4 xl:gap-7 text-sm xl:text-base" id="main-nav-desktop">
+        <a href="index.html" class="navbar-link font-medium text-slate-600 hover:text-primary transition-colors">&#39318;&#39029;</a>
+        <a href="browse.html" class="navbar-link font-medium text-slate-600 hover:text-primary transition-colors">&#25925;&#20107;&#38405;&#35272;</a>
+        <a href="ai-stories.html" class="navbar-link font-medium text-slate-600 hover:text-primary transition-colors">AI &#24191;&#22330;</a>
+        <a href="create.html" class="navbar-link font-medium text-slate-600 hover:text-primary transition-colors">&#21019;&#24314;&#25925;&#20107;</a>
+        <a href="my_stories.html" class="navbar-link font-medium text-slate-600 hover:text-primary transition-colors">&#25105;&#30340;&#20316;&#21697;</a>
+        <a href="profile.html" class="navbar-link font-medium text-slate-600 hover:text-primary transition-colors">&#20010;&#20154;&#20013;&#24515;</a>
       </div>
-      <div id="auth-area-desktop" class="flex items-center space-x-3"></div>
-      <button id="mobile-menu-button" class="lg:hidden p-2 rounded-lg hover:bg-white/10 transition-colors">
-        <i class="fas fa-bars text-slate-300 text-xl"></i>
+      <div id="auth-area-desktop" class="flex items-center space-x-3 shrink-0"></div>
+      <button id="mobile-menu-button" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors" aria-label="&#25171;&#24320;&#23548;&#33322;&#33756;&#21333;">
+        <i class="fa fa-bars text-slate-600 text-xl"></i>
       </button>
     </div>
   </div>
-  <div class="lg:hidden hidden bg-black/95 backdrop-blur-md border-t border-white/10" id="mobile-menu">
+  <div class="lg:hidden hidden bg-white/95 backdrop-blur-md border-t border-slate-200" id="mobile-menu">
     <div class="container mx-auto px-4 py-4 space-y-3">
-      <a href="index.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">首页</a>
-      <a href="browse.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">故事阅览</a>
-      <a href="ai-workshop.html" class="block py-3 px-4 rounded-lg font-medium text-indigo-400 bg-indigo-500/10">AI 工坊</a>
-      <a href="create.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">创建故事</a>
-      <a href="my_stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">我的作品</a>
-      <a href="profile.html" class="block py-3 px-4 rounded-lg font-medium text-slate-300 hover:bg-white/5 hover:text-white">个人中心</a>
-      <div class="flex flex-col space-y-3 pt-3 border-t border-white/10">
+      <a href="index.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">&#39318;&#39029;</a>
+      <a href="browse.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">&#25925;&#20107;&#38405;&#35272;</a>
+      <a href="ai-stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">AI &#24191;&#22330;</a>
+      <a href="create.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">&#21019;&#24314;&#25925;&#20107;</a>
+      <a href="my_stories.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">&#25105;&#30340;&#20316;&#21697;</a>
+      <a href="profile.html" class="block py-3 px-4 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-primary">&#20010;&#20154;&#20013;&#24515;</a>
+      <div class="flex flex-col space-y-3 pt-3 border-t border-slate-200">
         <div id="auth-area-mobile"></div>
       </div>
     </div>
@@ -110,7 +120,7 @@ label { display: block; font-size: 0.85rem; font-weight: 600; color: #a5b4fc; ma
     <label>开端提示</label>
     <textarea class="input-field mb-6" id="startPrompt" placeholder="告诉 AI 故事从哪里开始，比如：一个雨夜，独居的程序员收到了来自未来的第一条消息..."></textarea>
     <div class="flex justify-end gap-3">
-      <button class="btn-primary" onclick="nextStep()">下一步 - 世界观  <i class="fas fa-arrow-right ml-1"></i></button>
+      <button class="btn-primary" onclick="nextStep()">下一步 - 世界观  <i class="fa fa-arrow-right ml-1"></i></button>
     </div>
   </div>
 
@@ -121,17 +131,21 @@ label { display: block; font-size: 0.85rem; font-weight: 600; color: #a5b4fc; ma
     <textarea class="input-field mb-2" id="worldSetting" placeholder="描述故事的时代背景、世界规则、社会结构..."></textarea>
     <p class="text-slate-500 text-xs mb-4">越详细的设定，AI 生成的故事越有沉浸感</p>
     <label>氛围标签（可选）</label>
-    <div class="flex gap-2 mb-4 flex-wrap" id="moodTags">
-      <span class="tag" data-mood="黑暗">黑暗 <span class="remove-tag" onclick="this.parentElement.remove()">x</span></span>
-      <span class="tag" data-mood="轻松">轻松 <span class="remove-tag" onclick="this.parentElement.remove()">x</span></span>
-      <span class="tag" data-mood="史诗">史诗 <span class="remove-tag" onclick="this.parentElement.remove()">x</span></span>
-      <span class="tag" data-mood="温馨">温馨 <span class="remove-tag" onclick="this.parentElement.remove()">x</span></span>
-      <span class="tag" data-mood="紧张">紧张 <span class="remove-tag" onclick="this.parentElement.remove()">x</span></span>
+    <div class="flex gap-2 mb-3 flex-wrap" id="moodTags">
+      <span class="tag" data-mood="黑暗">黑暗</span>
+      <span class="tag" data-mood="轻松">轻松</span>
+      <span class="tag" data-mood="史诗">史诗</span>
+      <span class="tag" data-mood="温馨">温馨</span>
+      <span class="tag" data-mood="紧张">紧张</span>
     </div>
-    <p class="text-slate-500 text-xs mb-6">点击标签选择/取消氛围</p>
+    <div class="flex gap-2 mb-2">
+      <input class="input-field" id="customMoodInput" placeholder="自定义氛围，回车添加..." maxlength="12" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomMoodTag();}">
+      <button type="button" class="btn-secondary" style="white-space:nowrap" onclick="addCustomMoodTag()"><i class="fa fa-plus mr-1"></i>添加</button>
+    </div>
+    <p class="text-slate-500 text-xs mb-6">点击标签选中/取消（选中显示 ✓），也可添加自定义氛围</p>
     <div class="flex justify-between">
-      <button class="btn-secondary" onclick="prevStep()"><i class="fas fa-arrow-left mr-1"></i> 上一步</button>
-      <button class="btn-primary" onclick="nextStep()">下一步 - 角色工坊  <i class="fas fa-arrow-right ml-1"></i></button>
+      <button class="btn-secondary" onclick="prevStep()"><i class="fa fa-arrow-left mr-1"></i> 上一步</button>
+      <button class="btn-primary" onclick="nextStep()">下一步 - 角色工坊  <i class="fa fa-arrow-right ml-1"></i></button>
     </div>
   </div>
 
@@ -139,11 +153,11 @@ label { display: block; font-size: 0.85rem; font-weight: 600; color: #a5b4fc; ma
   <div class="step-panel" data-step="3">
     <h2 class="text-lg font-semibold mb-4">角色工坊</h2>
     <div id="characterList"></div>
-    <button class="btn-secondary w-full mt-2" onclick="addCharacter()"><i class="fas fa-plus mr-1"></i> 添加角色</button>
+    <button class="btn-secondary w-full mt-2" onclick="addCharacter()"><i class="fa fa-plus mr-1"></i> 添加角色</button>
     <p class="text-slate-500 text-xs mt-2 mb-6">为故事中的每个重要角色创建卡片</p>
     <div class="flex justify-between">
-      <button class="btn-secondary" onclick="prevStep()"><i class="fas fa-arrow-left mr-1"></i> 上一步</button>
-      <button class="btn-primary" onclick="nextStep()">下一步 - 大纲与风格  <i class="fas fa-arrow-right ml-1"></i></button>
+      <button class="btn-secondary" onclick="prevStep()"><i class="fa fa-arrow-left mr-1"></i> 上一步</button>
+      <button class="btn-primary" onclick="nextStep()">下一步 - 大纲与风格  <i class="fa fa-arrow-right ml-1"></i></button>
     </div>
   </div>
 
@@ -174,8 +188,8 @@ label { display: block; font-size: 0.85rem; font-weight: 600; color: #a5b4fc; ma
       <option value="1500-2500字/段">详细（1500-2500字/段）</option>
     </select>
     <div class="flex justify-between">
-      <button class="btn-secondary" onclick="prevStep()"><i class="fas fa-arrow-left mr-1"></i> 上一步</button>
-      <button class="btn-primary" onclick="nextStep()">下一步 - 确认创建  <i class="fas fa-arrow-right ml-1"></i></button>
+      <button class="btn-secondary" onclick="prevStep()"><i class="fa fa-arrow-left mr-1"></i> 上一步</button>
+      <button class="btn-primary" onclick="nextStep()">下一步 - 确认创建  <i class="fa fa-arrow-right ml-1"></i></button>
     </div>
   </div>
 
@@ -184,8 +198,8 @@ label { display: block; font-size: 0.85rem; font-weight: 600; color: #a5b4fc; ma
     <h2 class="text-lg font-semibold mb-4">确认与创建</h2>
     <div id="summaryBox" class="bg-white/5 rounded-xl p-4 mb-6 text-sm space-y-3"></div>
     <div class="flex justify-between">
-      <button class="btn-secondary" onclick="prevStep()"><i class="fas fa-arrow-left mr-1"></i> 上一步</button>
-      <button class="btn-primary" id="createBtn" onclick="createAIStory()"><i class="fas fa-save mr-1"></i> 保存配置</button>
+      <button class="btn-secondary" onclick="prevStep()"><i class="fa fa-arrow-left mr-1"></i> 上一步</button>
+      <button class="btn-primary" id="createBtn" onclick="createAIStory()"><i class="fa fa-save mr-1"></i> 保存配置</button>
     </div>
   </div>
 </div>
@@ -216,16 +230,17 @@ document.addEventListener('DOMContentLoaded', function() {
   if (mobileBtn && mobileMenu) {
     mobileBtn.addEventListener('click', function() { mobileMenu.classList.toggle('hidden'); });
   }
-  loadCategories();
   restoreWorkshopState();
   initStyleGrid();
   initMoodTags();
 
-  // Check for edit mode
-  var editId = new URLSearchParams(window.location.search).get('edit');
-  if (editId) {
-    loadConfigForEdit(editId);
-  }
+  // 先等分类加载完成，再进入编辑模式回填分类下拉，避免用 setTimeout 猜测加载时机
+  loadCategories().then(function() {
+    var editId = new URLSearchParams(window.location.search).get('edit');
+    if (editId) {
+      loadConfigForEdit(editId);
+    }
+  });
 });
 
 async function loadConfigForEdit(configId) {
@@ -247,9 +262,7 @@ async function loadConfigForEdit(configId) {
       if (cfg.style.length) document.getElementById('lengthControl').value = cfg.style.length;
     }
     if (cfg.mood_tags && cfg.mood_tags.length > 0) {
-      document.querySelectorAll('#moodTags .tag').forEach(function(t) {
-        t.classList.toggle('opacity-40', cfg.mood_tags.indexOf(t.dataset.mood) === -1);
-      });
+      applyMoodTags(cfg.mood_tags);
     }
     if (cfg.characters_config && cfg.characters_config.length > 0) {
       characters = cfg.characters_config.map(function(c, i) {
@@ -258,15 +271,13 @@ async function loadConfigForEdit(configId) {
       renderCharacters();
     }
     if (cfg.category_id) {
-      // Wait for categories to load, then set value
-      setTimeout(function() {
-        document.getElementById('storyCategory').value = cfg.category_id;
-      }, 500);
+      // 分类已在进入编辑前加载完成，可直接回填
+      document.getElementById('storyCategory').value = cfg.category_id;
     }
     // Store config ID for update mode
     window._editingConfigId = configId;
     // Update step 5 button text and handler
-    document.getElementById('createBtn').innerHTML = '<i class="fas fa-save mr-1"></i> 保存修改';
+    document.getElementById('createBtn').innerHTML = '<i class="fa fa-save mr-1"></i> 保存修改';
     document.getElementById('createBtn').onclick = updateAIStory;
   } catch(e) {
     console.error('Load config for edit failed:', e);
@@ -285,7 +296,7 @@ async function updateAIStory() {
   var toneEl = document.querySelector('#toneGrid .style-option.selected');
   var tone = toneEl ? toneEl.dataset.tone : '';
   var length = document.getElementById('lengthControl').value;
-  var activeMoods = Array.from(document.querySelectorAll('#moodTags .tag:not(.opacity-40)')).map(function(t) { return t.dataset.mood; });
+  var activeMoods = getSelectedMoods();
 
   var payload = {
     title: title,
@@ -344,13 +355,71 @@ function showError(msg) {
 }
 
 // Mood tags
+// 交互：点击标签在"选中(.selected 显示 ✓)/未选中(灰色)"之间切换；
+// 默认全部未选中，由用户主动挑选，避免旧版 opacity 切换看不清状态的问题。
 function initMoodTags() {
   document.querySelectorAll('#moodTags .tag').forEach(function(tag) {
-    tag.addEventListener('click', function(e) {
-      if (e.target.classList.contains('remove-tag')) return;
-      this.classList.toggle('opacity-40');
-    });
+    bindMoodTag(tag);
   });
+}
+
+// 为一个氛围标签元素绑定点击选中逻辑（点删除叉时不触发选中切换）
+function bindMoodTag(tag) {
+  tag.addEventListener('click', function(e) {
+    if (e.target.classList.contains('remove-tag')) return;
+    this.classList.toggle('selected');
+  });
+}
+
+// 创建一个氛围标签元素（可选是否默认选中、是否可删除）
+function createMoodTag(mood, selected, removable) {
+  var span = document.createElement('span');
+  span.className = 'tag' + (selected ? ' selected' : '');
+  span.dataset.mood = mood;
+  span.textContent = mood;
+  if (removable) {
+    var x = document.createElement('span');
+    x.className = 'remove-tag';
+    x.textContent = 'x';
+    x.addEventListener('click', function(ev) { ev.stopPropagation(); span.remove(); });
+    span.appendChild(x);
+  }
+  bindMoodTag(span);
+  return span;
+}
+
+// 添加自定义氛围标签（输入框 + 回车/按钮）
+function addCustomMoodTag() {
+  var input = document.getElementById('customMoodInput');
+  if (!input) return;
+  var mood = input.value.trim();
+  input.value = '';
+  if (!mood) return;
+  // 已存在则直接选中，不重复创建
+  var existing = Array.from(document.querySelectorAll('#moodTags .tag')).find(function(t) { return t.dataset.mood === mood; });
+  if (existing) { existing.classList.add('selected'); return; }
+  document.getElementById('moodTags').appendChild(createMoodTag(mood, true, true));
+}
+
+// 根据一组氛围值设置选中态；预设中没有的值会作为自定义标签补充进去
+function applyMoodTags(moods) {
+  if (!Array.isArray(moods)) moods = [];
+  var container = document.getElementById('moodTags');
+  var presetMoods = [];
+  document.querySelectorAll('#moodTags .tag').forEach(function(t) {
+    presetMoods.push(t.dataset.mood);
+    t.classList.toggle('selected', moods.indexOf(t.dataset.mood) !== -1);
+  });
+  moods.forEach(function(m) {
+    if (presetMoods.indexOf(m) === -1) {
+      container.appendChild(createMoodTag(m, true, true));
+    }
+  });
+}
+
+// 收集当前选中的氛围标签（.selected）
+function getSelectedMoods() {
+  return Array.from(document.querySelectorAll('#moodTags .tag.selected')).map(function(t) { return t.dataset.mood; });
 }
 
 // Style grid
@@ -382,7 +451,7 @@ function renderCharacters() {
   for (var j = 0; j < characters.length; j++) {
     var c = characters[j];
     html += '<div class="character-card" data-char-id="' + c.id + '">';
-    html += '<span class="char-remove" onclick="removeCharacter(' + c.id + ')"><i class="fas fa-times"></i></span>';
+    html += '<span class="char-remove" onclick="removeCharacter(' + c.id + ')"><i class="fa fa-times"></i></span>';
     html += '<input class="input-field mb-2 char-name" placeholder="角色名" value="' + c.name + '" data-char-id="' + c.id + '" style="max-width:300px">';
     html += '<input class="input-field mb-2 char-tags" placeholder="性格标签（逗号分隔）" value="' + (c.personality_tags || []).join(',') + '" data-char-id="' + c.id + '">';
     html += '<textarea class="input-field char-desc" placeholder="角色描述" data-char-id="' + c.id + '">' + (c.description || '') + '</textarea>';
@@ -461,7 +530,7 @@ function renderStep() {
     var toneEl = document.querySelector('#toneGrid .style-option.selected');
     var tone = toneEl ? toneEl.dataset.tone : '自然流畅';
     var length = document.getElementById('lengthControl').value;
-    var activeMoods = Array.from(document.querySelectorAll('#moodTags .tag:not(.opacity-40)')).map(function(t) { return t.dataset.mood; });
+    var activeMoods = getSelectedMoods();
     var charNames = characters.map(function(c) { return c.name; }).join('、');
     var html = '<div><strong class="text-indigo-300">标题：</strong>' + title + '</div>';
     html += '<div><strong class="text-indigo-300">世界观：</strong>' + world.substring(0, 200) + '...</div>';
@@ -486,7 +555,7 @@ async function createAIStory() {
   var toneEl = document.querySelector('#toneGrid .style-option.selected');
   var tone = toneEl ? toneEl.dataset.tone : '自然流畅';
   var length = document.getElementById('lengthControl').value;
-  var activeMoods = Array.from(document.querySelectorAll('#moodTags .tag:not(.opacity-40)')).map(function(t) { return t.dataset.mood; });
+  var activeMoods = getSelectedMoods();
 
   var charactersData = characters.filter(function(c) { return c.name.trim(); });
   var payload = {
@@ -528,7 +597,7 @@ function saveWorkshopState() {
     category: document.getElementById('storyCategory').value,
     startPrompt: document.getElementById('startPrompt').value,
     worldSetting: document.getElementById('worldSetting').value,
-    activeMoods: Array.from(document.querySelectorAll('#moodTags .tag:not(.opacity-40)')).map(function(t) { return t.dataset.mood; }),
+    activeMoods: getSelectedMoods(),
     storyOutline: document.getElementById('storyOutline').value,
     narrative: document.getElementById('narrative').value,
     tone: (function() { var el = document.querySelector('#toneGrid .style-option.selected'); return el ? el.dataset.tone : '自然流畅'; })(),
@@ -563,9 +632,7 @@ function restoreWorkshopState() {
     }
     // Restore mood tags
     if (state.activeMoods) {
-      document.querySelectorAll('#moodTags .tag').forEach(function(t) {
-        t.classList.toggle('opacity-40', state.activeMoods.indexOf(t.dataset.mood) === -1);
-      });
+      applyMoodTags(state.activeMoods);
     }
     // Restore step
     if (state.currentStep && state.currentStep > 1) {

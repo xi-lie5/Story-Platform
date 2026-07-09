@@ -1,4 +1,4 @@
-﻿(function (window) {
+(function (window) {
   const global = window || {};
   const BACKEND_BASE_URL = global.AUTH_BACKEND_BASE_URL || 'http://localhost:5000';
   global.AUTH_BACKEND_BASE_URL = BACKEND_BASE_URL;
